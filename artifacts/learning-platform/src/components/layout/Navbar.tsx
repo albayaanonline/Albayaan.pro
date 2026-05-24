@@ -28,6 +28,7 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/courses", label: t("Courses", "الدورات", "Koorsooyinka"), icon: BookOpen },
+    { href: "/pricing", label: t("Pricing", "الأسعار", "Qiimaha"), icon: ShieldCheck },
     ...(user ? [{ href: "/dashboard", label: t("Dashboard", "لوحة التحكم", "Dhaq-dhaqaaqa"), icon: LayoutDashboard }] : []),
     ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : []),
   ];

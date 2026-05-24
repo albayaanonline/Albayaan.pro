@@ -334,6 +334,68 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Pricing Teaser ── */}
+      <section className="relative z-10 py-16 bg-white/[0.02] border-y border-white/10 w-full">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-3">
+              {t("Simple, one-time pricing", "تسعير بسيط لمرة واحدة", "Qiime fudud oo hal mar ah")}
+            </h2>
+            <p className="text-muted-foreground">{t("Pay once, learn forever. No subscriptions.", "ادفع مرة وتعلم للأبد. بلا اشتراكات.", "Hal mar bixi, weligaa baro. Rumeyn malaha.")}</p>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              { name: t("Starter", "المبتدئ", "Bilowga"), price: "$15", desc: t("1 course, lifetime access", "دورة واحدة، وصول مدى الحياة", "1 koorso, weligeed galitaan"), color: "from-blue-500 to-cyan-400", popular: false },
+              { name: t("Pro Bundle", "الحزمة الاحترافية", "Xidhmo Xirfadeed"), price: "$45", desc: t("3 courses + AI tutoring", "3 دورات + تدريب ذكي", "3 koorso + tababar AI"), color: "from-purple-500 to-indigo-400", popular: true },
+              { name: t("All Access", "الوصول الكامل", "Dhammaan Galitaanka"), price: "$79", desc: t("All 6 courses forever", "جميع الـ6 دورات للأبد", "Dhammaan 6-da koorso weligeed"), color: "from-amber-500 to-orange-400", popular: false },
+            ].map((plan, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className={`relative p-6 rounded-2xl bg-card border text-center hover:scale-[1.02] transition-transform duration-300 ${plan.popular ? "border-purple-500/50" : "border-white/10"}`}>
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <div className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold">⭐ {t("Most Popular", "الأكثر شعبية", "Ugu Caansan")}</div>
+                  </div>
+                )}
+                <div className={`text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r ${plan.color} mb-1`}>{plan.price}</div>
+                <div className="font-bold text-foreground mb-1">{plan.name}</div>
+                <div className="text-sm text-muted-foreground mb-4">{plan.desc}</div>
+                <Link href="/pricing" className={`w-full py-2.5 rounded-xl bg-gradient-to-r ${plan.color} text-white font-bold text-sm flex items-center justify-center gap-1 hover:opacity-90 transition-opacity`}>
+                  {t("Get Started", "ابدأ الآن", "Bilow")} <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Trust / Partners ── */}
+      <section className="relative z-10 py-14 w-full">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center">
+            <p className="text-muted-foreground text-xs uppercase tracking-widest font-semibold mb-8">
+              {t("Trusted Payment Partners", "شركاء الدفع الموثوق بهم", "Wadaagayaasha Lacag Bixinta La Aaminsan")}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
+              {[
+                { name: "Zaad",       emoji: "📱", desc: t("Mobile Money", "نقود موبايل", "Lacagta Mobilka"),    color: "text-green-400",  bg: "bg-green-500/10  border-green-500/20" },
+                { name: "Waafi Pay",  emoji: "💰", desc: t("Mobile Wallet", "محفظة موبايل", "Khiisnaha Mobilka"), color: "text-blue-400",   bg: "bg-blue-500/10   border-blue-500/20" },
+                { name: "VISA",       emoji: "💳", desc: t("Credit Card",   "بطاقة ائتمان",  "Kaarka Deynta"),     color: "text-sky-400",    bg: "bg-sky-500/10    border-sky-500/20" },
+                { name: "Mastercard", emoji: "🔴", desc: t("Debit Card",    "بطاقة خصم",     "Kaarka Lacagta"),    color: "text-red-400",    bg: "bg-red-500/10    border-red-500/20" },
+                { name: "PayPal",     emoji: "🅿️", desc: t("Global Pay",   "دفع عالمي",     "Bixinta Caalamiga"), color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
+                { name: "Stripe",     emoji: "⚡", desc: t("Secure Pay",   "دفع آمن",       "Bixin Ammaan ah"),   color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+              ].map((p, i) => (
+                <motion.div key={p.name} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
+                  className={`flex flex-col items-center gap-2 px-5 py-4 rounded-2xl border ${p.bg} hover:scale-105 transition-transform duration-200 min-w-[90px]`}>
+                  <span className="text-2xl">{p.emoji}</span>
+                  <span className={`font-black text-sm ${p.color}`}>{p.name}</span>
+                  <span className="text-xs text-muted-foreground text-center">{p.desc}</span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── CTA ── */}
       <section className="relative z-10 py-24 w-full">
         <div className="max-w-4xl mx-auto px-4 text-center">
@@ -356,8 +418,8 @@ export default function Home() {
                 {t("Browse Courses", "تصفح الدورات", "Baadh Koorsooyinka")}
                 <ArrowRight className="w-5 h-5" />
               </Link>
-              <Link href="/access-code" className="px-8 py-4 rounded-full border border-white/20 text-foreground font-bold text-lg hover:bg-white/5 transition-colors inline-flex items-center gap-2">
-                {t("Have a code?", "لديك رمز؟", "Ma lihid koodh?")}
+              <Link href="/pricing" className="px-8 py-4 rounded-full border border-white/20 text-foreground font-bold text-lg hover:bg-white/5 transition-colors inline-flex items-center gap-2">
+                {t("View Pricing", "عرض الأسعار", "Arag Qiimaha")}
               </Link>
             </div>
           </motion.div>

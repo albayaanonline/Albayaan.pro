@@ -1,1 +1,2 @@
 - [IlmAI Platform Architecture](ilmai-platform.md) — Vite+React+Wouter+Tailwind monorepo; vite.config.ts requires PORT+BASE_PATH env vars (Replit-only guard now added).
+- [IlmAI Feature Set](ilmai-features.md) — 6 real courses (local data), Firebase Google Auth guard, Zaad/Waafi/card Payment.tsx, Pricing page, admin dashboard 6 tabs, trust logos in Home.tsx, Navbar has /pricing link. Firebase package installed; needs VITE_FIREBASE_* env vars.
