@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useSendChatMessage } from "@workspace/api-client-react";
+import { useSendChatMessage } from "@/lib/api-client";
 import { MessageCircle, X, Send, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/lib/contexts/LanguageContext";

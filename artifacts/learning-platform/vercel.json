@@ -1,8 +1,8 @@
 {
-  "buildCommand": "PORT=3000 BASE_PATH=/ npm run build",
-  "outputDirectory": "dist/public",
-  "installCommand": "npm install",
-  "framework": "vite",
+  "buildCommand":   "npm run build",
+  "outputDirectory":"dist",
+  "installCommand": "npm install --ignore-scripts",
+  "framework":      "vite",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],

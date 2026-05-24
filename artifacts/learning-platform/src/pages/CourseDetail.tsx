@@ -1,4 +1,4 @@
-import { useGetCourse } from "@workspace/api-client-react";
+import { useGetCourse } from "@/lib/api-client";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";

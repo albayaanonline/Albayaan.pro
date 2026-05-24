@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { useGetCourses, useGetUserProgress } from "@workspace/api-client-react";
+import { useGetCourses, useGetUserProgress } from "@/lib/api-client";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { BookOpen, Trophy, CheckCircle, Clock, ArrowRight, Star } from "lucide-react";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { useVerifyCode } from "@workspace/api-client-react";
+import { useVerifyCode } from "@/lib/api-client";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Key, Loader2, CheckCircle2, ArrowRight } from "lucide-react";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { useGetCourse, useSubmitPayment } from "@workspace/api-client-react";
+import { useGetCourse, useSubmitPayment } from "@/lib/api-client";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Loader2, CheckCircle2, Phone, Copy, ArrowRight } from "lucide-react";

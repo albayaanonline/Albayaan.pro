@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useGetAdminStats, useGetAdminUsers, useGetAdminPayments, useGetAdminCodes, useConfirmPayment, useCreateCode, useDeactivateCode } from "@workspace/api-client-react";
+import { useGetAdminStats, useGetAdminUsers, useGetAdminPayments, useGetAdminCodes, useConfirmPayment, useCreateCode, useDeactivateCode } from "@/lib/api-client";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2, Plus, TrendingUp, Clock } from "lucide-react";
 

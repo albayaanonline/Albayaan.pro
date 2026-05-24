@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGetLesson, useGetLessonQuiz, useMarkLessonComplete, useSubmitQuiz } from "@workspace/api-client-react";
+import { useGetLesson, useGetLessonQuiz, useMarkLessonComplete, useSubmitQuiz } from "@/lib/api-client";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { CheckCircle2, ArrowLeft, ArrowRight, BookOpen, HelpCircle, Loader2, Trophy, XCircle } from "lucide-react";

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useGetMe, User } from "@workspace/api-client-react";
+import { useGetMe, User } from "@/lib/api-client";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 
