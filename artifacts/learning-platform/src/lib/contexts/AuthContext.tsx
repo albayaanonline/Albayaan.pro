@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useGetMe, User } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
+import { Loader2 } from "lucide-react";
 
 interface AuthContextType {
   user: User | null;
@@ -61,7 +62,16 @@ export function ProtectedRoute({ component: Component, adminOnly = false, ...res
   }, [user, isLoading, setLocation, adminOnly]);
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background text-primary">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user || (adminOnly && user.role !== "admin")) {

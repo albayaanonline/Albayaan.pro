@@ -68,6 +68,7 @@ export default function Register() {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
+                autoComplete="name"
                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                 placeholder={t("Your full name", "اسمك الكامل", "Magacaaga buuxa")}
               />
@@ -80,6 +81,7 @@ export default function Register() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                 placeholder="you@example.com"
               />
@@ -93,6 +95,7 @@ export default function Register() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
+                  autoComplete="new-password"
                   className="w-full px-4 py-3 pr-12 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                   placeholder="••••••••"
                 />

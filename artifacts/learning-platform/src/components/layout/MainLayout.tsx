@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Navbar } from "./Navbar";
+import { Footer } from "./Footer";
 import { AIChat } from "./AIChat";
 import { WhatsAppButton } from "./WhatsAppButton";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
@@ -13,6 +14,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
       <main className="flex-1 w-full pt-16">
         {children}
       </main>
+      <Footer />
       <AIChat />
       <WhatsAppButton />
     </div>

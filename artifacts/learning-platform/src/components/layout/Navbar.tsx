@@ -1,55 +1,173 @@
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { ThemeToggle } from "../shared/ThemeToggle";
 import { LanguageToggle } from "../shared/LanguageToggle";
+import { ThemeToggle } from "../shared/ThemeToggle";
+import { Menu, X, BookOpen, LayoutDashboard, ShieldCheck, LogOut, User } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
+  const [location] = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location]);
+
+  const isActive = (path: string) => location === path;
+
+  const navLinks = [
+    { href: "/courses", label: t("Courses", "الدورات", "Koorsooyinka"), icon: BookOpen },
+    ...(user ? [{ href: "/dashboard", label: t("Dashboard", "لوحة التحكم", "Dhaq-dhaqaaqa"), icon: LayoutDashboard }] : []),
+    ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : []),
+  ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-          IlmAI
-        </Link>
-        <div className="flex flex-1 items-center justify-end gap-4">
-          <div className="hidden md:flex items-center gap-6 mr-4">
-            <Link href="/courses" className="text-sm font-medium hover:text-primary transition-colors">
-              {t("Courses", "الدورات", "Koorsooyinka")}
-            </Link>
-            {user && (
-              <Link href="/dashboard" className="text-sm font-medium hover:text-primary transition-colors">
-                {t("Dashboard", "لوحة القيادة", "Dhaq-dhaqaaqa")}
+    <>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-md shadow-lg border-b border-border/50" : "bg-transparent"}`}>
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 shrink-0">
+            IlmAI
+          </Link>
+
+          {/* Desktop Nav */}
+          <div className="hidden md:flex flex-1 items-center justify-center gap-1">
+            {navLinks.map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  isActive(link.href)
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                } ${link.href === "/admin" ? "text-purple-400 hover:text-purple-300 hover:bg-purple-500/10" : ""}`}
+              >
+                <link.icon className="w-4 h-4" />
+                {link.label}
               </Link>
-            )}
-            {user?.role === "admin" && (
-              <Link href="/admin" className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors">
-                Admin
-              </Link>
+            ))}
+          </div>
+
+          {/* Right Side */}
+          <div className="hidden md:flex items-center gap-3">
+            <LanguageToggle />
+            <ThemeToggle />
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                    {user.name?.[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-foreground">{user.name?.split(" ")[0]}</span>
+                </div>
+                <button
+                  onClick={() => logout()}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {t("Logout", "خروج", "Bax")}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href="/auth/login" className="px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  {t("Login", "دخول", "Gal")}
+                </Link>
+                <Link href="/auth/register" className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all">
+                  {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
+                </Link>
+              </div>
             )}
           </div>
-          <LanguageToggle />
-          {user ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground hidden sm:inline-block">{user.name}</span>
-              <button onClick={() => logout()} className="text-sm font-medium hover:text-destructive transition-colors">
-                {t("Logout", "تسجيل الخروج", "Bixitaan")}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/auth/login" className="text-sm font-medium hover:text-primary transition-colors px-3 py-2">
-                {t("Login", "تسجيل الدخول", "Galitaan")}
-              </Link>
-              <Link href="/auth/register" className="text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-full transition-colors">
-                {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
-              </Link>
-            </div>
-          )}
+
+          {/* Mobile Right */}
+          <div className="flex md:hidden items-center gap-2">
+            <LanguageToggle compact />
+            <ThemeToggle />
+            <button
+              onClick={() => setMobileOpen(v => !v)}
+              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-16 left-0 right-0 z-40 bg-background/98 backdrop-blur-xl border-b border-border/50 shadow-2xl"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
+              {navLinks.map(link => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                    isActive(link.href)
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  }`}
+                >
+                  <link.icon className="w-5 h-5" />
+                  {link.label}
+                </Link>
+              ))}
+
+              <div className="pt-3 border-t border-border/50 space-y-2">
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                        {user.name?.[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{user.name}</div>
+                        <div className="text-xs text-muted-foreground">{user.email}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => logout()}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      {t("Logout", "تسجيل الخروج", "Bixitaan")}
+                    </button>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/auth/login" className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
+                      <User className="w-4 h-4" />
+                      {t("Login", "دخول", "Gal")}
+                    </Link>
+                    <Link href="/auth/register" className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold transition-all">
+                      {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

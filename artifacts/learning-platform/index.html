@@ -1,21 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>AI Learning Platform</title>
-    <meta name="description" content="AI Learning Platform — built on Replit. Update this description to reflect the app." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <title>IlmAI — AI-Powered Language Learning Platform</title>
+    <meta name="description" content="Master English, Arabic & Somali with IlmAI — a premium AI-powered language learning platform with interactive lessons, quizzes, and certificates." />
+    <meta name="keywords" content="language learning, English, Arabic, Somali, AI learning, online courses, IlmAI" />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="AI Learning Platform" />
-    <meta property="og:description" content="AI Learning Platform — built on Replit. Update this description to reflect the app." />
+    <meta name="author" content="IlmAI" />
+    <meta name="theme-color" content="#0a0f24" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="IlmAI — AI-Powered Language Learning" />
+    <meta property="og:description" content="Master English, Arabic & Somali with AI-powered courses, quizzes and certificates." />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ilmai.app" />
+    <meta property="og:site_name" content="IlmAI" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="AI Learning Platform" />
-    <meta name="twitter:description" content="AI Learning Platform — built on Replit. Update this description to reflect the app." />
+    <meta name="twitter:title" content="IlmAI — AI-Powered Language Learning" />
+    <meta name="twitter:description" content="Master English, Arabic & Somali with AI-powered courses, quizzes and certificates." />
+
+    <!-- Apple -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="IlmAI" />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- Prevent flash of wrong theme -->
+    <script>
+      try {
+        var t = localStorage.getItem('ilmai_theme');
+        var d = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', d);
+        document.documentElement.classList.toggle('light', !d);
+      } catch(e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

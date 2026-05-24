@@ -45,50 +45,57 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-:root {
+/* ─── Dark theme (default) ─── */
+:root,
+.dark {
   --background: 229 63% 5%;
-  --foreground: 0 0% 100%;
+  --foreground: 0 0% 98%;
   --card: 228 50% 8%;
-  --card-foreground: 0 0% 100%;
+  --card-foreground: 0 0% 98%;
+  --card-border: 228 30% 14%;
   --popover: 228 50% 8%;
-  --popover-foreground: 0 0% 100%;
+  --popover-foreground: 0 0% 98%;
+  --popover-border: 228 30% 14%;
   --primary: 217 91% 60%;
   --primary-foreground: 0 0% 100%;
   --secondary: 258 90% 66%;
   --secondary-foreground: 0 0% 100%;
-  --muted: 228 30% 15%;
-  --muted-foreground: 228 20% 70%;
+  --muted: 228 30% 14%;
+  --muted-foreground: 228 20% 65%;
   --accent: 258 90% 66%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 228 30% 15%;
-  --input: 228 30% 15%;
+  --border: 228 30% 14%;
+  --input: 228 30% 12%;
   --ring: 217 91% 60%;
-  --radius: 1rem;
+  --radius: 0.875rem;
   --app-font-sans: 'Inter', sans-serif;
 }
 
-.dark {
-  --background: 229 63% 5%;
-  --foreground: 0 0% 100%;
-  --card: 228 50% 8%;
-  --card-foreground: 0 0% 100%;
-  --popover: 228 50% 8%;
-  --popover-foreground: 0 0% 100%;
-  --primary: 217 91% 60%;
+/* ─── Light theme ─── */
+.light {
+  --background: 220 20% 97%;
+  --foreground: 224 71% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 224 71% 8%;
+  --card-border: 220 15% 88%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 71% 8%;
+  --popover-border: 220 15% 88%;
+  --primary: 217 91% 55%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 258 90% 66%;
+  --secondary: 258 80% 58%;
   --secondary-foreground: 0 0% 100%;
-  --muted: 228 30% 15%;
-  --muted-foreground: 228 20% 70%;
-  --accent: 258 90% 66%;
+  --muted: 220 15% 93%;
+  --muted-foreground: 220 10% 46%;
+  --accent: 258 80% 58%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%;
+  --destructive: 0 84% 55%;
   --destructive-foreground: 0 0% 100%;
-  --border: 228 30% 15%;
-  --input: 228 30% 15%;
-  --ring: 217 91% 60%;
+  --border: 220 15% 88%;
+  --input: 220 15% 93%;
+  --ring: 217 91% 55%;
 }
 
 @layer base {
@@ -97,5 +104,22 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
   }
 }

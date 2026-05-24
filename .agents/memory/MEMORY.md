@@ -1,0 +1,1 @@
+- [IlmAI Platform Architecture](ilmai-platform.md) — Vite+React+Wouter+Tailwind monorepo; vite.config.ts requires PORT+BASE_PATH env vars (Replit-only guard now added).
