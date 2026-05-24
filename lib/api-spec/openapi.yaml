@@ -1,22 +1,40 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI Learning Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: courses
+    description: Course management
+  - name: lessons
+    description: Lesson management
+  - name: progress
+    description: User progress tracking
+  - name: codes
+    description: Access code system
+  - name: payments
+    description: Payment submissions
+  - name: testimonials
+    description: Testimonials
+  - name: admin
+    description: Admin operations
+  - name: chat
+    description: AI chat assistant
+  - name: certificates
+    description: Course certificates
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +42,470 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  # COURSES
+  /courses:
+    get:
+      operationId: getCourses
+      tags: [courses]
+      summary: List all courses
+      responses:
+        "200":
+          description: List of courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+
+  /courses/{courseId}:
+    get:
+      operationId: getCourse
+      tags: [courses]
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: Get course details
+      responses:
+        "200":
+          description: Course detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseDetail"
+        "404":
+          description: Not found
+
+  /courses/{courseId}/lessons:
+    get:
+      operationId: getCourseLessons
+      tags: [courses]
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: Get lessons for a course
+      responses:
+        "200":
+          description: Lessons list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lesson"
+
+  # LESSONS
+  /lessons/{lessonId}:
+    get:
+      operationId: getLesson
+      tags: [lessons]
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: Get a single lesson
+      responses:
+        "200":
+          description: Lesson
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDetail"
+        "404":
+          description: Not found
+
+  /lessons/{lessonId}/quiz:
+    get:
+      operationId: getLessonQuiz
+      tags: [lessons]
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: Get quiz for a lesson
+      responses:
+        "200":
+          description: Quiz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quiz"
+
+  /lessons/{lessonId}/quiz/submit:
+    post:
+      operationId: submitQuiz
+      tags: [lessons]
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: Submit quiz answers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizSubmission"
+      responses:
+        "200":
+          description: Quiz result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+
+  # PROGRESS
+  /progress:
+    get:
+      operationId: getUserProgress
+      tags: [progress]
+      summary: Get current user progress across all courses
+      responses:
+        "200":
+          description: User progress
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourseProgress"
+
+  /progress/complete:
+    post:
+      operationId: markLessonComplete
+      tags: [progress]
+      summary: Mark a lesson as complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LessonCompleteInput"
+      responses:
+        "200":
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseProgress"
+
+  /progress/certificate/{courseId}:
+    get:
+      operationId: getCertificate
+      tags: [certificates]
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: Get certificate data for completed course
+      responses:
+        "200":
+          description: Certificate data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Certificate"
+        "403":
+          description: Course not completed
+
+  # ACCESS CODES
+  /codes/verify:
+    post:
+      operationId: verifyCode
+      tags: [codes]
+      summary: Verify and activate an access code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeVerifyInput"
+      responses:
+        "200":
+          description: Code verified and activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodeVerifyResponse"
+        "400":
+          description: Invalid or already used code
+
+  # PAYMENTS
+  /payments:
+    post:
+      operationId: submitPayment
+      tags: [payments]
+      summary: Submit payment proof (WhatsApp screenshot reference)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Payment submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  # TESTIMONIALS
+  /testimonials:
+    get:
+      operationId: getTestimonials
+      tags: [testimonials]
+      summary: Get all testimonials
+      responses:
+        "200":
+          description: Testimonials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Testimonial"
+
+  # AI CHAT
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send message to AI chat assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  # PLATFORM STATS (WOW)
+  /stats/summary:
+    get:
+      operationId: getPlatformStats
+      tags: [courses]
+      summary: Get platform-wide stats (total students, courses, completions)
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
+  # ADMIN ROUTES
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Admin dashboard statistics
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/users:
+    get:
+      operationId: getAdminUsers
+      tags: [admin]
+      summary: List all users
+      responses:
+        "200":
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+
+  /admin/payments:
+    get:
+      operationId: getAdminPayments
+      tags: [admin]
+      summary: List all payment submissions
+      responses:
+        "200":
+          description: Payments list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+
+  /admin/payments/{paymentId}/confirm:
+    post:
+      operationId: confirmPayment
+      tags: [admin]
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: Confirm payment and issue access code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentConfirmInput"
+      responses:
+        "200":
+          description: Payment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /admin/codes:
+    get:
+      operationId: getAdminCodes
+      tags: [admin]
+      summary: List all access codes
+      responses:
+        "200":
+          description: Codes list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessCode"
+    post:
+      operationId: createCode
+      tags: [admin]
+      summary: Create a new access code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeCreateInput"
+      responses:
+        "201":
+          description: Code created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessCode"
+
+  /admin/codes/{codeId}/deactivate:
+    patch:
+      operationId: deactivateCode
+      tags: [admin]
+      parameters:
+        - name: codeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: Deactivate an access code
+      responses:
+        "200":
+          description: Code deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessCode"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +516,485 @@ components:
       required:
         - status
 
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    # AUTH
+    RegisterInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    User:
+      type: object
+      required: [id, name, email, role, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    # COURSES
+    Course:
+      type: object
+      required: [id, slug, title, titleAr, titleSo, description, descriptionAr, descriptionSo, language, level, price, lessonCount, duration, thumbnailUrl]
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        title:
+          type: string
+        titleAr:
+          type: string
+        titleSo:
+          type: string
+        description:
+          type: string
+        descriptionAr:
+          type: string
+        descriptionSo:
+          type: string
+        language:
+          type: string
+          enum: [english, arabic]
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        price:
+          type: number
+        lessonCount:
+          type: integer
+        duration:
+          type: string
+        thumbnailUrl:
+          type: ["string", "null"]
+        enrolledCount:
+          type: integer
+
+    CourseDetail:
+      type: object
+      required: [id, slug, title, titleAr, titleSo, description, descriptionAr, descriptionSo, language, level, price, lessonCount, duration, thumbnailUrl, lessons]
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        title:
+          type: string
+        titleAr:
+          type: string
+        titleSo:
+          type: string
+        description:
+          type: string
+        descriptionAr:
+          type: string
+        descriptionSo:
+          type: string
+        language:
+          type: string
+          enum: [english, arabic]
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        price:
+          type: number
+        lessonCount:
+          type: integer
+        duration:
+          type: string
+        thumbnailUrl:
+          type: ["string", "null"]
+        enrolledCount:
+          type: integer
+        lessons:
+          type: array
+          items:
+            $ref: "#/components/schemas/Lesson"
+
+    # LESSONS
+    Lesson:
+      type: object
+      required: [id, courseId, title, titleAr, titleSo, order, duration, isLocked]
+      properties:
+        id:
+          type: integer
+        courseId:
+          type: integer
+        title:
+          type: string
+        titleAr:
+          type: string
+        titleSo:
+          type: string
+        order:
+          type: integer
+        duration:
+          type: string
+        isLocked:
+          type: boolean
+        hasQuiz:
+          type: boolean
+
+    LessonDetail:
+      type: object
+      required: [id, courseId, title, titleAr, titleSo, order, duration, isLocked, content, contentAr, contentSo]
+      properties:
+        id:
+          type: integer
+        courseId:
+          type: integer
+        title:
+          type: string
+        titleAr:
+          type: string
+        titleSo:
+          type: string
+        order:
+          type: integer
+        duration:
+          type: string
+        isLocked:
+          type: boolean
+        hasQuiz:
+          type: boolean
+        content:
+          type: string
+        contentAr:
+          type: string
+        contentSo:
+          type: string
+        videoUrl:
+          type: ["string", "null"]
+
+    # QUIZ
+    Quiz:
+      type: object
+      required: [id, lessonId, questions]
+      properties:
+        id:
+          type: integer
+        lessonId:
+          type: integer
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizQuestion"
+
+    QuizQuestion:
+      type: object
+      required: [id, question, options]
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+
+    QuizSubmission:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: array
+          items:
+            type: object
+            required: [questionId, answer]
+            properties:
+              questionId:
+                type: integer
+              answer:
+                type: integer
+
+    QuizResult:
+      type: object
+      required: [score, total, passed]
+      properties:
+        score:
+          type: integer
+        total:
+          type: integer
+        passed:
+          type: boolean
+
+    # PROGRESS
+    CourseProgress:
+      type: object
+      required: [courseId, userId, completedLessons, totalLessons, percentComplete, isCompleted]
+      properties:
+        courseId:
+          type: integer
+        userId:
+          type: integer
+        completedLessons:
+          type: integer
+        totalLessons:
+          type: integer
+        percentComplete:
+          type: number
+        isCompleted:
+          type: boolean
+        completedAt:
+          type: ["string", "null"]
+
+    LessonCompleteInput:
+      type: object
+      required: [lessonId]
+      properties:
+        lessonId:
+          type: integer
+
+    # CERTIFICATE
+    Certificate:
+      type: object
+      required: [userId, userName, courseId, courseName, completedAt]
+      properties:
+        userId:
+          type: integer
+        userName:
+          type: string
+        courseId:
+          type: integer
+        courseName:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+
+    # ACCESS CODES
+    AccessCode:
+      type: object
+      required: [id, code, courseId, isActive, isUsed, createdAt]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        courseId:
+          type: integer
+        courseName:
+          type: string
+        isActive:
+          type: boolean
+        isUsed:
+          type: boolean
+        usedByUserId:
+          type: ["integer", "null"]
+        usedByEmail:
+          type: ["string", "null"]
+        usedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    CodeVerifyInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+
+    CodeVerifyResponse:
+      type: object
+      required: [success, courseId, courseName]
+      properties:
+        success:
+          type: boolean
+        courseId:
+          type: integer
+        courseName:
+          type: string
+
+    CodeCreateInput:
+      type: object
+      required: [courseId]
+      properties:
+        courseId:
+          type: integer
+
+    # PAYMENTS
+    Payment:
+      type: object
+      required: [id, userId, courseId, courseName, status, whatsappNumber, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userEmail:
+          type: string
+        userName:
+          type: string
+        courseId:
+          type: integer
+        courseName:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, rejected]
+        whatsappNumber:
+          type: string
+        notes:
+          type: ["string", "null"]
+        accessCode:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentInput:
+      type: object
+      required: [courseId, whatsappNumber]
+      properties:
+        courseId:
+          type: integer
+        whatsappNumber:
+          type: string
+        notes:
+          type: string
+
+    PaymentConfirmInput:
+      type: object
+      required: [generateCode]
+      properties:
+        generateCode:
+          type: boolean
+
+    # TESTIMONIALS
+    Testimonial:
+      type: object
+      required: [id, name, text, rating, courseId, courseName, avatarUrl]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        text:
+          type: string
+        rating:
+          type: integer
+        courseId:
+          type: integer
+        courseName:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+
+    # CHAT
+    ChatMessageInput:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        history:
+          type: array
+          items:
+            type: object
+            required: [role, content]
+            properties:
+              role:
+                type: string
+              content:
+                type: string
+
+    ChatResponse:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string
+
+    # STATS
+    PlatformStats:
+      type: object
+      required: [totalStudents, totalCourses, totalLessons, completionRate]
+      properties:
+        totalStudents:
+          type: integer
+        totalCourses:
+          type: integer
+        totalLessons:
+          type: integer
+        completionRate:
+          type: number
+
+    AdminStats:
+      type: object
+      required: [totalUsers, totalPayments, pendingPayments, confirmedPayments, totalCodes, usedCodes, revenueEstimate]
+      properties:
+        totalUsers:
+          type: integer
+        totalPayments:
+          type: integer
+        pendingPayments:
+          type: integer
+        confirmedPayments:
+          type: integer
+        totalCodes:
+          type: integer
+        usedCodes:
+          type: integer
+        revenueEstimate:
+          type: number
+
+    AdminUser:
+      type: object
+      required: [id, name, email, role, enrolledCourses, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        enrolledCourses:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
