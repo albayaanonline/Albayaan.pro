@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,6 +8,7 @@ import { AuthProvider, ProtectedRoute } from "@/lib/contexts/AuthContext";
 import { LanguageProvider } from "@/lib/contexts/LanguageContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { SplashScreen } from "@/components/SplashScreen";
 
 import Home           from "@/pages/Home";
 import Courses        from "@/pages/Courses";
@@ -29,7 +31,12 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const [splashDone, setSplashDone] = useState(false);
+  const handleSplashDone = useCallback(() => setSplashDone(true), []);
+
   return (
+    <>
+      {!splashDone && <SplashScreen onDone={handleSplashDone} />}
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <AuthProvider>
@@ -89,6 +96,7 @@ function App() {
         </AuthProvider>
       </LanguageProvider>
     </QueryClientProvider>
+    </>
   );
 }
 

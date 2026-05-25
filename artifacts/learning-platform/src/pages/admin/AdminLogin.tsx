@@ -48,9 +48,7 @@ export default function AdminLogin() {
         <div className="p-8 rounded-3xl bg-card border border-white/10 shadow-2xl">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-4 shadow-[0_0_25px_rgba(139,92,246,0.4)]">
-              <ShieldCheck className="w-7 h-7 text-white" />
-            </div>
+            <img src="/logo-96.png" alt="Albayaan.pro" className="h-16 w-16 object-contain mx-auto mb-3 drop-shadow-[0_0_16px_rgba(59,130,246,0.7)]" />
             <h1 className="text-2xl font-black text-white">Admin Login</h1>
             <p className="text-muted-foreground text-sm mt-1">
               <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Albayaan.pro</span>
