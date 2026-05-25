@@ -15,8 +15,11 @@ export function Footer() {
 
           {/* Brand */}
           <div className="md:col-span-2 space-y-4">
-            <Link href="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 inline-block">
-              {BRAND}
+            <Link href="/" className="flex items-center gap-3 inline-flex">
+              <img src="/logo-48.png" alt="Albayaan.pro" className="h-10 w-10 object-contain" />
+              <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+                {BRAND}
+              </span>
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
               {t(

@@ -1,18 +1,30 @@
 {
-  "name": "IlmAI – AI Language Learning",
-  "short_name": "IlmAI",
+  "name": "Albayaan.pro – AI Language Learning",
+  "short_name": "Albayaan",
   "description": "Master languages at the speed of AI — English, Arabic & Somali.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f1117",
-  "theme_color": "#6366f1",
+  "background_color": "#0a0f24",
+  "theme_color": "#1e3a8a",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["education", "productivity"],

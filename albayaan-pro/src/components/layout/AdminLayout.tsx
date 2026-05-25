@@ -28,8 +28,11 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div className="px-5 py-5 border-b border-border/50">
-        <Link href="/" className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 inline-block">
-          {BRAND}
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/logo-48.png" alt="Albayaan.pro" className="h-8 w-8 object-contain" />
+          <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+            {BRAND}
+          </span>
         </Link>
         <div className="flex items-center gap-1.5 mt-1">
           <Shield className="w-3 h-3 text-purple-400" />
