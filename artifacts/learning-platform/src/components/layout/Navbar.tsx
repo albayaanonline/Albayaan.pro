@@ -4,8 +4,10 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { LanguageToggle } from "../shared/LanguageToggle";
 import { ThemeToggle } from "../shared/ThemeToggle";
-import { Menu, X, BookOpen, LayoutDashboard, ShieldCheck, LogOut, User } from "lucide-react";
+import { Menu, X, BookOpen, LayoutDashboard, ShieldCheck, LogOut, User, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+const BRAND = "Albayaan.pro";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -20,15 +22,13 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location]);
+  useEffect(() => { setMobileOpen(false); }, [location]);
 
   const isActive = (path: string) => location === path;
 
   const navLinks = [
     { href: "/courses", label: t("Courses", "الدورات", "Koorsooyinka"), icon: BookOpen },
-    { href: "/pricing", label: t("Pricing", "الأسعار", "Qiimaha"), icon: ShieldCheck },
+    { href: "/pricing", label: t("Pricing", "الأسعار", "Qiimaha"),     icon: DollarSign },
     ...(user ? [{ href: "/dashboard", label: t("Dashboard", "لوحة التحكم", "Dhaq-dhaqaaqa"), icon: LayoutDashboard }] : []),
     ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : []),
   ];
@@ -37,9 +37,12 @@ export function Navbar() {
     <>
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-md shadow-lg border-b border-border/50" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 shrink-0">
-            IlmAI
+          <Link href="/" className="flex items-center gap-1 shrink-0">
+            <span className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+              {BRAND}
+            </span>
           </Link>
 
           {/* Desktop Nav */}
@@ -82,10 +85,14 @@ export function Navbar() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                <Link href="/admin/login" className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Admin
+                </Link>
                 <Link href="/auth/login" className="px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   {t("Login", "دخول", "Gal")}
                 </Link>
-                <Link href="/auth/register" className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all">
+                <Link href="/auth/register" className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:opacity-90 transition-opacity">
                   {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
                 </Link>
               </div>
@@ -111,11 +118,11 @@ export function Navbar() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-16 left-0 right-0 z-40 bg-background/98 backdrop-blur-xl border-b border-border/50 shadow-2xl"
+            className="fixed top-16 left-0 right-0 z-40 bg-background/98 backdrop-blur-xl border-b border-border shadow-xl"
           >
             <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
               {navLinks.map(link => (
@@ -154,14 +161,19 @@ export function Navbar() {
                     </button>
                   </>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link href="/auth/login" className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
-                      <User className="w-4 h-4" />
-                      {t("Login", "دخول", "Gal")}
+                  <div className="space-y-2">
+                    <Link href="/admin/login" className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-purple-400 hover:bg-purple-500/10 transition-colors">
+                      <ShieldCheck className="w-4 h-4" /> Admin Login
                     </Link>
-                    <Link href="/auth/register" className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold transition-all">
-                      {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
-                    </Link>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link href="/auth/login" className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
+                        <User className="w-4 h-4" />
+                        {t("Login", "دخول", "Gal")}
+                      </Link>
+                      <Link href="/auth/register" className="flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold transition-all">
+                        {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>

@@ -9,7 +9,7 @@ type Message = { role: "user" | "assistant"; content: string };
 export function AIChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi! I'm your IlmAI assistant. How can I help you learn today? 🎓" }
+    { role: "assistant", content: "Hi! I'm your Albayaan.pro assistant. How can I help you learn today? 🎓" }
   ]);
   const [input, setInput] = useState("");
   const chatMutation = useSendChatMessage();
@@ -81,7 +81,7 @@ export function AIChat() {
                   <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-foreground text-sm">IlmAI Assistant</h3>
+                  <h3 className="font-bold text-foreground text-sm">Albayaan Assistant</h3>
                   <div className="flex items-center gap-1.5 text-xs text-green-400">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_6px_#4ade80]" />
                     Online

@@ -1,2 +1,3 @@
-- [IlmAI Platform Architecture](ilmai-platform.md) — Vite+React+Wouter+Tailwind monorepo; vite.config.ts requires PORT+BASE_PATH env vars (Replit-only guard now added).
-- [IlmAI Feature Set](ilmai-features.md) — 6 real courses (local data), Firebase Google Auth guard, Zaad/Waafi/card Payment.tsx, Pricing page, admin dashboard 6 tabs, trust logos in Home.tsx, Navbar has /pricing link. Firebase package installed; needs VITE_FIREBASE_* env vars.
+- [Albayaan Platform Architecture](ilmai-platform.md) — Rebranded from IlmAI to Albayaan.pro; Vite+React+Wouter+Tailwind monorepo; vite.config.ts requires PORT+BASE_PATH env vars.
+- [Albayaan Feature Set](ilmai-features.md) — 6 real courses (local data), Firebase Google Auth guard, Zaad/Waafi/card Payment.tsx, Pricing page, admin dashboard 6 tabs, AIChat rebranded. Firebase package installed; needs VITE_FIREBASE_* env vars.
+- [Albayaan Admin Routing](albayaan-admin-routing.md) — Wouter admin routing: /admin/login must be a top-level Route BEFORE any /admin/:rest* catch; nested AdminLayout routes below it. Default creds: admin@example.com / Admin123.

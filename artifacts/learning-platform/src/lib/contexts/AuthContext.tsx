@@ -3,37 +3,59 @@ import { useGetMe, User } from "@/lib/api-client";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 
+const ADMIN_STORAGE_KEY = "albayaan_admin_user";
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (user: User) => void;
+  loginAsAdmin: (user: User) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { data: user, isLoading: isQueryLoading } = useGetMe({
-    query: {
-      retry: false,
-    }
+  const { data: apiUser, isLoading: isQueryLoading } = useGetMe({
+    query: { retry: false }
   });
 
-  const [localUser, setLocalUser] = useState<User | null>(null);
+  const [localUser, setLocalUser] = useState<User | null>(() => {
+    try {
+      const stored = localStorage.getItem(ADMIN_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!isQueryLoading) {
-      setLocalUser(user || null);
+      if (apiUser) {
+        setLocalUser(apiUser);
+      } else if (!localUser) {
+        setLocalUser(null);
+      }
       setIsLoading(false);
     }
-  }, [user, isQueryLoading]);
+  }, [apiUser, isQueryLoading]);
 
-  const login = (userData: User) => setLocalUser(userData);
-  const logout = () => setLocalUser(null);
+  const login = (userData: User) => {
+    setLocalUser(userData);
+  };
+
+  const loginAsAdmin = (userData: User) => {
+    const admin = { ...userData, role: "admin" as const };
+    setLocalUser(admin);
+    try { localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(admin)); } catch {}
+  };
+
+  const logout = () => {
+    setLocalUser(null);
+    try { localStorage.removeItem(ADMIN_STORAGE_KEY); } catch {}
+  };
 
   return (
-    <AuthContext.Provider value={{ user: localUser, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user: localUser, isLoading, login, loginAsAdmin, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -54,9 +76,9 @@ export function ProtectedRoute({ component: Component, adminOnly = false, ...res
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        setLocation("/auth/login");
+        setLocation(adminOnly ? "/admin/login" : "/auth/login");
       } else if (adminOnly && user.role !== "admin") {
-        setLocation("/dashboard");
+        setLocation("/admin/login");
       }
     }
   }, [user, isLoading, setLocation, adminOnly]);

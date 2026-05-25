@@ -73,8 +73,8 @@ export default function Register() {
       >
         <div className="p-8 rounded-3xl bg-card border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.5)] backdrop-blur-xl">
           <div className="text-center mb-8">
-            <Link href="/" className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 inline-block mb-2">
-              IlmAI
+            <Link href="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 inline-block mb-2">
+              Albayaan.pro
             </Link>
             <h1 className="text-2xl font-bold text-white">{t("Create your account", "إنشاء حسابك", "Samee akoonkaaga")}</h1>
             <p className="text-muted-foreground text-sm mt-1">{t("Start your learning journey today", "ابدأ رحلتك التعليمية اليوم", "Maanta bilow safarka waxbarashadaada")}</p>
