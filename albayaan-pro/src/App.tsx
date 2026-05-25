@@ -23,6 +23,7 @@ import Register       from "@/pages/auth/Register";
 import AuthCallback   from "@/pages/auth/AuthCallback";
 import AdminLogin     from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import Certificate    from "@/pages/Certificate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,6 +84,7 @@ function App() {
                       <Route path="/access-code"              component={AccessCode} />
                       <Route path="/payment/:courseId"        component={Payment} />
                       <Route path="/pricing"                  component={Pricing} />
+                      <ProtectedRoute path="/certificate/:courseId" component={Certificate} />
                       <ProtectedRoute path="/dashboard"       component={Dashboard} />
                       <Route component={NotFound} />
                     </Switch>

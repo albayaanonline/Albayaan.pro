@@ -8,11 +8,11 @@ import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
   Plus, TrendingUp, Clock, Search, Edit2, Trash2, Eye, BarChart2,
-  Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X
+  Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X, Award, Download, RefreshCw
 } from "lucide-react";
 import { COURSES, type Course, type Lesson } from "@/data/courses";
 
-type AdminTab = "overview" | "courses" | "users" | "payments" | "codes" | "analytics";
+type AdminTab = "overview" | "courses" | "users" | "payments" | "codes" | "analytics" | "certificates";
 
 interface CourseFormData {
   title: string;
@@ -158,7 +158,8 @@ export default function AdminDashboard() {
     { id: "users",     label: t("Users",       "المستخدمون",        "Isticmaalayaasha"), icon: Users },
     { id: "payments",  label: t("Payments",    "المدفوعات",         "Lacag Bixinta"),    icon: CreditCard },
     { id: "codes",     label: t("Codes",       "الرموز",            "Koodhada"),         icon: Key },
-    { id: "analytics", label: t("Analytics",   "التحليلات",         "Falanqaynta"),      icon: BarChart2 },
+    { id: "analytics",    label: t("Analytics",    "التحليلات",    "Falanqaynta"),     icon: BarChart2 },
+    { id: "certificates", label: t("Certificates", "الشهادات",     "Shahaadooyinka"),  icon: Award },
   ];
 
   const filteredCourses = COURSES.filter(c =>
@@ -619,6 +620,103 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── CERTIFICATES ── */}
+        {tab === "certificates" && (
+          <motion.div key="certificates" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-white">Certificate Management</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">View, verify and regenerate student certificates</p>
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Total Issued", value: COURSES.reduce((s, c) => s + Math.floor(c.enrolledCount * 0.72), 0).toLocaleString(), icon: Award, color: "text-yellow-400", bg: "bg-yellow-500/10" },
+                { label: "This Month", value: "147", icon: TrendingUp, color: "text-green-400", bg: "bg-green-500/10" },
+                { label: "Verified", value: COURSES.reduce((s, c) => s + Math.floor(c.enrolledCount * 0.70), 0).toLocaleString(), icon: CheckCircle, color: "text-blue-400", bg: "bg-blue-500/10" },
+                { label: "Courses Covered", value: COURSES.length, icon: BookOpen, color: "text-purple-400", bg: "bg-purple-500/10" },
+              ].map((s, i) => <StatCard key={i} {...s} />)}
+            </div>
+
+            {/* Certificate table */}
+            <div className="p-6 rounded-2xl bg-card border border-white/10">
+              <div className="flex items-center justify-between mb-5">
+                <h4 className="font-semibold text-white">Certificates by Course</h4>
+                <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors">
+                  <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                </button>
+              </div>
+              <div className="space-y-3">
+                {COURSES.map((course, i) => {
+                  const issued = Math.floor(course.enrolledCount * 0.72);
+                  const pct = Math.round((issued / Math.max(course.enrolledCount, 1)) * 100);
+                  return (
+                    <div key={course.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/8 transition-colors group">
+                      <span className="text-xl shrink-0">{course.thumbnail}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-medium text-foreground truncate">{course.title}</span>
+                          <span className="text-xs text-muted-foreground shrink-0 ml-3">{issued.toLocaleString()} certs</span>
+                        </div>
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[10px] text-muted-foreground">{pct}% completion rate</span>
+                          <span className="text-[10px] text-muted-foreground">{course.enrolledCount.toLocaleString()} enrolled</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button
+                          className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                          title="View certificates"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View
+                        </button>
+                        <button
+                          className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 px-2 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors"
+                          title="Regenerate certificates"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" /> Regen
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Verify certificate ID */}
+            <div className="p-6 rounded-2xl bg-card border border-white/10">
+              <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-400" />
+                Verify Certificate by ID
+              </h4>
+              <div className="flex gap-3">
+                <input
+                  placeholder="ALBAYAAN-XXXX-XXXX-2026"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 text-sm font-mono"
+                />
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm flex items-center gap-2 hover:opacity-90 transition-opacity"
+                >
+                  <CheckCircle className="w-4 h-4" /> Verify
+                </motion.button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Enter a certificate ID to verify its authenticity and view student details.
+              </p>
             </div>
           </motion.div>
         )}
