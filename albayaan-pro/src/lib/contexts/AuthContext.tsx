@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { useGetMe, getGetMeQueryKey, User } from "@/lib/api-client";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { signOutFromSupabase } from "@/lib/supabase";
 
 const ADMIN_STORAGE_KEY = "albayaan_admin_user";
 
@@ -32,12 +34,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isQueryLoading) {
       if (apiUser) {
         setLocalUser(apiUser);
-      } else if (!localUser) {
-        setLocalUser(null);
+        setIsLoading(false);
+        return;
       }
       setIsLoading(false);
     }
   }, [apiUser, isQueryLoading]);
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && !apiUser) {
+        const sbUser = session.user;
+        setLocalUser({
+          id: 0,
+          name: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email?.split("@")[0] || "User",
+          email: sbUser.email || "",
+          role: "user",
+        } as User);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const sbUser = session.user;
+        setLocalUser({
+          id: 0,
+          name: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email?.split("@")[0] || "User",
+          email: sbUser.email || "",
+          role: "user",
+        } as User);
+      } else if (_event === "SIGNED_OUT") {
+        if (!apiUser) {
+          setLocalUser(null);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [apiUser]);
 
   const login = (userData: User) => {
     setLocalUser(userData);
@@ -49,9 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(admin)); } catch {}
   };
 
-  const logout = () => {
+  const logout = async () => {
     setLocalUser(null);
     try { localStorage.removeItem(ADMIN_STORAGE_KEY); } catch {}
+    await signOutFromSupabase();
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {}
   };
 
   return (

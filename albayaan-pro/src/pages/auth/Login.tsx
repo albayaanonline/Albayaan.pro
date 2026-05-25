@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 import { useLogin } from "@/lib/api-client";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { Eye, EyeOff, Loader2, Chrome } from "lucide-react";
-import { signInWithGoogle, isFirebaseConfigured } from "@/lib/firebase";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { signInWithGoogle, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -39,17 +39,10 @@ export default function Login() {
     setError("");
     setGoogleLoading(true);
     try {
-      const gUser = await signInWithGoogle();
-      if (gUser) {
-        login({ id: 0, name: gUser.name, email: gUser.email, role: "user" } as any);
-        setLocation("/dashboard");
-      } else {
-        setError(t("Google sign-in not configured yet. Use email/password.", "تسجيل الدخول بجوجل غير مفعّل بعد. استخدم البريد الإلكتروني.", "Google gal ma laha wali. Isticmaal email/password."));
-      }
-    } catch {
-      setError(t("Google sign-in failed. Please try again.", "فشل تسجيل الدخول بجوجل.", "Google galitaanka waa fashilantay."));
-    } finally {
+      await signInWithGoogle();
+    } catch (err: any) {
       setGoogleLoading(false);
+      setError(t("Google sign-in failed. Please try again.", "فشل تسجيل الدخول بجوجل.", "Google galitaanka waa fashilantay."));
     }
   };
 
@@ -79,8 +72,8 @@ export default function Login() {
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            disabled={googleLoading}
-            className="w-full mb-6 py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium text-sm flex items-center justify-center gap-3 transition-all hover:border-white/20 disabled:opacity-50"
+            disabled={googleLoading || !isSupabaseConfigured}
+            className="w-full mb-6 py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium text-sm flex items-center justify-center gap-3 transition-all hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {googleLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />

@@ -18,6 +18,7 @@ import Payment        from "@/pages/Payment";
 import Pricing        from "@/pages/Pricing";
 import Login          from "@/pages/auth/Login";
 import Register       from "@/pages/auth/Register";
+import AuthCallback   from "@/pages/auth/AuthCallback";
 import AdminLogin     from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 
@@ -71,6 +72,7 @@ function App() {
                       <Route path="/learn/:courseId/:lessonId" component={Learn} />
                       <Route path="/auth/login"               component={Login} />
                       <Route path="/auth/register"            component={Register} />
+                      <Route path="/auth/callback"            component={AuthCallback} />
                       <Route path="/access-code"              component={AccessCode} />
                       <Route path="/payment/:courseId"        component={Payment} />
                       <Route path="/pricing"                  component={Pricing} />

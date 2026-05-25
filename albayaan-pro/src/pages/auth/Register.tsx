@@ -5,7 +5,7 @@ import { useRegister } from "@/lib/api-client";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { signInWithGoogle } from "@/lib/firebase";
+import { signInWithGoogle, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -44,17 +44,10 @@ export default function Register() {
     setError("");
     setGoogleLoading(true);
     try {
-      const gUser = await signInWithGoogle();
-      if (gUser) {
-        login({ id: 0, name: gUser.name, email: gUser.email, role: "user" } as any);
-        setLocation("/dashboard");
-      } else {
-        setError(t("Google sign-up not configured yet. Use email/password.", "التسجيل بجوجل غير مفعّل بعد.", "Google diiwaan gelinta ma laha wali. Isticmaal email."));
-      }
-    } catch {
-      setError(t("Google sign-up failed. Please try again.", "فشل التسجيل بجوجل.", "Google diiwaan gelinta waa fashilantay."));
-    } finally {
+      await signInWithGoogle();
+    } catch (err: any) {
       setGoogleLoading(false);
+      setError(t("Google sign-up failed. Please try again.", "فشل التسجيل بجوجل.", "Google diiwaan gelinta waa fashilantay."));
     }
   };
 
@@ -84,8 +77,8 @@ export default function Register() {
           <button
             type="button"
             onClick={handleGoogleSignUp}
-            disabled={googleLoading}
-            className="w-full mb-6 py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium text-sm flex items-center justify-center gap-3 transition-all hover:border-white/20 disabled:opacity-50"
+            disabled={googleLoading || !isSupabaseConfigured}
+            className="w-full mb-6 py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium text-sm flex items-center justify-center gap-3 transition-all hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {googleLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
