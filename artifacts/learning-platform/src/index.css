@@ -102,12 +102,20 @@
   * {
     @apply border-border;
   }
+
+  html {
+    /* Removed smooth scroll — causes jank/flicker in Android WebView & Capacitor */
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    /* Stable scrolling on Android */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
   }
-  html {
-    scroll-behavior: smooth;
-  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -121,5 +129,48 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground));
+  }
+}
+
+/* ─── Mobile performance: disable heavy GPU effects on small screens ─── */
+@media (max-width: 768px) {
+  /* Replace backdrop-blur with solid backgrounds on mobile to prevent Android WebView rendering corruption */
+  .mobile-no-blur {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Prevent layout thrashing from large blur blobs */
+  .hero-blob {
+    display: none;
+  }
+
+  /* Stable fixed positioning for Android */
+  .fixed {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* ─── GPU compositing hints for fixed/animated layers ─── */
+.gpu-layer {
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* ─── Stable progress bar animation via CSS (avoids framer-motion reflow) ─── */
+.progress-bar-fill {
+  transition: width 0.8s ease-out;
+}
+
+/* ─── Respect reduced motion preference ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

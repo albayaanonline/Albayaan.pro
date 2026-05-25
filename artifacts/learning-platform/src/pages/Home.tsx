@@ -3,6 +3,12 @@ import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Link } from "wouter";
 import { BookOpen, Users, Trophy, Zap, Globe, ShieldCheck, Star, ArrowRight, CheckCircle, Sparkles, Brain, Target } from "lucide-react";
 
+// Single reusable fade-up variant — avoids creating new objects on every render
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (delay = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay } }),
+};
+
 export default function Home() {
   const { t } = useLanguage();
 
@@ -79,17 +85,21 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-20 pb-16 px-4 text-center overflow-hidden">
-        {/* Contained hero background — scoped to this section only */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        {/*
+          Blur blobs removed on mobile via CSS (.hero-blob hidden on <768px).
+          On desktop they are contained to this section only.
+        */}
+        <div className="absolute inset-0 pointer-events-none hero-blob" aria-hidden>
           <div className="absolute top-0 left-1/4 w-80 h-80 bg-blue-600/15 rounded-full blur-[60px]" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/12 rounded-full blur-[70px]" />
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto w-full space-y-6">
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={0}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary"
           >
             <Sparkles className="w-4 h-4" />
@@ -97,9 +107,10 @@ export default function Home() {
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={0.1}
             className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.1]"
           >
             <span className="text-foreground">{t("Master Languages", "أتقن اللغات", "Luuqadaha Sii Barashada")}</span>
@@ -110,9 +121,10 @@ export default function Home() {
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={0.2}
             className="text-base sm:text-lg md:text-xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed"
           >
             {t(
@@ -123,9 +135,10 @@ export default function Home() {
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={0.3}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2"
           >
             <Link
@@ -144,9 +157,10 @@ export default function Home() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={0.4}
             className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-2 text-sm text-muted-foreground"
           >
             {[
@@ -170,10 +184,11 @@ export default function Home() {
             {stats.map((stat, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial="hidden"
+                whileInView="visible"
                 viewport={{ once: true, amount: 0.3 }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
+                variants={fadeUp}
+                custom={i * 0.08}
                 className="text-center"
               >
                 <div className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-1">
@@ -188,13 +203,7 @@ export default function Home() {
 
       {/* ── Features ── */}
       <section className="py-20 max-w-7xl mx-auto px-4 w-full">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.4 }}
-          className="text-center mb-14"
-        >
+        <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-sm font-medium text-purple-400 mb-4">
             <Zap className="w-4 h-4" />
             {t("Why Albayaan.pro?", "لماذا Albayaan.pro؟", "Maxay Albayaan.pro u koobaantahay?")}
@@ -209,16 +218,12 @@ export default function Home() {
           <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg">
             {t("Built for modern learners who demand results, not just content.", "مصمم للمتعلمين العصريين الذين يطلبون النتائج، وليس فقط المحتوى.", "Loogu talagalay ardayda casriga ah ee dalbada natiijooyinka, maaha kaliya nuxurka.")}
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((feature, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ delay: i * 0.06, duration: 0.4 }}
               className={`p-6 rounded-2xl border ${feature.bg}`}
             >
               <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 shadow-md shrink-0`}>
@@ -226,7 +231,7 @@ export default function Home() {
               </div>
               <h3 className="text-base font-bold text-foreground mb-2">{feature.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -234,31 +239,18 @@ export default function Home() {
       {/* ── How It Works ── */}
       <section className="py-20 bg-card/20 border-y border-border/50">
         <div className="max-w-7xl mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.4 }}
-            className="text-center mb-14"
-          >
+          <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-black text-foreground mb-3">
               {t("How it works", "كيف يعمل", "Sida uu u shaqeeyo")}
             </h2>
             <p className="text-muted-foreground">
               {t("Go from zero to fluent in 4 simple steps.", "من الصفر إلى الطلاقة في 4 خطوات بسيطة.", "Eber ilaa shuruud 4 tallaabo fudud.")}
             </p>
-          </motion.div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {howItWorks.map((step, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
-                className="text-center"
-              >
+              <div key={i} className="text-center">
                 <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 border border-white/10 flex items-center justify-center mx-auto mb-4">
                   <step.icon className="w-7 h-7 text-primary" />
                   <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-white text-xs font-black flex items-center justify-center">
@@ -267,7 +259,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-bold text-foreground mb-2">{step.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -275,29 +267,19 @@ export default function Home() {
 
       {/* ── Testimonials ── */}
       <section className="py-20 max-w-7xl mx-auto px-4 w-full">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.4 }}
-          className="text-center mb-14"
-        >
+        <div className="text-center mb-14">
           <h2 className="text-3xl md:text-4xl font-black text-foreground mb-3">
             {t("Loved by students", "يحبه الطلاب", "Ardaydu waxay jeclayaan")}
           </h2>
           <p className="text-muted-foreground">
             {t("Join thousands who've transformed their language skills.", "انضم إلى آلاف الأشخاص الذين غيروا مهاراتهم اللغوية.", "Ku biir kumannaan qof oo xirfadahooda luuqadda bedelay.")}
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {testimonials.map((tm, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ delay: i * 0.08, duration: 0.4 }}
               className="p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-colors"
             >
               <div className="flex gap-1 mb-4">
@@ -315,7 +297,7 @@ export default function Home() {
                   <div className="text-xs text-muted-foreground">{tm.role}</div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -323,27 +305,17 @@ export default function Home() {
       {/* ── Pricing Teaser ── */}
       <section className="py-16 bg-card/20 border-y border-border/50">
         <div className="max-w-7xl mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.4 }}
-            className="text-center mb-10"
-          >
+          <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-black text-foreground mb-3">
               {t("Simple, one-time pricing", "تسعير بسيط لمرة واحدة", "Qiime fudud oo hal mar ah")}
             </h2>
             <p className="text-muted-foreground">{t("Pay once, learn forever. No subscriptions.", "ادفع مرة وتعلم للأبد. بلا اشتراكات.", "Hal mar bixi, weligaa baro. Rumeyn malaha.")}</p>
-          </motion.div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {plans.map((plan, i) => (
-              <motion.div
+              <div
                 key={i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
                 className={`relative p-6 rounded-2xl bg-card border text-center ${plan.popular ? "border-purple-500/50" : "border-border"}`}
               >
                 {plan.popular && (
@@ -357,7 +329,7 @@ export default function Home() {
                 <Link href="/pricing" className={`w-full py-2.5 rounded-xl bg-gradient-to-r ${plan.color} text-white font-bold text-sm flex items-center justify-center gap-1 hover:opacity-90 transition-opacity`}>
                   {t("Get Started", "ابدأ الآن", "Bilow")} <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -366,46 +338,30 @@ export default function Home() {
       {/* ── Payment Partners ── */}
       <section className="py-14">
         <div className="max-w-7xl mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.4 }}
-            className="text-center"
-          >
+          <div className="text-center">
             <p className="text-muted-foreground text-xs uppercase tracking-widest font-semibold mb-8">
               {t("Trusted Payment Partners", "شركاء الدفع الموثوق بهم", "Wadaagayaasha Lacag Bixinta La Aaminsan")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-              {paymentMethods.map((p, i) => (
-                <motion.div
+              {paymentMethods.map((p) => (
+                <div
                   key={p.name}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{ delay: i * 0.04, duration: 0.3 }}
                   className={`flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl border ${p.bg}`}
                 >
                   <span className="text-xl">{p.emoji}</span>
                   <span className={`font-black text-xs ${p.color}`}>{p.name}</span>
                   <span className="text-xs text-muted-foreground text-center">{p.desc}</span>
-                </motion.div>
+                </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* ── CTA ── */}
       <section className="py-20 bg-card/20 border-t border-border/50">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.4 }}
-            className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-blue-600/15 to-purple-600/15 border border-border"
-          >
+          <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-blue-600/15 to-purple-600/15 border border-border">
             <Users className="w-10 h-10 text-primary mx-auto mb-5" />
             <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
               {t("Start learning today", "ابدأ التعلم اليوم", "Maanta bilow waxbarasho")}
@@ -422,7 +378,7 @@ export default function Home() {
                 {t("View Pricing", "عرض الأسعار", "Arag Qiimaha")}
               </Link>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
