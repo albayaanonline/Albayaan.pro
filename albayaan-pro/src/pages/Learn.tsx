@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGetLesson, useGetLessonQuiz, useMarkLessonComplete, useSubmitQuiz } from "@/lib/api-client";
+import {
+  useGetLesson, getGetLessonQueryKey,
+  useGetLessonQuiz, getGetLessonQuizQueryKey,
+  useMarkLessonComplete, useSubmitQuiz,
+  type Quiz,
+} from "@/lib/api-client";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { CheckCircle2, ArrowLeft, ArrowRight, BookOpen, HelpCircle, Loader2, Trophy, XCircle } from "lucide-react";
@@ -16,15 +21,24 @@ export default function Learn() {
   const [tab, setTab] = useState<"lesson" | "quiz">("lesson");
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [quizResult, setQuizResult] = useState<any>(null);
+  const [quizResult, setQuizResult] = useState<{ score: number; total: number; passed: boolean } | null>(null);
   const [lessonDone, setLessonDone] = useState(false);
 
-  const { data: lesson, isLoading: lessonLoading } = useGetLesson(Number(courseId), Number(lessonId), {
-    query: { enabled: !!courseId && !!lessonId }
+  const lessonIdNum = Number(lessonId);
+  const courseIdNum = Number(courseId);
+
+  const { data: lesson, isLoading: lessonLoading } = useGetLesson(lessonIdNum, {
+    query: {
+      queryKey: getGetLessonQueryKey(lessonIdNum),
+      enabled: !!courseId && !!lessonId,
+    },
   });
 
-  const { data: quiz, isLoading: quizLoading } = useGetLessonQuiz(Number(courseId), Number(lessonId), {
-    query: { enabled: !!courseId && !!lessonId && tab === "quiz" }
+  const { data: quiz, isLoading: quizLoading } = useGetLessonQuiz(lessonIdNum, {
+    query: {
+      queryKey: getGetLessonQuizQueryKey(lessonIdNum),
+      enabled: !!courseId && !!lessonId && tab === "quiz",
+    },
   });
 
   const { mutate: markComplete, isPending: markingComplete } = useMarkLessonComplete({
@@ -35,7 +49,7 @@ export default function Learn() {
 
   const { mutate: submitQuiz, isPending: submittingQuiz } = useSubmitQuiz({
     mutation: {
-      onSuccess: (data: any) => {
+      onSuccess: (data) => {
         setQuizResult(data);
         setQuizSubmitted(true);
       },
@@ -44,20 +58,24 @@ export default function Learn() {
 
   const handleMarkComplete = () => {
     if (!user) { setLocation("/auth/login"); return; }
-    markComplete({ courseId: Number(courseId), lessonId: Number(lessonId), data: {} as any });
+    markComplete({ data: { lessonId: lessonIdNum } });
   };
 
   const handleSubmitQuiz = () => {
-    if (!quiz || !(quiz as any).questions?.length) return;
-    const answers = (quiz as any).questions.map((_: any, i: number) => selectedAnswers[i] ?? -1);
-    submitQuiz({ courseId: Number(courseId), lessonId: Number(lessonId), data: { answers } });
+    const typedQuiz = quiz as Quiz | undefined;
+    if (!typedQuiz?.questions?.length) return;
+    const answers = typedQuiz.questions.map((q, i) => ({
+      questionId: q.id,
+      answer: selectedAnswers[i] ?? -1,
+    }));
+    submitQuiz({ lessonId: lessonIdNum, data: { answers } });
   };
 
-  const getContent = (item: any) => {
+  const getContent = (item: { content: string; contentAr?: string; contentSo?: string } | null | undefined) => {
     if (!item) return "";
     return language === "ar" ? (item.contentAr || item.content) : language === "so" ? (item.contentSo || item.content) : item.content;
   };
-  const getTitle = (item: any) => {
+  const getTitle = (item: { title: string; titleAr?: string; titleSo?: string } | null | undefined) => {
     if (!item) return "";
     return language === "ar" ? (item.titleAr || item.title) : language === "so" ? (item.titleSo || item.title) : item.title;
   };
@@ -81,6 +99,9 @@ export default function Learn() {
     );
   }
 
+  const typedLesson = lesson;
+  const typedQuiz = quiz as Quiz | undefined;
+
   return (
     <div className="min-h-[100dvh] pt-16 bg-background">
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -93,16 +114,16 @@ export default function Learn() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <h1 className="text-2xl md:text-3xl font-black text-white mb-2">{getTitle(lesson)}</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-white mb-2">{getTitle(typedLesson)}</h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground mb-6">
-                <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" /> {(lesson as any).duration}</span>
-                {(lesson as any).hasQuiz && <span className="flex items-center gap-1 text-purple-400"><HelpCircle className="w-4 h-4" /> {t("Has Quiz", "يحتوي على اختبار", "Waxaa ku jira Quiz")}</span>}
+                <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" /> {typedLesson.duration}</span>
+                {typedLesson.hasQuiz && <span className="flex items-center gap-1 text-purple-400"><HelpCircle className="w-4 h-4" /> {t("Has Quiz", "يحتوي على اختبار", "Waxaa ku jira Quiz")}</span>}
               </div>
             </motion.div>
 
             <div className="flex gap-2 mb-6 border-b border-white/10 pb-1">
               {(["lesson", "quiz"] as const).map(tabId => (
-                tabId === "quiz" && !(lesson as any).hasQuiz ? null : (
+                tabId === "quiz" && !typedLesson.hasQuiz ? null : (
                   <button
                     key={tabId}
                     onClick={() => setTab(tabId)}
@@ -124,7 +145,7 @@ export default function Learn() {
                   className="space-y-6"
                 >
                   <div className="p-6 rounded-2xl bg-card border border-white/10 prose prose-invert max-w-none">
-                    {getContent(lesson).split('\n').map((para: string, i: number) => (
+                    {getContent(typedLesson).split('\n').map((para, i) => (
                       para.trim() ? <p key={i} className="text-gray-300 leading-relaxed mb-4">{para}</p> : null
                     ))}
                   </div>
@@ -159,7 +180,7 @@ export default function Learn() {
                 >
                   {quizLoading ? (
                     <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-                  ) : !quiz || !(quiz as any).questions?.length ? (
+                  ) : !typedQuiz?.questions?.length ? (
                     <p className="text-muted-foreground text-center py-12">{t("No quiz available for this lesson.", "لا يوجد اختبار لهذا الدرس.", "Imtixaan kuma jiro casharkan.")}</p>
                   ) : quizSubmitted && quizResult ? (
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-8 rounded-2xl bg-card border border-white/10 text-center">
@@ -189,7 +210,7 @@ export default function Learn() {
                     </motion.div>
                   ) : (
                     <>
-                      {(quiz as any).questions?.map((q: any, qi: number) => (
+                      {typedQuiz.questions.map((q, qi) => (
                         <motion.div
                           key={qi}
                           initial={{ opacity: 0, y: 10 }}
@@ -199,7 +220,7 @@ export default function Learn() {
                         >
                           <p className="font-semibold text-white mb-4">{qi + 1}. {q.question}</p>
                           <div className="space-y-2">
-                            {q.options?.map((opt: string, oi: number) => (
+                            {q.options.map((opt, oi) => (
                               <button
                                 key={oi}
                                 onClick={() => setSelectedAnswers(prev => ({ ...prev, [qi]: oi }))}
@@ -217,7 +238,7 @@ export default function Learn() {
 
                       <button
                         onClick={handleSubmitQuiz}
-                        disabled={submittingQuiz || Object.keys(selectedAnswers).length < ((quiz as any).questions?.length ?? 0)}
+                        disabled={submittingQuiz || Object.keys(selectedAnswers).length < (typedQuiz.questions?.length ?? 0)}
                         className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {submittingQuiz && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -236,9 +257,9 @@ export default function Learn() {
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>{t("Duration", "المدة", "Muddada")}</span>
-                  <span className="text-white">{(lesson as any).duration}</span>
+                  <span className="text-white">{typedLesson.duration}</span>
                 </div>
-                {(lesson as any).hasQuiz && (
+                {typedLesson.hasQuiz && (
                   <div className="flex items-center justify-between text-muted-foreground">
                     <span>{t("Quiz", "اختبار", "Quiz")}</span>
                     <span className="text-purple-400">{t("Available", "متاح", "La heli karo")}</span>
@@ -247,10 +268,10 @@ export default function Learn() {
               </div>
 
               <div className="mt-6 pt-4 border-t border-white/10 space-y-2">
-                <Link href={`/courses/${courseId}`} className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors">
+                <Link href={`/courses/${courseIdNum}`} className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors">
                   <ArrowLeft className="w-4 h-4" /> {t("Course Overview", "نظرة عامة على الدورة", "Dulmar Koorsaha")}
                 </Link>
-                {lessonDone && (lesson as any).hasQuiz && tab !== "quiz" && (
+                {lessonDone && typedLesson.hasQuiz && tab !== "quiz" && (
                   <button onClick={() => setTab("quiz")} className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors">
                     <ArrowRight className="w-4 h-4" /> {t("Take Quiz", "أخذ الاختبار", "Qaado Imtixaanka")}
                   </button>

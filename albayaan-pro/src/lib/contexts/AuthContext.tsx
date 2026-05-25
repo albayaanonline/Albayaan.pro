@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useGetMe, User } from "@/lib/api-client";
+import { useGetMe, getGetMeQueryKey, User } from "@/lib/api-client";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 
@@ -17,13 +17,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: apiUser, isLoading: isQueryLoading } = useGetMe({
-    query: { retry: false }
+    query: { queryKey: getGetMeQueryKey(), retry: false },
   });
 
   const [localUser, setLocalUser] = useState<User | null>(() => {
     try {
       const stored = localStorage.getItem(ADMIN_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
+      return stored ? (JSON.parse(stored) as User) : null;
     } catch { return null; }
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginAsAdmin = (userData: User) => {
-    const admin = { ...userData, role: "admin" as const };
+    const admin: User = { ...userData, role: "admin" as const };
     setLocalUser(admin);
     try { localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(admin)); } catch {}
   };
@@ -69,7 +69,13 @@ export function useAuth() {
   return context;
 }
 
-export function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: any) {
+interface ProtectedRouteProps {
+  component: React.ComponentType<Record<string, unknown>>;
+  adminOnly?: boolean;
+  [key: string]: unknown;
+}
+
+export function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
