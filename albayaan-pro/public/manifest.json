@@ -1,0 +1,21 @@
+{
+  "name": "IlmAI – AI Language Learning",
+  "short_name": "IlmAI",
+  "description": "Master languages at the speed of AI — English, Arabic & Somali.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "en",
+  "scope": "/"
+}
