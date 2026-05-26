@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, count } from "drizzle-orm";
-import { db, usersTable, paymentsTable, accessCodesTable, coursesTable, courseEnrollmentsTable } from "@workspace/db";
+import { eq, count, desc } from "drizzle-orm";
+import { db, usersTable, paymentsTable, accessCodesTable, coursesTable, courseEnrollmentsTable, lessonsTable } from "@workspace/db";
 import { ConfirmPaymentParams, ConfirmPaymentBody, CreateCodeBody, DeactivateCodeParams } from "@workspace/api-zod";
 import { randomBytes } from "crypto";
 
@@ -18,23 +18,14 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
   if (!requireAdmin(req, res)) return;
 
   const [{ cnt: totalUsers }] = await db.select({ cnt: count(usersTable.id) }).from(usersTable);
+  const [{ cnt: totalCourses }] = await db.select({ cnt: count(coursesTable.id) }).from(coursesTable);
   const [{ cnt: totalPayments }] = await db.select({ cnt: count(paymentsTable.id) }).from(paymentsTable);
   const [{ cnt: totalCodes }] = await db.select({ cnt: count(accessCodesTable.id) }).from(accessCodesTable);
+  const [{ cnt: totalEnrollments }] = await db.select({ cnt: count(courseEnrollmentsTable.id) }).from(courseEnrollmentsTable);
 
-  const pendingData = await db
-    .select({ cnt: count(paymentsTable.id) })
-    .from(paymentsTable)
-    .where(eq(paymentsTable.status, "pending"));
-
-  const confirmedData = await db
-    .select({ cnt: count(paymentsTable.id) })
-    .from(paymentsTable)
-    .where(eq(paymentsTable.status, "confirmed"));
-
-  const usedCodesData = await db
-    .select({ cnt: count(accessCodesTable.id) })
-    .from(accessCodesTable)
-    .where(eq(accessCodesTable.isUsed, true));
+  const pendingData = await db.select({ cnt: count(paymentsTable.id) }).from(paymentsTable).where(eq(paymentsTable.status, "pending"));
+  const confirmedData = await db.select({ cnt: count(paymentsTable.id) }).from(paymentsTable).where(eq(paymentsTable.status, "confirmed"));
+  const usedCodesData = await db.select({ cnt: count(accessCodesTable.id) }).from(accessCodesTable).where(eq(accessCodesTable.isUsed, true));
 
   const confirmedCount = Number(confirmedData[0]?.cnt ?? 0);
   const courses = await db.select().from(coursesTable);
@@ -43,11 +34,13 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
 
   res.json({
     totalUsers: Number(totalUsers),
+    totalCourses: Number(totalCourses),
     totalPayments: Number(totalPayments),
     pendingPayments: Number(pendingData[0]?.cnt ?? 0),
     confirmedPayments: confirmedCount,
     totalCodes: Number(totalCodes),
     usedCodes: Number(usedCodesData[0]?.cnt ?? 0),
+    totalEnrollments: Number(totalEnrollments),
     revenueEstimate,
   });
 });
@@ -55,7 +48,7 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
 router.get("/admin/users", async (req, res): Promise<void> => {
   if (!requireAdmin(req, res)) return;
 
-  const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);
+  const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
   const enrollmentCounts = await db
     .select({ userId: courseEnrollmentsTable.userId, cnt: count(courseEnrollmentsTable.id) })
     .from(courseEnrollmentsTable)
@@ -75,10 +68,275 @@ router.get("/admin/users", async (req, res): Promise<void> => {
   );
 });
 
+// ── COURSES CRUD ──
+
+router.get("/admin/courses", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const courses = await db.select().from(coursesTable).orderBy(desc(coursesTable.createdAt));
+  const lessonsCountData = await db
+    .select({ courseId: lessonsTable.courseId, cnt: count(lessonsTable.id) })
+    .from(lessonsTable)
+    .groupBy(lessonsTable.courseId);
+
+  const countMap = new Map(lessonsCountData.map((r) => [r.courseId, Number(r.cnt)]));
+
+  res.json(
+    courses.map((c) => ({
+      id: c.id,
+      slug: c.slug,
+      title: c.title,
+      titleAr: c.titleAr,
+      titleSo: c.titleSo,
+      description: c.description,
+      descriptionAr: c.descriptionAr,
+      descriptionSo: c.descriptionSo,
+      language: c.language,
+      level: c.level,
+      price: c.price,
+      duration: c.duration,
+      thumbnailUrl: c.thumbnailUrl ?? null,
+      enrolledCount: c.enrolledCount,
+      lessonCount: countMap.get(c.id) ?? 0,
+      createdAt: c.createdAt.toISOString(),
+    }))
+  );
+});
+
+router.post("/admin/courses", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const { title, titleAr, titleSo, description, descriptionAr, descriptionSo, language, level, price, duration, thumbnailUrl } = req.body;
+
+  if (!title || !language) {
+    res.status(400).json({ error: "title and language are required" });
+    return;
+  }
+
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now();
+
+  const [created] = await db.insert(coursesTable).values({
+    slug,
+    title,
+    titleAr: titleAr || title,
+    titleSo: titleSo || title,
+    description: description || "",
+    descriptionAr: descriptionAr || description || "",
+    descriptionSo: descriptionSo || description || "",
+    language,
+    level: level || "beginner",
+    price: Number(price) || 0,
+    duration: duration || "8 weeks",
+    thumbnailUrl: thumbnailUrl || null,
+    enrolledCount: 0,
+  }).returning();
+
+  res.status(201).json({
+    id: created.id,
+    slug: created.slug,
+    title: created.title,
+    titleAr: created.titleAr,
+    language: created.language,
+    level: created.level,
+    price: created.price,
+    duration: created.duration,
+    thumbnailUrl: created.thumbnailUrl,
+    enrolledCount: created.enrolledCount,
+    createdAt: created.createdAt.toISOString(),
+  });
+});
+
+router.put("/admin/courses/:courseId", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const courseId = Number(req.params.courseId);
+  if (isNaN(courseId)) {
+    res.status(400).json({ error: "Invalid course ID" });
+    return;
+  }
+
+  const { title, titleAr, titleSo, description, descriptionAr, descriptionSo, language, level, price, duration, thumbnailUrl } = req.body;
+
+  const updateData: Record<string, any> = {};
+  if (title !== undefined) updateData.title = title;
+  if (titleAr !== undefined) updateData.titleAr = titleAr;
+  if (titleSo !== undefined) updateData.titleSo = titleSo;
+  if (description !== undefined) updateData.description = description;
+  if (descriptionAr !== undefined) updateData.descriptionAr = descriptionAr;
+  if (descriptionSo !== undefined) updateData.descriptionSo = descriptionSo;
+  if (language !== undefined) updateData.language = language;
+  if (level !== undefined) updateData.level = level;
+  if (price !== undefined) updateData.price = Number(price);
+  if (duration !== undefined) updateData.duration = duration;
+  if (thumbnailUrl !== undefined) updateData.thumbnailUrl = thumbnailUrl || null;
+
+  const [updated] = await db.update(coursesTable).set(updateData).where(eq(coursesTable.id, courseId)).returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Course not found" });
+    return;
+  }
+
+  res.json({
+    id: updated.id,
+    slug: updated.slug,
+    title: updated.title,
+    titleAr: updated.titleAr,
+    language: updated.language,
+    level: updated.level,
+    price: updated.price,
+    duration: updated.duration,
+    thumbnailUrl: updated.thumbnailUrl,
+    enrolledCount: updated.enrolledCount,
+    createdAt: updated.createdAt.toISOString(),
+  });
+});
+
+router.delete("/admin/courses/:courseId", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const courseId = Number(req.params.courseId);
+  if (isNaN(courseId)) {
+    res.status(400).json({ error: "Invalid course ID" });
+    return;
+  }
+
+  await db.delete(lessonsTable).where(eq(lessonsTable.courseId, courseId));
+  const [deleted] = await db.delete(coursesTable).where(eq(coursesTable.id, courseId)).returning();
+
+  if (!deleted) {
+    res.status(404).json({ error: "Course not found" });
+    return;
+  }
+
+  res.json({ success: true, id: courseId });
+});
+
+// ── LESSONS CRUD ──
+
+router.get("/admin/courses/:courseId/lessons", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const courseId = Number(req.params.courseId);
+  const lessons = await db.select().from(lessonsTable).where(eq(lessonsTable.courseId, courseId)).orderBy(lessonsTable.order);
+
+  res.json(lessons.map(l => ({
+    id: l.id,
+    courseId: l.courseId,
+    title: l.title,
+    titleAr: l.titleAr,
+    titleSo: l.titleSo,
+    order: l.order,
+    duration: l.duration,
+    isLocked: l.isLocked,
+    hasQuiz: l.hasQuiz,
+    content: l.content,
+    contentAr: l.contentAr,
+    contentSo: l.contentSo,
+  })));
+});
+
+router.post("/admin/courses/:courseId/lessons", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const courseId = Number(req.params.courseId);
+  const { title, titleAr, titleSo, content, contentAr, contentSo, duration, isLocked, hasQuiz } = req.body;
+
+  if (!title) {
+    res.status(400).json({ error: "title is required" });
+    return;
+  }
+
+  const existing = await db.select().from(lessonsTable).where(eq(lessonsTable.courseId, courseId)).orderBy(lessonsTable.order);
+  const nextOrder = existing.length > 0 ? Math.max(...existing.map(l => l.order)) + 1 : 1;
+
+  const [created] = await db.insert(lessonsTable).values({
+    courseId,
+    title,
+    titleAr: titleAr || title,
+    titleSo: titleSo || title,
+    content: content || "",
+    contentAr: contentAr || content || "",
+    contentSo: contentSo || content || "",
+    order: nextOrder,
+    duration: duration || "10 min",
+    isLocked: isLocked ?? false,
+    hasQuiz: hasQuiz ?? false,
+  }).returning();
+
+  res.status(201).json(created);
+});
+
+router.put("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const lessonId = Number(req.params.lessonId);
+  const { title, titleAr, titleSo, content, contentAr, contentSo, duration, isLocked, hasQuiz } = req.body;
+
+  const updateData: Record<string, any> = {};
+  if (title !== undefined) updateData.title = title;
+  if (titleAr !== undefined) updateData.titleAr = titleAr;
+  if (titleSo !== undefined) updateData.titleSo = titleSo;
+  if (content !== undefined) updateData.content = content;
+  if (contentAr !== undefined) updateData.contentAr = contentAr;
+  if (contentSo !== undefined) updateData.contentSo = contentSo;
+  if (duration !== undefined) updateData.duration = duration;
+  if (isLocked !== undefined) updateData.isLocked = isLocked;
+  if (hasQuiz !== undefined) updateData.hasQuiz = hasQuiz;
+
+  const [updated] = await db.update(lessonsTable).set(updateData).where(eq(lessonsTable.id, lessonId)).returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Lesson not found" });
+    return;
+  }
+
+  res.json(updated);
+});
+
+router.delete("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const lessonId = Number(req.params.lessonId);
+  const [deleted] = await db.delete(lessonsTable).where(eq(lessonsTable.id, lessonId)).returning();
+
+  if (!deleted) {
+    res.status(404).json({ error: "Lesson not found" });
+    return;
+  }
+
+  res.json({ success: true, id: lessonId });
+});
+
+// ── USER ROLE MANAGEMENT ──
+
+router.patch("/admin/users/:userId/role", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const userId = Number(req.params.userId);
+  const { role } = req.body;
+
+  if (!["user", "admin"].includes(role)) {
+    res.status(400).json({ error: "role must be 'user' or 'admin'" });
+    return;
+  }
+
+  const [updated] = await db.update(usersTable).set({ role }).where(eq(usersTable.id, userId)).returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.json({ id: updated.id, name: updated.name, email: updated.email, role: updated.role });
+});
+
+// ── PAYMENTS ──
+
 router.get("/admin/payments", async (req, res): Promise<void> => {
   if (!requireAdmin(req, res)) return;
 
-  const payments = await db.select().from(paymentsTable).orderBy(paymentsTable.createdAt);
+  const payments = await db.select().from(paymentsTable).orderBy(desc(paymentsTable.createdAt));
 
   const result = await Promise.all(
     payments.map(async (p) => {
@@ -107,46 +365,22 @@ router.post("/admin/payments/:paymentId/confirm", async (req, res): Promise<void
   if (!requireAdmin(req, res)) return;
 
   const params = ConfirmPaymentParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
   const body = ConfirmPaymentBody.safeParse(req.body);
-  if (!body.success) {
-    res.status(400).json({ error: body.error.message });
-    return;
-  }
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
 
-  const [payment] = await db
-    .select()
-    .from(paymentsTable)
-    .where(eq(paymentsTable.id, params.data.paymentId));
-
-  if (!payment) {
-    res.status(404).json({ error: "Payment not found" });
-    return;
-  }
+  const [payment] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, params.data.paymentId));
+  if (!payment) { res.status(404).json({ error: "Payment not found" }); return; }
 
   let generatedCode: string | null = null;
   if (body.data.generateCode) {
     const raw = randomBytes(4).toString("hex").toUpperCase();
     generatedCode = `${raw.slice(0, 4)}-${raw.slice(4, 8)}`;
-
-    await db.insert(accessCodesTable).values({
-      code: generatedCode,
-      courseId: payment.courseId,
-      isActive: true,
-      isUsed: false,
-    });
+    await db.insert(accessCodesTable).values({ code: generatedCode, courseId: payment.courseId, isActive: true, isUsed: false });
   }
 
-  const [updated] = await db
-    .update(paymentsTable)
-    .set({ status: "confirmed", accessCode: generatedCode })
-    .where(eq(paymentsTable.id, params.data.paymentId))
-    .returning();
-
+  const [updated] = await db.update(paymentsTable).set({ status: "confirmed", accessCode: generatedCode }).where(eq(paymentsTable.id, params.data.paymentId)).returning();
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, updated.userId));
   const [course] = await db.select().from(coursesTable).where(eq(coursesTable.id, updated.courseId));
 
@@ -165,10 +399,12 @@ router.post("/admin/payments/:paymentId/confirm", async (req, res): Promise<void
   });
 });
 
+// ── CODES ──
+
 router.get("/admin/codes", async (req, res): Promise<void> => {
   if (!requireAdmin(req, res)) return;
 
-  const codes = await db.select().from(accessCodesTable).orderBy(accessCodesTable.createdAt);
+  const codes = await db.select().from(accessCodesTable).orderBy(desc(accessCodesTable.createdAt));
 
   const result = await Promise.all(
     codes.map(async (c) => {
@@ -200,24 +436,15 @@ router.post("/admin/codes", async (req, res): Promise<void> => {
   if (!requireAdmin(req, res)) return;
 
   const body = CreateCodeBody.safeParse(req.body);
-  if (!body.success) {
-    res.status(400).json({ error: body.error.message });
-    return;
-  }
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
 
   const [course] = await db.select().from(coursesTable).where(eq(coursesTable.id, body.data.courseId));
-  if (!course) {
-    res.status(404).json({ error: "Course not found" });
-    return;
-  }
+  if (!course) { res.status(404).json({ error: "Course not found" }); return; }
 
   const raw = randomBytes(4).toString("hex").toUpperCase();
   const code = `${raw.slice(0, 4)}-${raw.slice(4, 8)}`;
 
-  const [created] = await db
-    .insert(accessCodesTable)
-    .values({ code, courseId: body.data.courseId, isActive: true, isUsed: false })
-    .returning();
+  const [created] = await db.insert(accessCodesTable).values({ code, courseId: body.data.courseId, isActive: true, isUsed: false }).returning();
 
   res.status(201).json({
     id: created.id,
@@ -226,7 +453,7 @@ router.post("/admin/codes", async (req, res): Promise<void> => {
     courseName: course.title,
     isActive: created.isActive,
     isUsed: created.isUsed,
-    usedByUserId: created.usedByUserId ?? null,
+    usedByUserId: null,
     usedByEmail: null,
     usedAt: null,
     createdAt: created.createdAt.toISOString(),
@@ -237,21 +464,10 @@ router.patch("/admin/codes/:codeId/deactivate", async (req, res): Promise<void> 
   if (!requireAdmin(req, res)) return;
 
   const params = DeactivateCodeParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
-  const [updated] = await db
-    .update(accessCodesTable)
-    .set({ isActive: false })
-    .where(eq(accessCodesTable.id, params.data.codeId))
-    .returning();
-
-  if (!updated) {
-    res.status(404).json({ error: "Code not found" });
-    return;
-  }
+  const [updated] = await db.update(accessCodesTable).set({ isActive: false }).where(eq(accessCodesTable.id, params.data.codeId)).returning();
+  if (!updated) { res.status(404).json({ error: "Code not found" }); return; }
 
   const [course] = await db.select().from(coursesTable).where(eq(coursesTable.id, updated.courseId));
 
@@ -266,6 +482,29 @@ router.patch("/admin/codes/:codeId/deactivate", async (req, res): Promise<void> 
     usedByEmail: null,
     usedAt: updated.usedAt?.toISOString() ?? null,
     createdAt: updated.createdAt.toISOString(),
+  });
+});
+
+// ── ANALYTICS ──
+
+router.get("/admin/analytics", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const totalUsers = await db.select({ cnt: count(usersTable.id) }).from(usersTable);
+  const totalCourses = await db.select({ cnt: count(coursesTable.id) }).from(coursesTable);
+  const totalEnrollments = await db.select({ cnt: count(courseEnrollmentsTable.id) }).from(courseEnrollmentsTable);
+  const confirmedPayments = await db.select({ cnt: count(paymentsTable.id) }).from(paymentsTable).where(eq(paymentsTable.status, "confirmed"));
+
+  const courses = await db.select().from(coursesTable).orderBy(desc(coursesTable.enrolledCount));
+  const recentUsers = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt)).limit(10);
+
+  res.json({
+    totalUsers: Number(totalUsers[0]?.cnt ?? 0),
+    totalCourses: Number(totalCourses[0]?.cnt ?? 0),
+    totalEnrollments: Number(totalEnrollments[0]?.cnt ?? 0),
+    confirmedPayments: Number(confirmedPayments[0]?.cnt ?? 0),
+    topCourses: courses.slice(0, 5).map(c => ({ id: c.id, title: c.title, enrolledCount: c.enrolledCount, price: c.price })),
+    recentUsers: recentUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.createdAt.toISOString() })),
   });
 });
 

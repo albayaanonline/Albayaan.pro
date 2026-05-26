@@ -4,9 +4,9 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { LanguageToggle } from "../shared/LanguageToggle";
 import { ThemeToggle } from "../shared/ThemeToggle";
-import { Menu, X, BookOpen, LayoutDashboard, ShieldCheck, LogOut, User, DollarSign } from "lucide-react";
+import { Menu, X, BookOpen, LayoutDashboard, LogOut, User, GraduationCap, Lightbulb } from "lucide-react";
 
-const BRAND = "Albayaan.pro";
+const BRAND = "Al-Bayaan College";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -23,13 +23,12 @@ export function Navbar() {
 
   useEffect(() => { setMobileOpen(false); }, [location]);
 
-  const isActive = (path: string) => location === path;
+  const isActive = (path: string) => location === path || location.startsWith(path + "/");
 
   const navLinks = [
-    { href: "/courses", label: t("Courses", "الدورات", "Koorsooyinka"), icon: BookOpen },
-    { href: "/pricing", label: t("Pricing", "الأسعار", "Qiimaha"), icon: DollarSign },
+    { href: "/curriculum", label: t("Curriculum", "المنهج الدراسي", "Manhajka"), icon: GraduationCap },
+    { href: "/courses", label: t("Skills", "المهارات", "Xirfadaha"), icon: Lightbulb },
     ...(user ? [{ href: "/dashboard", label: t("Dashboard", "لوحة التحكم", "Dhaq-dhaqaaqa"), icon: LayoutDashboard }] : []),
-    ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : []),
   ];
 
   return (
@@ -37,18 +36,23 @@ export function Navbar() {
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? "bg-background shadow-lg border-b border-border/50"
+            ? "bg-background/95 backdrop-blur-xl shadow-lg border-b border-border/50"
             : "bg-transparent"
         }`}
         style={{ transform: "translateZ(0)" }}
       >
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
 
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <img src="/logo-48.png" alt="Albayaan.pro" className="h-9 w-9 object-contain" />
-            <span className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 hidden sm:inline">
-              {BRAND}
-            </span>
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <div className="relative">
+              <img src="/logo-48.png" alt="Al-Bayaan College" className="h-9 w-9 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(59,130,246,0.6))" }} />
+            </div>
+            <div className="hidden sm:flex flex-col leading-none">
+              <span className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+                {BRAND}
+              </span>
+              <span className="text-[9px] text-muted-foreground tracking-widest uppercase font-medium">Learning Platform</span>
+            </div>
           </Link>
 
           <div className="hidden md:flex flex-1 items-center justify-center gap-1">
@@ -58,9 +62,9 @@ export function Navbar() {
                 href={link.href}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   isActive(link.href)
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/10 text-primary border border-primary/20"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                } ${link.href === "/admin" ? "text-purple-400 hover:text-purple-300 hover:bg-purple-500/10" : ""}`}
+                }`}
               >
                 <link.icon className="w-4 h-4" />
                 {link.label}
@@ -89,14 +93,10 @@ export function Navbar() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link href="/admin/login" className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Admin
-                </Link>
                 <Link href="/auth/login" className="px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   {t("Login", "دخول", "Gal")}
                 </Link>
-                <Link href="/auth/register" className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:opacity-90 transition-opacity">
+                <Link href="/auth/register" className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(59,130,246,0.3)]">
                   {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
                 </Link>
               </div>
@@ -117,7 +117,6 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Menu — no backdrop-blur, solid bg for Android stability */}
       {mobileOpen && (
         <div
           className="fixed top-16 left-0 right-0 z-40 bg-background border-b border-border shadow-xl"
@@ -161,9 +160,6 @@ export function Navbar() {
                 </>
               ) : (
                 <div className="space-y-2">
-                  <Link href="/admin/login" className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-purple-400 hover:bg-purple-500/10 transition-colors">
-                    <ShieldCheck className="w-4 h-4" /> Admin Login
-                  </Link>
                   <div className="grid grid-cols-2 gap-2">
                     <Link href="/auth/login" className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
                       <User className="w-4 h-4" />

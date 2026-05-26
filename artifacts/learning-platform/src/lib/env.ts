@@ -15,3 +15,10 @@ export function hasSupabase(): boolean {
 export function hasOpenAI(): boolean {
   return Boolean(env.openaiKey);
 }
+
+export function getApiUrl(path: string): string {
+  const base = env.apiBaseUrl ?? (import.meta.env.DEV ? "/api" : "/api");
+  const cleanBase = base.replace(/\/$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${cleanBase}${cleanPath}`;
+}
