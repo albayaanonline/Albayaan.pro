@@ -91,14 +91,14 @@ export default function CourseDetail() {
 
             {/* Stats */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="grid grid-cols-3 gap-4">
+              className="grid grid-cols-3 gap-2 sm:gap-4">
               {[
                 { label: t("Lessons",  "دروس",     "Casharro"),  value: course.lessonCount },
                 { label: t("Duration", "المدة",     "Muddada"),   value: course.duration },
                 { label: t("Students", "طلاب",      "Ardayda"),   value: course.enrolledCount.toLocaleString() + "+" },
               ].map((s, i) => (
-                <div key={i} className="p-4 rounded-xl bg-card border border-white/10 text-center">
-                  <div className="text-2xl font-black text-foreground">{s.value}</div>
+                <div key={i} className="p-3 sm:p-4 rounded-xl bg-card border border-white/10 text-center">
+                  <div className="text-base sm:text-2xl font-black text-foreground break-words">{s.value}</div>
                   <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
                 </div>
               ))}
@@ -106,9 +106,9 @@ export default function CourseDetail() {
 
             {/* Curriculum */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-black text-foreground">{t("Curriculum", "المنهج الدراسي", "Manhajka")}</h2>
-                <div className="text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <h2 className="text-xl sm:text-2xl font-black text-foreground">{t("Curriculum", "المنهج الدراسي", "Manhajka")}</h2>
+                <div className="text-sm text-muted-foreground whitespace-nowrap">
                   <span className="text-green-400 font-medium">{freeCount} {t("free", "مجاني", "bilaash")}</span>
                   {" • "}
                   <span className="text-muted-foreground">{lockedCount} {t("premium", "مميز", "premium")}</span>

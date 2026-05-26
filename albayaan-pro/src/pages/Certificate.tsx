@@ -140,12 +140,14 @@ export default function Certificate() {
           </div>
         </motion.div>
 
-        {/* Certificate card */}
+        {/* Certificate card — horizontally scrollable on small screens */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.34, 1.2, 0.64, 1] }}
+          className="overflow-x-auto -mx-4 px-4"
         >
+          <div style={{ minWidth: "480px" }}>
           <div
             ref={certRef}
             className="relative w-full overflow-hidden"
@@ -279,6 +281,7 @@ export default function Certificate() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </motion.div>
 

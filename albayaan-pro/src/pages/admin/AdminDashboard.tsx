@@ -180,14 +180,14 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-black text-white">{t("Admin Dashboard", "لوحة تحكم المسؤول", "Xafiiska Maamulka")}</h1>
-            <p className="text-muted-foreground mt-1">{t("Manage your platform", "إدارة منصتك", "Maamul madalkaaaga")}</p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-black text-white">{t("Admin Dashboard", "لوحة تحكم المسؤول", "Xafiiska Maamulka")}</h1>
+            <p className="text-muted-foreground mt-1 text-sm">{t("Manage your platform", "إدارة منصتك", "Maamul madalkaaaga")}</p>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/10 border border-green-500/20 shrink-0">
             <Shield className="w-4 h-4 text-green-400" />
-            <span className="text-green-400 text-sm font-medium">Admin</span>
+            <span className="text-green-400 text-sm font-medium hidden sm:inline">Admin</span>
           </div>
         </div>
       </motion.div>
@@ -308,8 +308,8 @@ export default function AdminDashboard() {
                 <motion.div key={course.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
                   {/* Course row */}
                   <div className="p-4 rounded-xl bg-card border border-white/10 hover:border-white/20 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${course.color} flex items-center justify-center text-2xl shrink-0`}>
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${course.color} flex items-center justify-center text-xl sm:text-2xl shrink-0`}>
                         {course.thumbnail}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -322,14 +322,39 @@ export default function AdminDashboard() {
                           }`}>{course.level}</span>
                           <span className="text-xs text-muted-foreground">{course.language === "english" ? "🇬🇧" : "🇸🇦"}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-1">
                           <span>{course.lessonCount} lessons</span>
                           <span>${course.price}</span>
-                          <span>{course.enrolledCount.toLocaleString()} enrolled</span>
+                          <span className="hidden sm:inline">{course.enrolledCount.toLocaleString()} enrolled</span>
                           <span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{course.rating}</span>
                         </div>
+                        {/* Actions row — visible on mobile below info */}
+                        <div className="flex items-center gap-2 mt-2 sm:hidden">
+                          <button
+                            onClick={() => setExpandedLesson(expandedLesson === course.id ? null : course.id)}
+                            className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-all"
+                            title="View lessons"
+                          >
+                            {expandedLesson === course.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => { setEditingCourse(course.id); setShowAddForm(true); }}
+                            className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all"
+                            title="Edit course"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingCourse(course.id)}
+                            className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+                            title="Delete course"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      {/* Actions row — visible on desktop to the right */}
+                      <div className="hidden sm:flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => setExpandedLesson(expandedLesson === course.id ? null : course.id)}
                           className="p-2 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-all"
@@ -421,11 +446,11 @@ export default function AdminDashboard() {
         {tab === "users" && (
           <motion.div key="users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="p-6 rounded-2xl bg-card border border-white/10">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                 <h3 className="font-semibold text-white">{t("Registered Users", "المستخدمون المسجلون", "Isticmaalayaasha Diiwaan Galiyay")}</h3>
-                <div className="relative">
+                <div className="relative w-full sm:w-48">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input className="pl-9 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/40 text-sm w-48" placeholder="Search users..." />
+                  <input className="pl-9 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/40 text-sm w-full" placeholder="Search users..." />
                 </div>
               </div>
               {!users || (users as any[]).length === 0 ? (
