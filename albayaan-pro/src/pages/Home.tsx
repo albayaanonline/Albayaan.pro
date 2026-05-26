@@ -7,7 +7,7 @@ import {
   CheckCircle, Sparkles, Brain, Target,
 } from "lucide-react";
 
-const CUBIC = [0.22, 1, 0.36, 1] as const;
+const CUBIC: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
