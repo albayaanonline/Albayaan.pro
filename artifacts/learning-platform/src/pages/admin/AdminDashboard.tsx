@@ -17,7 +17,7 @@ type AdminTab = "overview" | "courses" | "users" | "payments" | "codes" | "analy
 interface CourseFormData {
   title: string;
   titleAr: string;
-  language: "english" | "arabic";
+  language: "english" | "arabic" | "multilingual";
   level: "beginner" | "intermediate" | "advanced";
   price: number;
   duration: string;
@@ -69,6 +69,7 @@ function CourseForm({
             className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-primary/50 text-sm">
             <option value="english">🇬🇧 English</option>
             <option value="arabic">🇸🇦 Arabic</option>
+            <option value="multilingual">🌐 Multilingual</option>
           </select>
         </div>
         <div>

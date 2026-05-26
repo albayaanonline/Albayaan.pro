@@ -1,9 +1,13 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Clock, ArrowRight, Search, Star, Users, GraduationCap, Filter, X } from "lucide-react";
+import {
+  BookOpen, Clock, ArrowRight, Search, Star, Users, GraduationCap,
+  Filter, X, Calculator, FlaskConical, Globe, BookMarked,
+  Code2, Building2, ChevronRight,
+} from "lucide-react";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { CURRICULUM_COURSES, type Course } from "@/data/courses";
+import { CURRICULUM_COURSES, SCHOOL_COURSES, UNIVERSITY_COURSES, type Course } from "@/data/courses";
 
 const LEVEL_COLORS: Record<string, string> = {
   beginner:     "bg-green-500/20 text-green-400 border-green-500/30",
@@ -37,9 +41,7 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
           alt={course.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute top-3 left-3">
@@ -51,9 +53,13 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
           <span className="text-white text-xs font-bold">{course.rating}</span>
         </div>
-        {course.featured && (
-          <div className="absolute bottom-3 left-3 px-2.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-bold">
-            ⭐ {t("Featured", "مميز", "Muuqda")}
+        {course.subSection && (
+          <div className={`absolute bottom-3 left-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white ${
+            course.subSection === "school" ? "bg-blue-600" : "bg-purple-600"
+          }`}>
+            {course.subSection === "school"
+              ? t("School Level", "مستوى مدرسي", "Heerka Dugsiga")
+              : t("University Level", "مستوى جامعي", "Heerka Jaamacadda")}
           </div>
         )}
       </div>
@@ -95,24 +101,69 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
   );
 }
 
+type SubFilter = "all" | "school" | "university";
+
 export default function Curriculum() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
-  const [langFilter, setLangFilter] = useState<"all" | "english" | "arabic">("all");
+  const [langFilter, setLangFilter] = useState<"all" | "english" | "arabic" | "multilingual">("all");
   const [lvlFilter, setLvlFilter] = useState<"all" | "beginner" | "intermediate" | "advanced">("all");
+  const [subFilter, setSubFilter] = useState<SubFilter>("all");
 
   const filtered = useMemo(() => {
     return CURRICULUM_COURSES.filter(c => {
       const q = search.toLowerCase();
-      const matchSearch = !q || c.title.toLowerCase().includes(q) || c.titleAr.includes(q) || c.description.toLowerCase().includes(q);
+      const matchSearch = !q
+        || c.title.toLowerCase().includes(q)
+        || c.titleAr.includes(q)
+        || c.description.toLowerCase().includes(q);
       const matchLang = langFilter === "all" || c.language === langFilter;
-      const matchLvl  = lvlFilter  === "all" || c.level    === lvlFilter;
-      return matchSearch && matchLang && matchLvl;
+      const matchLvl  = lvlFilter === "all" || c.level === lvlFilter;
+      const matchSub  = subFilter === "all" || c.subSection === subFilter;
+      return matchSearch && matchLang && matchLvl && matchSub;
     });
-  }, [search, langFilter, lvlFilter]);
+  }, [search, langFilter, lvlFilter, subFilter]);
 
-  const hasFilters = langFilter !== "all" || lvlFilter !== "all" || search;
-  const clearFilters = () => { setSearch(""); setLangFilter("all"); setLvlFilter("all"); };
+  const hasFilters = langFilter !== "all" || lvlFilter !== "all" || !!search || subFilter !== "all";
+  const clearFilters = () => {
+    setSearch("");
+    setLangFilter("all");
+    setLvlFilter("all");
+    setSubFilter("all");
+  };
+
+  const sectionCards = [
+    {
+      key: "school" as SubFilter,
+      icon: Building2,
+      color: "from-blue-500 to-blue-600",
+      bg: "bg-blue-500/10 border-blue-500/20",
+      label: t("School Level", "المستوى المدرسي", "Heerka Dugsiga"),
+      desc: t("Grades 5–12 academic subjects", "مواد أكاديمية للصفوف 5-12", "Mawaadiicta cilmiga 5-12"),
+      count: SCHOOL_COURSES.length,
+      subjects: [
+        { icon: Globe,         label: t("English",    "الإنجليزية", "Ingiriisi") },
+        { icon: BookMarked,    label: t("Arabic",     "العربية",    "Carabi") },
+        { icon: Calculator,    label: t("Mathematics","الرياضيات",  "Xisaabta") },
+        { icon: FlaskConical,  label: t("Science",    "العلوم",     "Sayniska") },
+      ],
+    },
+    {
+      key: "university" as SubFilter,
+      icon: GraduationCap,
+      color: "from-purple-500 to-purple-600",
+      bg: "bg-purple-500/10 border-purple-500/20",
+      label: t("University Level", "المستوى الجامعي", "Heerka Jaamacadda"),
+      desc: t("Undergraduate & graduate programs", "برامج البكالوريوس والدراسات العليا", "Barnaamijyada jaamacadda"),
+      count: UNIVERSITY_COURSES.length,
+      subjects: [
+        { icon: Code2,         label: t("CS",              "علوم الحاسوب",       "CS") },
+        { icon: BookMarked,    label: t("Islamic Studies", "الدراسات الإسلامية", "Cilmiga Islaamiga") },
+        { icon: Globe,         label: t("English Adv.",   "الإنجليزية المتقدمة","Ingiriisi Sare") },
+        { icon: BookOpen,      label: t("Arabic Adv.",    "العربية المتقدمة",   "Carabi Sare") },
+      ],
+    },
+  ];
 
   return (
     <div className="min-h-screen pt-8 pb-16">
@@ -126,25 +177,61 @@ export default function Curriculum() {
           </div>
           <h1 className="text-4xl md:text-6xl font-black text-foreground mb-4">
             {t("Academic", "المنهج", "Manhajka")}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500"> {t("Curriculum", "الأكاديمي", "Cilmiga")}</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
+              {" "}{t("Curriculum", "الأكاديمي", "Cilmiga")}
+            </span>
           </h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            {t("Structured academic courses for English and Arabic at every level — Beginner to Advanced. Certified by Al-Bayaan College.", "دورات أكاديمية منظمة للإنجليزية والعربية في كل المستويات — من المبتدئ إلى المتقدم.", "Koorsooyinka cilmiga nidaamsan ee Ingiriisiga iyo Carabiga heer walba — Bilaabista ilaa Sare.")}
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            {t(
+              "Structured academic courses for school students and university learners. All levels, AI-assisted, with certificates.",
+              "دورات أكاديمية منظمة لطلاب المدارس والجامعات. جميع المستويات بمساعدة الذكاء الاصطناعي مع شهادات.",
+              "Koorsooyinka cilmiga nidaamsan ee ardayda dugsiga iyo jaamacadda. Heer walba, AI la caawiso, shahaadooyin."
+            )}
           </p>
         </motion.div>
 
-        {/* Curriculum path pills */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-wrap justify-center gap-3 mb-8">
-          {[
-            { label: t("English Path", "مسار الإنجليزية", "Wadada Ingiriisiga"), sub: t("Beginner → Advanced", "مبتدئ → متقدم", "Bilaabe → Sare"), count: 3, color: "border-blue-500/30 bg-blue-500/10" },
-            { label: t("Arabic & Quran Path", "مسار العربية والقرآن", "Wadada Carabiga & Qur'aanka"), sub: t("Beginner → Advanced", "مبتدئ → متقدم", "Bilaabe → Sare"), count: 3, color: "border-green-500/30 bg-green-500/10" },
-          ].map((path, i) => (
-            <div key={i} className={`flex items-center gap-3 px-5 py-3 rounded-2xl border ${path.color}`}>
-              <div>
-                <div className="font-bold text-foreground text-sm">{path.label}</div>
-                <div className="text-xs text-muted-foreground">{path.sub} · {path.count} {t("courses", "دورات", "koorso")}</div>
+        {/* Sub-section cards */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+          {sectionCards.map((card, i) => (
+            <motion.button
+              key={card.key}
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setSubFilter(subFilter === card.key ? "all" : card.key)}
+              className={`text-left p-6 rounded-2xl border transition-all duration-200 ${
+                subFilter === card.key
+                  ? card.bg + " border-opacity-60 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
+                  : "bg-card border-white/10 hover:border-white/20"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${card.color} flex items-center justify-center shrink-0 shadow-md`}>
+                  <card.icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-black text-foreground">{card.label}</h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white bg-gradient-to-r ${card.color}`}>
+                      {card.count} {t("courses", "دورات", "koorso")}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">{card.desc}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {card.subjects.map((s, j) => (
+                      <div key={j} className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <s.icon className="w-3 h-3" /> {s.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+              {subFilter === card.key && (
+                <div className="mt-3 pt-3 border-t border-white/10 text-xs font-semibold text-primary flex items-center gap-1">
+                  <X className="w-3 h-3" /> {t("Click to clear filter", "انقر لمسح الفلتر", "Riix si aad shaandhaynta u nadiifiso")}
+                </div>
+              )}
+            </motion.button>
           ))}
         </motion.div>
 
@@ -163,7 +250,7 @@ export default function Curriculum() {
 
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
-            {(["all", "english", "arabic"] as const).map(lang => (
+            {(["all", "english", "arabic", "multilingual"] as const).map(lang => (
               <button
                 key={lang}
                 onClick={() => setLangFilter(lang)}
@@ -173,16 +260,22 @@ export default function Curriculum() {
                     : "bg-white/5 text-muted-foreground hover:bg-white/10 border border-white/10"
                 }`}
               >
-                {lang === "all" ? t("All Languages", "جميع اللغات", "Dhammaan Luuqadaha") : lang === "english" ? "🇬🇧 English" : "🇸🇦 Arabic"}
+                {lang === "all"
+                  ? t("All Languages", "جميع اللغات", "Dhammaan")
+                  : lang === "english"
+                    ? "🇬🇧 English"
+                    : lang === "arabic"
+                      ? "🇸🇦 Arabic"
+                      : "🌐 Multi"}
               </button>
             ))}
             <div className="w-px h-5 bg-white/20" />
             {(["all", "beginner", "intermediate", "advanced"] as const).map(lvl => {
               const labels: Record<string, string> = {
-                all: t("All Levels", "جميع المستويات", "Dhammaan Heerarka"),
-                beginner: t("Beginner", "مبتدئ", "Bilaabe"),
+                all:          t("All Levels", "جميع المستويات", "Dhammaan Heerarka"),
+                beginner:     t("Beginner", "مبتدئ", "Bilaabe"),
                 intermediate: t("Intermediate", "متوسط", "Dhexe"),
-                advanced: t("Advanced", "متقدم", "Sare"),
+                advanced:     t("Advanced", "متقدم", "Sare"),
               };
               return (
                 <button
@@ -209,24 +302,71 @@ export default function Curriculum() {
           </p>
         </motion.div>
 
-        {/* Grid */}
-        <AnimatePresence mode="popLayout">
-          {filtered.length > 0 ? (
-            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((course, i) => (
-                <CourseCard key={course.id} course={course} index={i} />
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
-              <div className="text-5xl mb-4">🔍</div>
-              <h3 className="text-xl font-bold text-foreground mb-2">{t("No courses found", "لم يتم العثور على دورات", "Koorso lama helin")}</h3>
-              <button onClick={clearFilters} className="px-5 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-medium hover:bg-primary/20 transition-colors mt-4">
-                {t("Clear filters", "مسح الفلاتر", "Shaandhaynta nadiifi")}
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Section headers if showing school or university */}
+        {(subFilter === "all" && !search && langFilter === "all" && lvlFilter === "all") ? (
+          <div className="space-y-12">
+            {/* School section */}
+            <div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-foreground">{t("School Level Courses", "دورات المستوى المدرسي", "Koorsooyinka Heerka Dugsiga")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("Grades 5–12 academic subjects with certificates", "مواد أكاديمية للصفوف 5-12 مع شهادات", "Mawaadiicta cilmiga ardayda dugsiga")}</p>
+                </div>
+                <button onClick={() => setSubFilter("school")} className="ml-auto flex items-center gap-1 text-xs text-primary hover:underline font-medium">
+                  {t("View all", "عرض الكل", "Dhamaan arag")} <ChevronRight className="w-3 h-3" />
+                </button>
+              </motion.div>
+              <AnimatePresence mode="popLayout">
+                <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {SCHOOL_COURSES.map((c, i) => <CourseCard key={c.id} course={c} index={i} />)}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* University section */}
+            <div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="flex items-center gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-foreground">{t("University Level Courses", "دورات المستوى الجامعي", "Koorsooyinka Heerka Jaamacadda")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("Undergraduate programs with recognized certificates", "برامج البكالوريوس مع شهادات معترف بها", "Barnaamijyada jaamacadda shahaadooyin la aqoonsan yahay")}</p>
+                </div>
+                <button onClick={() => setSubFilter("university")} className="ml-auto flex items-center gap-1 text-xs text-primary hover:underline font-medium">
+                  {t("View all", "عرض الكل", "Dhamaan arag")} <ChevronRight className="w-3 h-3" />
+                </button>
+              </motion.div>
+              <AnimatePresence mode="popLayout">
+                <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {UNIVERSITY_COURSES.map((c, i) => <CourseCard key={c.id} course={c} index={i} />)}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {filtered.length > 0 ? (
+              <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered.map((course, i) => (
+                  <CourseCard key={course.id} course={course} index={i} />
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="text-xl font-bold text-foreground mb-2">{t("No courses found", "لم يتم العثور على دورات", "Koorso lama helin")}</h3>
+                <button onClick={clearFilters} className="px-5 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-medium hover:bg-primary/20 transition-colors mt-4">
+                  {t("Clear filters", "مسح الفلاتر", "Shaandhaynta nadiifi")}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
+
       </div>
     </div>
   );
