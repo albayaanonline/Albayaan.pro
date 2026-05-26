@@ -410,7 +410,7 @@ export default function AdminDashboard() {
                     {/* Lesson list */}
                     <AnimatePresence>
                       {expandedLesson === course.id && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" as string | number }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                           <div className="mt-4 space-y-2">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="text-sm font-semibold text-white">{course.lessonCount} Lessons</h4>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Link } from "wouter";
 import {
@@ -7,9 +7,9 @@ import {
   CheckCircle, Sparkles, Brain, Target,
 } from "lucide-react";
 
-const CUBIC: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const CUBIC = [0.22, 1, 0.36, 1] as const;
 
-const fadeUp: Variants = {
+const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (delay = 0) => ({
     opacity: 1,
@@ -18,7 +18,7 @@ const fadeUp: Variants = {
   }),
 };
 
-const cardVariant: Variants = {
+const cardVariant = {
   hidden: { opacity: 0, y: 24 },
   visible: (i = 0) => ({
     opacity: 1,
@@ -147,7 +147,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, y: -20, filter: "blur(6px)" }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.5, ease: CUBIC }}
                 className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-purple-500"
               >
                 {heroText}
