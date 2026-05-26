@@ -138,9 +138,9 @@ export default function AdminDashboard() {
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
 
   const { data: stats }    = useGetAdminStats();
-  const { data: users }    = useGetAdminUsers({ query: { enabled: tab === "users" } });
-  const { data: payments, refetch: refetchPayments } = useGetAdminPayments({ query: { enabled: tab === "payments" } });
-  const { data: codes,    refetch: refetchCodes }    = useGetAdminCodes({ query: { enabled: tab === "codes" } });
+  const { data: users }    = useGetAdminUsers();
+  const { data: payments, refetch: refetchPayments } = useGetAdminPayments();
+  const { data: codes,    refetch: refetchCodes }    = useGetAdminCodes();
 
   const { mutate: confirmPayment, isPending: confirmingPayment } = useConfirmPayment({
     mutation: { onSuccess: () => refetchPayments() },
@@ -385,7 +385,7 @@ export default function AdminDashboard() {
                     {/* Lesson list */}
                     <AnimatePresence>
                       {expandedLesson === course.id && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" as string | number }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                           <div className="mt-4 space-y-2">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="text-sm font-semibold text-white">{course.lessonCount} Lessons</h4>

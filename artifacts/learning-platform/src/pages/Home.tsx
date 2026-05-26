@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Link } from "wouter";
 import {
@@ -8,19 +8,21 @@ import {
   Code2, Briefcase, Palette, TrendingUp, Play, Award,
 } from "lucide-react";
 
-const fadeUp = {
+const CUBIC: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: (delay = 0) => ({
     opacity: 1, y: 0,
-    transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.5, delay, ease: CUBIC },
   }),
 };
 
-const cardVariant = {
+const cardVariant: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: (i = 0) => ({
     opacity: 1, y: 0,
-    transition: { duration: 0.45, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.45, delay: i * 0.07, ease: CUBIC },
   }),
 };
 

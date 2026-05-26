@@ -207,9 +207,9 @@ export default function AdminDashboard() {
   }, []);
 
   const { data: stats, refetch: refetchStats } = useGetAdminStats();
-  const { data: users }    = useGetAdminUsers({ query: { enabled: tab === "users" } });
-  const { data: payments, refetch: refetchPayments } = useGetAdminPayments({ query: { enabled: tab === "payments" } });
-  const { data: codes, refetch: refetchCodes } = useGetAdminCodes({ query: { enabled: tab === "codes" } });
+  const { data: users }    = useGetAdminUsers();
+  const { data: payments, refetch: refetchPayments } = useGetAdminPayments();
+  const { data: codes, refetch: refetchCodes } = useGetAdminCodes();
   const { data: adminCourses, isLoading: loadingCourses, refetch: refetchCourses } = useAdminCourses();
   const { data: analytics } = useAdminAnalytics();
 
