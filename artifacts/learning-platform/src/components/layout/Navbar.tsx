@@ -1,15 +1,149 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { LanguageToggle } from "../shared/LanguageToggle";
 import { ThemeToggle } from "../shared/ThemeToggle";
+import { COURSES } from "@/data/courses";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu, X, BookOpen, LayoutDashboard, LogOut, User,
-  GraduationCap, Lightbulb, Award,
+  GraduationCap, Lightbulb, Award, Bot, Search, ArrowRight,
+  Star, Zap,
 } from "lucide-react";
 
 const BRAND = "Al-Bayaan College";
+
+function SearchModal({ onClose }: { onClose: () => void }) {
+  const [query, setQuery] = useState("");
+  const { language } = useLanguage();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const results = query.trim().length > 1
+    ? COURSES.filter(c => {
+        const q = query.toLowerCase();
+        return (
+          c.title.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q) ||
+          c.category.toLowerCase().includes(q) ||
+          (c.titleAr || "").includes(q) ||
+          (c.titleSo || "").toLowerCase().includes(q)
+        );
+      }).slice(0, 6)
+    : COURSES.filter(c => c.popular || c.featured).slice(0, 6);
+
+  const getTitle = (c: any) =>
+    language === "ar" ? c.titleAr : language === "so" ? c.titleSo : c.title;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-start justify-center pt-20 px-4"
+      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(12px)" }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -20, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-2xl rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(59,130,246,0.2)]"
+        style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,130,246,0.2)" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
+          <Search className="w-5 h-5 text-muted-foreground shrink-0" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search courses, topics, skills..."
+            className="flex-1 bg-transparent text-white placeholder-muted-foreground text-base focus:outline-none"
+            onKeyDown={e => {
+              if (e.key === "Enter" && results.length > 0) {
+                navigate(`/courses/${results[0].id}`);
+                onClose();
+              }
+            }}
+          />
+          <kbd className="hidden sm:inline-flex items-center px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-muted-foreground">
+            ESC
+          </kbd>
+        </div>
+
+        <div className="py-2 max-h-[400px] overflow-y-auto">
+          {!query && (
+            <div className="px-4 pt-2 pb-1">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">
+                🔥 Popular Courses
+              </p>
+            </div>
+          )}
+          {results.length === 0 && query && (
+            <div className="px-5 py-8 text-center text-muted-foreground text-sm">
+              No courses found for "{query}"
+            </div>
+          )}
+          {results.map((course, i) => (
+            <Link
+              key={course.id}
+              href={`/courses/${course.id}`}
+              onClick={onClose}
+            >
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer group"
+              >
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${course.color} flex items-center justify-center text-xl shrink-0`}>
+                  {course.thumbnail}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">
+                    {getTitle(course)}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-muted-foreground">{course.category}</span>
+                    <span className="text-muted-foreground/40">·</span>
+                    <span className="flex items-center gap-0.5 text-xs text-yellow-400">
+                      <Star className="w-3 h-3 fill-yellow-400" />
+                      {course.rating}
+                    </span>
+                    <span className="text-muted-foreground/40">·</span>
+                    <span className="text-xs font-bold text-primary">${course.price}</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              </motion.div>
+            </Link>
+          ))}
+        </div>
+
+        <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {results.length} course{results.length !== 1 ? "s" : ""} {query ? "found" : "available"}
+          </span>
+          <Link href="/courses" onClick={onClose} className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+            View all courses <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -17,6 +151,7 @@ export function Navbar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
@@ -26,11 +161,23 @@ export function Navbar() {
 
   useEffect(() => { setMobileOpen(false); }, [location]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(v => !v);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
   const isActive = (path: string) => location === path || location.startsWith(path + "/");
 
   const navLinks = [
     { href: "/curriculum",       label: t("Curriculum",   "المنهج الدراسي", "Manhajka"),          icon: GraduationCap },
     { href: "/courses",          label: t("Skills",        "المهارات",       "Xirfadaha"),         icon: Lightbulb },
+    { href: "/ai-tutor",         label: t("AI Tutor",      "المعلم الذكي",   "Bare AI-ga"),        icon: Bot },
     ...(user ? [
       { href: "/dashboard",      label: t("Dashboard",    "لوحة التحكم",    "Dhaq-dhaqaaqa"),     icon: LayoutDashboard },
       { href: "/my-certificates", label: t("Certificates", "شهاداتي",       "Shahaadooyinkayga"), icon: Award },
@@ -39,6 +186,10 @@ export function Navbar() {
 
   return (
     <>
+      <AnimatePresence>
+        {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}
+      </AnimatePresence>
+
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
@@ -78,20 +229,34 @@ export function Navbar() {
                   isActive(link.href)
                     ? "bg-primary/10 text-primary border border-primary/20"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                }`}
+                } ${link.href === "/ai-tutor" ? "relative" : ""}`}
               >
                 <link.icon className="w-4 h-4" />
                 {link.label}
+                {link.href === "/ai-tutor" && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-400 border border-background animate-pulse" />
+                )}
               </Link>
             ))}
           </div>
 
           {/* Desktop right */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
+            {/* Search button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-full text-sm text-muted-foreground border border-white/10 hover:border-primary/30 hover:text-foreground hover:bg-white/5 transition-all"
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden lg:inline">Search</span>
+              <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">
+                ⌘K
+              </kbd>
+            </button>
             <LanguageToggle />
             <ThemeToggle />
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Link href="/dashboard"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                   <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
@@ -123,6 +288,12 @@ export function Navbar() {
 
           {/* Mobile toggle */}
           <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+            >
+              <Search className="w-5 h-5" />
+            </button>
             <LanguageToggle compact />
             <ThemeToggle />
             <button
@@ -137,66 +308,76 @@ export function Navbar() {
       </nav>
 
       {/* Mobile menu */}
-      {mobileOpen && (
-        <div
-          className="fixed top-16 left-0 right-0 z-40 bg-background border-b border-border shadow-xl"
-          style={{ transform: "translateZ(0)" }}
-        >
-          <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
-            {navLinks.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  isActive(link.href)
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                }`}
-              >
-                <link.icon className="w-5 h-5" />
-                {link.label}
-              </Link>
-            ))}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed top-16 left-0 right-0 z-40 bg-background/98 backdrop-blur-xl border-b border-border shadow-xl"
+            style={{ transform: "translateZ(0)" }}
+          >
+            <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
+              {navLinks.map(link => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                    isActive(link.href)
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  }`}
+                >
+                  <link.icon className="w-5 h-5" />
+                  {link.label}
+                  {link.href === "/ai-tutor" && (
+                    <span className="ml-auto flex items-center gap-1 text-xs text-green-400">
+                      <Zap className="w-3 h-3" /> AI
+                    </span>
+                  )}
+                </Link>
+              ))}
 
-            <div className="pt-3 border-t border-border/50 space-y-2">
-              {user ? (
-                <>
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                      {user.name?.[0]?.toUpperCase()}
+              <div className="pt-3 border-t border-border/50 space-y-2">
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                        {user.name?.[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{user.name}</div>
+                        <div className="text-xs text-muted-foreground">{user.email}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm font-medium text-foreground">{user.name}</div>
-                      <div className="text-xs text-muted-foreground">{user.email}</div>
+                    <button
+                      onClick={() => logout()}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      {t("Logout", "تسجيل الخروج", "Bixitaan")}
+                    </button>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link href="/auth/login"
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
+                        <User className="w-4 h-4" />
+                        {t("Login", "دخول", "Gal")}
+                      </Link>
+                      <Link href="/auth/register"
+                        className="flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold transition-all">
+                        {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
+                      </Link>
                     </div>
                   </div>
-                  <button
-                    onClick={() => logout()}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    {t("Logout", "تسجيل الخروج", "Bixitaan")}
-                  </button>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link href="/auth/login"
-                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
-                      <User className="w-4 h-4" />
-                      {t("Login", "دخول", "Gal")}
-                    </Link>
-                    <Link href="/auth/register"
-                      className="flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold transition-all">
-                      {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
-                    </Link>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

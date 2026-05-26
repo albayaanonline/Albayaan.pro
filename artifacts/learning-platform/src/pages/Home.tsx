@@ -6,7 +6,7 @@ import {
   BookOpen, Users, Trophy, Zap, Globe, ShieldCheck, Star, ArrowRight,
   CheckCircle, Sparkles, Brain, Target, GraduationCap, Lightbulb,
   Code2, Briefcase, Palette, TrendingUp, FlaskConical, Calculator,
-  Play, Award, ChevronRight,
+  Play, Award, ChevronRight, Bot, MessageCircle,
 } from "lucide-react";
 
 const CUBIC = [0.22, 1, 0.36, 1] as const;
@@ -158,6 +158,14 @@ export default function Home() {
                 className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/5 border border-white/20 text-foreground font-bold text-lg flex items-center justify-center gap-2 hover:bg-white/10 transition-colors">
                 <Lightbulb className="w-5 h-5" />
                 {t("Skills & Courses", "المهارات والدورات", "Xirfadaha & Koorsooyinka")}
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
+              <Link href="/ai-tutor"
+                className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-violet-600/20 to-blue-600/20 border border-violet-500/40 text-violet-300 font-bold text-lg flex items-center justify-center gap-2 hover:bg-violet-600/30 transition-colors relative overflow-hidden">
+                <span className="absolute inset-0 bg-gradient-to-r from-violet-600/10 to-blue-600/10 animate-pulse" />
+                <Bot className="w-5 h-5 relative z-10" />
+                <span className="relative z-10">{t("AI Tutor", "المعلم الذكي", "Bare AI-ga")}</span>
               </Link>
             </motion.div>
           </motion.div>
@@ -596,6 +604,13 @@ export default function Home() {
                   className="px-10 py-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg flex items-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_50px_rgba(59,130,246,0.6)] transition-shadow">
                   {t("Explore Courses", "استكشف الدورات", "Sahmi Koorsooyinka")}
                   <ArrowRight className="w-5 h-5" />
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+                <Link href="/ai-tutor"
+                  className="px-10 py-4 rounded-full bg-gradient-to-r from-violet-600/20 to-blue-600/20 border border-violet-500/40 text-violet-300 font-bold text-lg flex items-center gap-2 hover:bg-violet-600/30 transition-colors">
+                  <Bot className="w-5 h-5" />
+                  {t("Try AI Tutor", "جرّب المعلم الذكي", "AI Bare Tijaabi")}
                 </Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>

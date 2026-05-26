@@ -11,6 +11,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { SplashScreen } from "@/components/SplashScreen";
 
 import Home             from "@/pages/Home";
+import AIChat           from "@/pages/AIChat";
 import Courses          from "@/pages/Courses";
 import Curriculum       from "@/pages/Curriculum";
 import CourseDetail     from "@/pages/CourseDetail";
@@ -90,6 +91,7 @@ function App() {
                         <Route path="/auth/callback"                 component={AuthCallback} />
                         <Route path="/access-code"                   component={AccessCode} />
                         <Route path="/payment/:courseId"             component={Payment} />
+                        <Route path="/ai-tutor"                      component={AIChat} />
                         <Route path="/pricing"                       component={Pricing} />
                         <Route path="/verify/:certId"                component={Verify} />
                         <Route path="/verify"                        component={Verify} />
