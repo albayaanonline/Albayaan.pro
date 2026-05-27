@@ -77,6 +77,22 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   });
 });
 
+router.post("/auth/forgot-password", async (req, res): Promise<void> => {
+  const { email } = req.body;
+  if (!email || typeof email !== "string") {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+  // Always return success to prevent email enumeration attacks.
+  // In production, an email service would send a reset link here.
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim()));
+  if (user) {
+    // A real implementation would send a reset token via email here.
+    console.log(`[auth] Password reset requested for user id=${user.id}`);
+  }
+  res.json({ success: true, message: "If an account exists, a reset link will be sent." });
+});
+
 router.post("/auth/logout", async (req, res): Promise<void> => {
   req.session.destroy(() => {});
   res.json({ message: "Logged out" });

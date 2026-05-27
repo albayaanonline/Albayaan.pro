@@ -24,7 +24,7 @@ import Pricing          from "@/pages/Pricing";
 import Verify           from "@/pages/Verify";
 import Login            from "@/pages/auth/Login";
 import Register         from "@/pages/auth/Register";
-import AuthCallback     from "@/pages/auth/AuthCallback";
+import ForgotPassword   from "@/pages/auth/ForgotPassword";
 import AdminLogin       from "@/pages/admin/AdminLogin";
 import AdminDashboard   from "@/pages/admin/AdminDashboard";
 import Certificate      from "@/pages/Certificate";
@@ -64,13 +64,13 @@ function App() {
                   <Route path="/admin/:rest*">
                     <AdminLayout>
                       <Switch>
-                        <ProtectedRoute path="/admin/courses"      component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/users"        component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/payments"     component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/codes"        component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/analytics"    component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/certificates" component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/content"      component={AdminDashboard} adminOnly />
+                        <ProtectedRoute path="/admin/courses"       component={AdminDashboard} adminOnly />
+                        <ProtectedRoute path="/admin/users"         component={AdminDashboard} adminOnly />
+                        <ProtectedRoute path="/admin/payments"      component={AdminDashboard} adminOnly />
+                        <ProtectedRoute path="/admin/codes"         component={AdminDashboard} adminOnly />
+                        <ProtectedRoute path="/admin/analytics"     component={AdminDashboard} adminOnly />
+                        <ProtectedRoute path="/admin/certificates"  component={AdminDashboard} adminOnly />
+                        <ProtectedRoute path="/admin/content"       component={AdminDashboard} adminOnly />
                         <ProtectedRoute path="/admin/announcements" component={AdminDashboard} adminOnly />
                         <Route component={NotFound} />
                       </Switch>
@@ -88,7 +88,7 @@ function App() {
                         <Route path="/learn/:courseId/:lessonId"     component={Learn} />
                         <Route path="/auth/login"                    component={Login} />
                         <Route path="/auth/register"                 component={Register} />
-                        <Route path="/auth/callback"                 component={AuthCallback} />
+                        <Route path="/auth/forgot-password"          component={ForgotPassword} />
                         <Route path="/access-code"                   component={AccessCode} />
                         <Route path="/payment/:courseId"             component={Payment} />
                         <Route path="/ai-tutor"                      component={AIChat} />
@@ -96,8 +96,8 @@ function App() {
                         <Route path="/verify/:certId"                component={Verify} />
                         <Route path="/verify"                        component={Verify} />
                         <ProtectedRoute path="/certificate/:courseId" component={Certificate} />
-                        <ProtectedRoute path="/my-certificates"      component={MyCertificates} />
-                        <ProtectedRoute path="/dashboard"            component={Dashboard} />
+                        <ProtectedRoute path="/my-certificates"       component={MyCertificates} />
+                        <ProtectedRoute path="/dashboard"             component={Dashboard} />
                         <Route component={NotFound} />
                       </Switch>
                     </MainLayout>

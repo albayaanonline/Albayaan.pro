@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { useGetMe, User } from "@/lib/api-client";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
-import { supabase, signOutFromSupabase } from "@/lib/supabase";
 
 const ADMIN_STORAGE_KEY = "albayaan_admin_user";
 
@@ -32,47 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isQueryLoading) {
       if (apiUser) {
-        setLocalUser(apiUser);
-        setIsLoading(false);
-        return;
+        setLocalUser(apiUser as User);
       }
       setIsLoading(false);
     }
   }, [apiUser, isQueryLoading]);
-
-  useEffect(() => {
-    if (!supabase) return;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !apiUser) {
-        const sbUser = session.user;
-        setLocalUser({
-          id: 0,
-          name: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email?.split("@")[0] || "User",
-          email: sbUser.email || "",
-          role: "user",
-        } as User);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const sbUser = session.user;
-        setLocalUser({
-          id: 0,
-          name: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email?.split("@")[0] || "User",
-          email: sbUser.email || "",
-          role: "user",
-        } as User);
-      } else if (_event === "SIGNED_OUT") {
-        if (!apiUser) {
-          setLocalUser(null);
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [apiUser]);
 
   const login = (userData: User) => {
     setLocalUser(userData);
@@ -87,7 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setLocalUser(null);
     try { localStorage.removeItem(ADMIN_STORAGE_KEY); } catch {}
-    await signOutFromSupabase();
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } catch {}
@@ -126,10 +88,16 @@ export function ProtectedRoute({ component: Component, adminOnly = false, ...res
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <div className="relative">
+            <div className="absolute inset-0 bg-blue-500/20 rounded-2xl blur-xl animate-pulse" />
+            <div className="relative w-14 h-14 rounded-2xl bg-card border border-white/10 flex items-center justify-center">
+              <img src="/logo-96.png" alt="Al-Bayaan" className="w-8 h-8 object-contain" />
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <p className="text-sm">Loading…</p>
+          </div>
         </div>
       </div>
     );

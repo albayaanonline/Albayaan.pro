@@ -308,6 +308,32 @@ router.delete("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
   res.json({ success: true, id: lessonId });
 });
 
+// ── USER DELETE ──
+
+router.delete("/admin/users/:userId", async (req, res): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const userId = Number(req.params.userId);
+  if (isNaN(userId)) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+
+  // Prevent deleting self
+  if (req.session?.userId === userId) {
+    res.status(400).json({ error: "Cannot delete your own account" });
+    return;
+  }
+
+  const [deleted] = await db.delete(usersTable).where(eq(usersTable.id, userId)).returning();
+  if (!deleted) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.json({ success: true, id: userId });
+});
+
 // ── USER ROLE MANAGEMENT ──
 
 router.patch("/admin/users/:userId/role", async (req, res): Promise<void> => {
