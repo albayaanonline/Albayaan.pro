@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGetLesson, useGetLessonQuiz, useMarkLessonComplete, useSubmitQuiz } from "@/lib/api-client";
+import { useGetLesson, useGetLessonQuiz, useMarkLessonComplete, useSubmitQuiz, getGetLessonQueryKey, getGetLessonQuizQueryKey } from "@/lib/api-client";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { CheckCircle2, ArrowLeft, ArrowRight, BookOpen, HelpCircle, Loader2, Trophy, XCircle } from "lucide-react";
@@ -19,12 +19,12 @@ export default function Learn() {
   const [quizResult, setQuizResult] = useState<any>(null);
   const [lessonDone, setLessonDone] = useState(false);
 
-  const { data: lesson, isLoading: lessonLoading } = useGetLesson(Number(courseId), Number(lessonId), {
-    query: { enabled: !!courseId && !!lessonId }
+  const { data: lesson, isLoading: lessonLoading } = useGetLesson(Number(lessonId), {
+    query: { enabled: !!courseId && !!lessonId, queryKey: getGetLessonQueryKey(Number(lessonId)) }
   });
 
-  const { data: quiz, isLoading: quizLoading } = useGetLessonQuiz(Number(courseId), Number(lessonId), {
-    query: { enabled: !!courseId && !!lessonId && tab === "quiz" }
+  const { data: quiz, isLoading: quizLoading } = useGetLessonQuiz(Number(lessonId), {
+    query: { enabled: !!courseId && !!lessonId && tab === "quiz", queryKey: getGetLessonQuizQueryKey(Number(lessonId)) }
   });
 
   const { mutate: markComplete, isPending: markingComplete } = useMarkLessonComplete({
@@ -44,13 +44,13 @@ export default function Learn() {
 
   const handleMarkComplete = () => {
     if (!user) { setLocation("/auth/login"); return; }
-    markComplete({ courseId: Number(courseId), lessonId: Number(lessonId), data: {} as any });
+    markComplete({ data: { lessonId: Number(lessonId) } });
   };
 
   const handleSubmitQuiz = () => {
     if (!quiz || !(quiz as any).questions?.length) return;
     const answers = (quiz as any).questions.map((_: any, i: number) => selectedAnswers[i] ?? -1);
-    submitQuiz({ courseId: Number(courseId), lessonId: Number(lessonId), data: { answers } });
+    submitQuiz({ lessonId: Number(lessonId), data: { answers } });
   };
 
   const getContent = (item: any) => {

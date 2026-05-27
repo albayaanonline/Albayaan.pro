@@ -1,12 +1,27 @@
-import type { CapacitorConfig } from "@capacitor/cli";
+interface CapacitorConfig {
+  appId: string;
+  appName: string;
+  webDir: string;
+  server?: {
+    androidScheme?: string;
+    allowNavigation?: string[];
+    cleartext?: boolean;
+  };
+  android?: {
+    allowMixedContent?: boolean;
+    captureInput?: boolean;
+    webContentsDebuggingEnabled?: boolean;
+  };
+  plugins?: Record<string, Record<string, unknown>>;
+}
 
 const config: CapacitorConfig = {
-  appId:   "com.ilmai.app",
-  appName: "IlmAI",
+  appId:   "com.albayaan.app",
+  appName: "Albayaan",
   webDir:  "dist",
   server: {
     androidScheme: "https",
-    allowNavigation: ["*.ilmai.app", "*.googleapis.com", "fonts.gstatic.com"],
+    allowNavigation: ["*.albayaan.pro", "fonts.gstatic.com"],
     cleartext: false,
   },
   android: {
