@@ -21,7 +21,7 @@ export interface Course {
   description: string;
   descriptionAr: string;
   descriptionSo: string;
-  language: "english" | "arabic" | "multilingual";
+  language: "english" | "arabic" | "somali" | "multilingual";
   level: "beginner" | "intermediate" | "advanced";
   price: number;
   duration: string;
@@ -34,7 +34,7 @@ export interface Course {
   lessons: Lesson[];
   category: string;
   section: "curriculum" | "skills";
-  subSection?: "school" | "university";
+  subSection?: "school" | "primary" | "secondary" | "university";
   rating: number;
   ratingCount: number;
   certificate: boolean;
@@ -496,10 +496,207 @@ const dataScienceCourse: Course = {
   ],
 };
 
+/* ──────────────── NEW SCHOOL SUBJECTS ──────────────── */
+
+const physicsSecondary: Course = {
+  id: "physics-secondary", slug: "physics-secondary",
+  title: "Physics – Secondary School", titleAr: "الفيزياء – المرحلة الثانوية", titleSo: "Physics – Dugsiga Sare",
+  description: "Master kinematics, dynamics, electricity, magnetism, waves, and modern physics for secondary school exams.",
+  descriptionAr: "أتقن الحركة والديناميكا والكهرباء والمغناطيسية والموجات والفيزياء الحديثة.", descriptionSo: "Soo xifdiso kinematics, dynamics, korontada, birlabta, mowjadaha.",
+  language: "multilingual", level: "intermediate", price: 25, duration: "12 weeks", lessonCount: 8, enrolledCount: 1234,
+  thumbnail: "⚛️", imageUrl: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=800&q=80",
+  color: "from-purple-600 to-violet-400", gradient: "bg-gradient-to-br from-purple-700/20 to-violet-500/20",
+  category: "Physics", section: "curriculum", subSection: "secondary", rating: 4.7, ratingCount: 189,
+  certificate: true, instructor: "Dr. Khalid Physics",
+  lessons: [
+    { id: "ph-1", title: "Kinematics & Motion", titleAr: "الحركة والسرعة", titleSo: "Dhaqdhaqaaqa & Xawaaraha", duration: "40 min", isLocked: false, hasQuiz: true, content: "Distance, speed, velocity, acceleration, equations of motion.", contentAr: "المسافة والسرعة والتسارع.", contentSo: "Masaafada, xawaaraha, dedejinta." },
+    { id: "ph-2", title: "Newton's Laws & Forces", titleAr: "قوانين نيوتن والقوى", titleSo: "Sharciyada Newton & Xoogaga", duration: "45 min", isLocked: false, hasQuiz: true, content: "Newton's three laws, friction, tension, normal force.", contentAr: "قوانين نيوتن الثلاثة والقوى.", contentSo: "Saddexda sharci ee Newton, xidhitaan." },
+    { id: "ph-3", title: "Energy, Work & Power", titleAr: "الطاقة والشغل والقدرة", titleSo: "Tamarida, Shaqada & Xoogga", duration: "40 min", isLocked: false, hasQuiz: true, content: "KE, PE, conservation of energy, power calculations.", contentAr: "الطاقة الحركية والكامنة وحفظ الطاقة.", contentSo: "KE, PE, ilaalinta tamarida." },
+    { id: "ph-4", title: "Waves & Sound", titleAr: "الموجات والصوت", titleSo: "Mowjadaha & Codka", duration: "40 min", isLocked: true, hasQuiz: true, content: "Wave properties, frequency, wavelength, sound waves, Doppler effect.", contentAr: "خصائص الموجات والتردد والطول الموجي.", contentSo: "Sifooyinka mowjadaha, jirta mowjadda." },
+    { id: "ph-5", title: "Electricity & Circuits", titleAr: "الكهرباء والدوائر", titleSo: "Koronto & Wareegyada", duration: "45 min", isLocked: true, hasQuiz: true, content: "Ohm's law, series/parallel circuits, power, resistance.", contentAr: "قانون أوم والدوائر المتسلسلة والمتوازية.", contentSo: "Sharciga Ohm, wareegyada taxanaha." },
+    { id: "ph-6", title: "Magnetism & Electromagnetism", titleAr: "المغناطيسية والكهرومغناطيسية", titleSo: "Birlabta & Koronto-Birlabta", duration: "40 min", isLocked: true, hasQuiz: true, content: "Magnetic fields, electromagnets, Faraday's law, transformers.", contentAr: "المجالات المغناطيسية والكهرومغناطيسية.", contentSo: "Goobaha birlabeed, koritaanka Faraday." },
+    { id: "ph-7", title: "Optics & Light", titleAr: "البصريات والضوء", titleSo: "Aragga & Nuurka", duration: "35 min", isLocked: true, hasQuiz: true, content: "Reflection, refraction, lenses, mirrors, spectrum.", contentAr: "الانعكاس والانكسار والعدسات والمرايا.", contentSo: "Dib-u-celin, jajab, muraayadaha." },
+    { id: "ph-8", title: "Modern Physics & Certificate", titleAr: "الفيزياء الحديثة والشهادة", titleSo: "Physics Casriga & Shahaadada", duration: "60 min", isLocked: true, hasQuiz: true, content: "Atomic structure, nuclear physics, radioactivity. Final exam. Certificate!", contentAr: "التركيب الذري والفيزياء النووية. الاختبار النهائي.", contentSo: "Qaab-dhismeedka atomiga, radiyo-fallaadha. Shahaadada!" },
+  ],
+};
+
+const chemistrySecondary: Course = {
+  id: "chemistry-secondary", slug: "chemistry-secondary",
+  title: "Chemistry – Secondary School", titleAr: "الكيمياء – المرحلة الثانوية", titleSo: "Kiimikada – Dugsiga Sare",
+  description: "Explore atomic structure, bonding, reactions, acids & bases, organic chemistry, and stoichiometry for secondary exams.",
+  descriptionAr: "استكشف التركيب الذري والربط والتفاعلات والأحماض والقواعد والكيمياء العضوية.", descriptionSo: "Sahmi qaab-dhismeedka atomiga, falcelinta, kiimikada dabiiciga ah.",
+  language: "multilingual", level: "intermediate", price: 25, duration: "12 weeks", lessonCount: 8, enrolledCount: 987,
+  thumbnail: "🧪", imageUrl: "https://images.unsplash.com/photo-1532094349884-543559c8d6a0?w=800&q=80",
+  color: "from-orange-500 to-red-400", gradient: "bg-gradient-to-br from-orange-600/20 to-red-500/20",
+  category: "Chemistry", section: "curriculum", subSection: "secondary", rating: 4.6, ratingCount: 145,
+  certificate: true, instructor: "Dr. Amina Chemistry",
+  lessons: [
+    { id: "ch-1", title: "Atomic Structure & Periodic Table", titleAr: "التركيب الذري والجدول الدوري", titleSo: "Qaab-dhismeedka Atomiga & Jadwalka", duration: "40 min", isLocked: false, hasQuiz: true, content: "Protons, neutrons, electrons, electron configuration, periodic trends.", contentAr: "البروتونات والنيوترونات والإلكترونات.", contentSo: "Protonka, neutronka, electronka." },
+    { id: "ch-2", title: "Chemical Bonding", titleAr: "الروابط الكيميائية", titleSo: "Xidhmada Kiimikada", duration: "40 min", isLocked: false, hasQuiz: true, content: "Ionic, covalent, metallic bonds. Lewis structures, VSEPR.", contentAr: "الروابط الأيونية والتساهمية والمعدنية.", contentSo: "Xidhmada ionic, covalent, metallic." },
+    { id: "ch-3", title: "Chemical Reactions & Equations", titleAr: "التفاعلات والمعادلات الكيميائية", titleSo: "Falcelinta & Xisaabadaha Kiimikada", duration: "45 min", isLocked: false, hasQuiz: true, content: "Balancing equations, types of reactions, reaction rates.", contentAr: "موازنة المعادلات وأنواع التفاعلات.", contentSo: "Miisaaninta xisaabadaha, noocyada falcelinta." },
+    { id: "ch-4", title: "Stoichiometry & Moles", titleAr: "قياس التفاعل والمولات", titleSo: "Stoichiometry & Moles-ka", duration: "45 min", isLocked: true, hasQuiz: true, content: "Mole concept, Avogadro's number, calculations.", contentAr: "مفهوم المول وعدد أفوجادرو.", contentSo: "Fikradda mole-ka, xisaabadaha." },
+    { id: "ch-5", title: "Acids, Bases & pH", titleAr: "الأحماض والقواعد والـ pH", titleSo: "Asiidhka, Saldhigga & pH", duration: "35 min", isLocked: true, hasQuiz: true, content: "Arrhenius, Brønsted–Lowry theory, pH scale, indicators.", contentAr: "نظريات الأحماض والقواعد ومقياس pH.", contentSo: "Nidaamyada asiidhka, pH scale-ka." },
+    { id: "ch-6", title: "Organic Chemistry Basics", titleAr: "أساسيات الكيمياء العضوية", titleSo: "Aasaaska Kiimikada Dabiiciga ah", duration: "40 min", isLocked: true, hasQuiz: true, content: "Hydrocarbons, functional groups, isomers, polymers.", contentAr: "الهيدروكربونات والمجموعات الوظيفية.", contentSo: "Hydrocarbons, kooxaha shaqada." },
+    { id: "ch-7", title: "Thermochemistry & Energy", titleAr: "الكيمياء الحرارية والطاقة", titleSo: "Kuleylka-Kiimikada & Tamarida", duration: "35 min", isLocked: true, hasQuiz: false, content: "Enthalpy, exothermic/endothermic reactions, Hess's law.", contentAr: "المحتوى الحراري والتفاعلات الطاردة/الماصة.", contentSo: "Enthalpy, falcelinta kuleel-bixisa." },
+    { id: "ch-8", title: "Final Chemistry Exam & Certificate", titleAr: "الاختبار النهائي للكيمياء والشهادة", titleSo: "Imtixaanka Kiimikada & Shahaadada", duration: "60 min", isLocked: true, hasQuiz: true, content: "Comprehensive chemistry examination. Earn your Chemistry Certificate!", contentAr: "امتحان شامل للكيمياء. احصل على شهادتك!", contentSo: "Imtixaan guud ee kiimikada. Hel shahaadadaada!" },
+  ],
+};
+
+const biologySecondary: Course = {
+  id: "biology-secondary", slug: "biology-secondary",
+  title: "Biology – Secondary School", titleAr: "الأحياء – المرحلة الثانوية", titleSo: "Biology – Dugsiga Sare",
+  description: "Study cells, genetics, evolution, ecology, plant & animal biology, and human physiology for secondary level.",
+  descriptionAr: "ادرس الخلايا والوراثة والتطور والبيئة وعلم وظائف الأعضاء البشرية.", descriptionSo: "Baro unugyada, hiddobeelka, kobcinta, deegaanka, iyo jirka bini'aadamka.",
+  language: "multilingual", level: "intermediate", price: 22, duration: "10 weeks", lessonCount: 8, enrolledCount: 1102,
+  thumbnail: "🧬", imageUrl: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=800&q=80",
+  color: "from-teal-500 to-green-400", gradient: "bg-gradient-to-br from-teal-600/20 to-green-500/20",
+  category: "Biology", section: "curriculum", subSection: "secondary", rating: 4.7, ratingCount: 178,
+  certificate: true, instructor: "Dr. Faadumo Biology",
+  lessons: [
+    { id: "bio-1", title: "Cell Biology & Organization", titleAr: "بيولوجيا الخلية والتنظيم", titleSo: "Biology-ga Unugga & Nidaamka", duration: "40 min", isLocked: false, hasQuiz: true, content: "Cell structure, organelles, prokaryotes vs eukaryotes, cell division.", contentAr: "تركيب الخلية والعضيات وانقسام الخلية.", contentSo: "Qaab-dhismeedka unugga, organelles." },
+    { id: "bio-2", title: "Genetics & Heredity", titleAr: "علم الوراثة والوراثة", titleSo: "Hiddobeelka & Dhaxalka", duration: "45 min", isLocked: false, hasQuiz: true, content: "DNA, RNA, protein synthesis, Mendel's laws, mutations.", contentAr: "الحمض النووي والحمض الريبوزي وتوليف البروتين.", contentSo: "DNA, RNA, tallaalinta borotiinka." },
+    { id: "bio-3", title: "Evolution & Natural Selection", titleAr: "التطور والانتقاء الطبيعي", titleSo: "Kobcinta & Xulashada Dabiiciga", duration: "35 min", isLocked: false, hasQuiz: true, content: "Darwin, natural selection, adaptation, speciation, evidence.", contentAr: "داروين والانتقاء الطبيعي والتكيف.", contentSo: "Darwin, xulashada dabiiciga ah, sifooyinka." },
+    { id: "bio-4", title: "Human Body Systems", titleAr: "أجهزة جسم الإنسان", titleSo: "Nidaamyada Jirka Bini'aadamka", duration: "45 min", isLocked: true, hasQuiz: true, content: "Digestive, respiratory, circulatory, nervous, endocrine systems.", contentAr: "الجهاز الهضمي والتنفسي والدوري والعصبي.", contentSo: "Nidaamka dheefka, neefsiga, dhiigga, xididdada." },
+    { id: "bio-5", title: "Plant Biology", titleAr: "بيولوجيا النبات", titleSo: "Biology-ga Dhirta", duration: "35 min", isLocked: true, hasQuiz: true, content: "Photosynthesis, respiration, plant structures, reproduction.", contentAr: "التمثيل الضوئي والتنفس وهياكل النبات.", contentSo: "Sawir-guurka, neefsiga, qaab-dhismeedka dhirta." },
+    { id: "bio-6", title: "Ecology & Environment", titleAr: "علم البيئة والبيئة", titleSo: "Ecology & Deegaanka", duration: "35 min", isLocked: true, hasQuiz: true, content: "Ecosystems, food chains, energy flow, biodiversity, conservation.", contentAr: "النظم البيئية وسلاسل الغذاء وتدفق الطاقة.", contentSo: "Ecosystems, silsiladaha cuntada, nolosha kala duwan." },
+    { id: "bio-7", title: "Microbiology & Disease", titleAr: "علم الأحياء الدقيقة والأمراض", titleSo: "Microbiology & Xanuunada", duration: "35 min", isLocked: true, hasQuiz: false, content: "Bacteria, viruses, fungi. Immunity, vaccines, infectious diseases.", contentAr: "البكتيريا والفيروسات والفطريات.", contentSo: "Bakteeriyada, fayraaska, faangaska." },
+    { id: "bio-8", title: "Biology Exam & Certificate", titleAr: "امتحان الأحياء والشهادة", titleSo: "Imtixaanka Biology & Shahaadada", duration: "60 min", isLocked: true, hasQuiz: true, content: "Comprehensive biology exam. Earn your Biology Certificate!", contentAr: "امتحان شامل للأحياء. احصل على شهادتك!", contentSo: "Imtixaan guud ee biology. Hel shahaadadaada!" },
+  ],
+};
+
+const geographySecondary: Course = {
+  id: "geography-secondary", slug: "geography-secondary",
+  title: "Geography – Secondary School", titleAr: "الجغرافيا – المرحلة الثانوية", titleSo: "Juqraafiga – Dugsiga Sare",
+  description: "Explore physical geography, climate, human geography, maps, natural resources, and global issues.",
+  descriptionAr: "استكشف الجغرافيا الطبيعية والمناخ والجغرافيا البشرية والخرائط والموارد.", descriptionSo: "Sahmi juqraafiga dabiiciga ah, cimilada, juqraafiga bini'aadamka, khariidadaha.",
+  language: "multilingual", level: "beginner", price: 18, duration: "8 weeks", lessonCount: 6, enrolledCount: 765,
+  thumbnail: "🌍", imageUrl: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&q=80",
+  color: "from-cyan-500 to-blue-400", gradient: "bg-gradient-to-br from-cyan-600/20 to-blue-500/20",
+  category: "Geography", section: "curriculum", subSection: "secondary", rating: 4.5, ratingCount: 123,
+  certificate: true, instructor: "Mr. Hassan Geography",
+  lessons: [
+    { id: "geo-1", title: "Physical Geography & Landforms", titleAr: "الجغرافيا الطبيعية والتضاريس", titleSo: "Juqraafiga Dabiiciga & Qaababka Dhulka", duration: "35 min", isLocked: false, hasQuiz: true, content: "Mountains, rivers, plains, volcanoes, plate tectonics.", contentAr: "الجبال والأنهار والسهول والبراكين.", contentSo: "Buuraha, webiyada, saheelaha, volcanoes." },
+    { id: "geo-2", title: "Climate & Weather", titleAr: "المناخ والطقس", titleSo: "Cimilada & Hawada", duration: "35 min", isLocked: false, hasQuiz: true, content: "Climate zones, factors affecting climate, weather patterns.", contentAr: "المناطق المناخية والعوامل المؤثرة.", contentSo: "Goobaha cimilada, saameynta cimilada." },
+    { id: "geo-3", title: "Maps, Scale & GIS", titleAr: "الخرائط والمقياس ونظم المعلومات", titleSo: "Khariidadaha, Miisaanka & GIS", duration: "30 min", isLocked: false, hasQuiz: true, content: "Map types, scale, coordinates, latitude/longitude, GIS basics.", contentAr: "أنواع الخرائط والمقياس والإحداثيات.", contentSo: "Noocyada khariidadaha, miisaanka, GIS." },
+    { id: "geo-4", title: "Human Geography & Population", titleAr: "الجغرافيا البشرية والسكان", titleSo: "Juqraafiga Bini'aadamka & Dadka", duration: "35 min", isLocked: true, hasQuiz: true, content: "Population distribution, migration, urbanization, demographics.", contentAr: "توزيع السكان والهجرة والتحضر.", contentSo: "Qaybinta dadka, hijradu, magaalaynta." },
+    { id: "geo-5", title: "Natural Resources & Environment", titleAr: "الموارد الطبيعية والبيئة", titleSo: "Kheyraadka Dabiiciga & Deegaanka", duration: "30 min", isLocked: true, hasQuiz: true, content: "Renewable/non-renewable resources, conservation, climate change.", contentAr: "الموارد المتجددة وغير المتجددة وتغير المناخ.", contentSo: "Kheyraadka la cusboonaysiin karo, isbeddelka cimilada." },
+    { id: "geo-6", title: "Global Issues & Certificate", titleAr: "القضايا العالمية والشهادة", titleSo: "Arrimaha Caalamiga & Shahaadada", duration: "50 min", isLocked: true, hasQuiz: true, content: "Globalization, inequality, development goals, Africa's geography. Certificate!", contentAr: "العولمة والتفاوت وأهداف التنمية.", contentSo: "Caalamiyeynta, kala-duwanaanta, horumarinta. Shahaadada!" },
+  ],
+};
+
+const historySecondary: Course = {
+  id: "history-secondary", slug: "history-secondary",
+  title: "History – Secondary School", titleAr: "التاريخ – المرحلة الثانوية", titleSo: "Taariikhda – Dugsiga Sare",
+  description: "Explore world history from ancient civilizations to modern times — wars, empires, revolutions, and African history.",
+  descriptionAr: "استكشف تاريخ العالم من الحضارات القديمة إلى العصر الحديث.", descriptionSo: "Sahmi taariikhda adduunka: xadaradaha hore ilaa wakhtiga casriga ah.",
+  language: "multilingual", level: "beginner", price: 18, duration: "8 weeks", lessonCount: 6, enrolledCount: 634,
+  thumbnail: "📜", imageUrl: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=800&q=80",
+  color: "from-rose-500 to-pink-400", gradient: "bg-gradient-to-br from-rose-600/20 to-pink-500/20",
+  category: "History", section: "curriculum", subSection: "secondary", rating: 4.5, ratingCount: 98,
+  certificate: true, instructor: "Mr. Omar History",
+  lessons: [
+    { id: "hist-1", title: "Ancient Civilizations", titleAr: "الحضارات القديمة", titleSo: "Xadaradaha Hore", duration: "40 min", isLocked: false, hasQuiz: true, content: "Egypt, Mesopotamia, Greece, Rome, Indus Valley, China.", contentAr: "مصر وبلاد الرافدين واليونان وروما والهند والصين.", contentSo: "Masar, Mesopotamia, Giriigga, Room, Hindiya." },
+    { id: "hist-2", title: "Islamic Golden Age & Empires", titleAr: "العصر الذهبي الإسلامي والإمبراطوريات", titleSo: "Xilligii Dahab Islaamiga & Boqortooyadaha", duration: "40 min", isLocked: false, hasQuiz: true, content: "Abbasid Caliphate, science, trade routes, Ottoman, Mughal empires.", contentAr: "الخلافة العباسية والعلوم وطرق التجارة.", contentSo: "Khilaafadda Abbaasiga, cilmiga, Cothmaniyiin." },
+    { id: "hist-3", title: "Colonialism & African History", titleAr: "الاستعمار وتاريخ أفريقيا", titleSo: "Gumeysiga & Taariikhda Afrika", duration: "40 min", isLocked: false, hasQuiz: true, content: "African kingdoms, European colonialism, independence movements, Somalia.", contentAr: "الممالك الأفريقية والاستعمار الأوروبي وحركات الاستقلال.", contentSo: "Boqortooyadaha Afrika, gumeysigu Yurubiyaanka, xorriyadda." },
+    { id: "hist-4", title: "World Wars I & II", titleAr: "الحربان العالميتان الأولى والثانية", titleSo: "Dagaaladii Adduunka I & II", duration: "40 min", isLocked: true, hasQuiz: true, content: "Causes, major battles, key figures, aftermath, UN formation.", contentAr: "الأسباب والمعارك الكبرى والشخصيات والعواقب.", contentSo: "Sababaha, dagaaladii weyn, natiijooyinka, UN." },
+    { id: "hist-5", title: "Cold War & Modern World", titleAr: "الحرب الباردة والعالم الحديث", titleSo: "Dagaalkii Qabow & Adduunka Casriga", duration: "35 min", isLocked: true, hasQuiz: true, content: "USA vs USSR, decolonization, civil rights, globalization, technology.", contentAr: "الحرب الباردة وإنهاء الاستعمار وحقوق الإنسان.", contentSo: "USA vs USSR, xorriyadda, xuquuqda aadanaha." },
+    { id: "hist-6", title: "Modern Somalia & Certificate", titleAr: "الصومال الحديثة والشهادة", titleSo: "Soomaaliya Casriga & Shahaadada", duration: "50 min", isLocked: true, hasQuiz: true, content: "History of Somalia, independence 1960, key events, rebuilding. Certificate!", contentAr: "تاريخ الصومال والاستقلال 1960 والأحداث الرئيسية.", contentSo: "Taariikhda Soomaaliya, xorriyadda 1960. Shahaadada!" },
+  ],
+};
+
+const somaliLanguage: Course = {
+  id: "somali-language", slug: "somali-language",
+  title: "Somali Language – Primary & Secondary", titleAr: "اللغة الصومالية – الابتدائية والثانوية", titleSo: "Af Soomaali – Heerka Dugsiga",
+  description: "Master Somali grammar, reading, writing, poetry (Gabay), and literature for all school levels.",
+  descriptionAr: "أتقن قواعد اللغة الصومالية والقراءة والكتابة والشعر والأدب.", descriptionSo: "Soo xifdiso naxwaha Af Soomaali, akhris, qoris, gabay, iyo suugaanta.",
+  language: "somali", level: "beginner", price: 15, duration: "8 weeks", lessonCount: 6, enrolledCount: 2134,
+  thumbnail: "🇸🇴", imageUrl: "https://images.unsplash.com/photo-1503945438517-f65904a52ce6?w=800&q=80",
+  color: "from-sky-500 to-cyan-400", gradient: "bg-gradient-to-br from-sky-600/20 to-cyan-500/20",
+  category: "Somali", section: "curriculum", subSection: "school", rating: 4.8, ratingCount: 312,
+  certificate: true, instructor: "Ust. Fadumo Somali",
+  lessons: [
+    { id: "so-1", title: "Somali Alphabet & Pronunciation", titleAr: "الأبجدية الصومالية والنطق", titleSo: "Xarfaha Af Soomaali & Dhawaaqa", duration: "30 min", isLocked: false, hasQuiz: true, content: "21 consonants, 5 vowels, tone markers, pronunciation rules.", contentAr: "21 حرفاً ساكناً و5 حروف علة وعلامات النبرة.", contentSo: "21 xarfo, 5 vowel, calaamadaha heesaha." },
+    { id: "so-2", title: "Somali Grammar – Nouns & Verbs", titleAr: "القواعد الصومالية – الأسماء والأفعال", titleSo: "Naxwaha Af Soomaali – Magacyada & Falimaha", duration: "35 min", isLocked: false, hasQuiz: true, content: "Gender, definiteness, verb conjugation, sentence structure.", contentAr: "الجنس والتعريف وتصريف الفعل وبنية الجملة.", contentSo: "Jinsiga, qeexaynta, isugaynta faalka." },
+    { id: "so-3", title: "Reading & Comprehension", titleAr: "القراءة والفهم", titleSo: "Akhrisiga & Fahamka", duration: "30 min", isLocked: false, hasQuiz: true, content: "Reading passages, comprehension questions, vocabulary building.", contentAr: "قراءة النصوص وأسئلة الفهم وبناء المفردات.", contentSo: "Akhrinta qoraalada, su'aalaha fahamka." },
+    { id: "so-4", title: "Somali Poetry – Gabay", titleAr: "الشعر الصومالي – الغباي", titleSo: "Gabay Soomaaliga", duration: "35 min", isLocked: true, hasQuiz: true, content: "Types of Somali poetry: gabay, geeraar, jiifto, masafo. Alliteration.", contentAr: "أنواع الشعر الصومالي: الغباي والغيرار والجيفتو.", contentSo: "Noocyada gabayga: gabay, geeraar, jiifto." },
+    { id: "so-5", title: "Somali Literature & History", titleAr: "الأدب الصومالي وتاريخه", titleSo: "Suugaanta Soomaali & Taariikhdeeda", duration: "30 min", isLocked: true, hasQuiz: false, content: "Famous Somali poets, oral tradition, Sayyid Mohamed, modern literature.", contentAr: "الشعراء الصوماليون المشهورون والتقليد الشفهي.", contentSo: "Gabyaasha Soomaalida caanka ah, Sayid Maxamed." },
+    { id: "so-6", title: "Writing & Certificate", titleAr: "الكتابة والشهادة", titleSo: "Qorista & Shahaadada", duration: "45 min", isLocked: true, hasQuiz: true, content: "Formal writing, letters, essays, storytelling in Somali. Certificate!", contentAr: "الكتابة الرسمية والرسائل والمقالات بالصومالية.", contentSo: "Qorista rasmiga ah, warqadaha, sheekooyin. Shahaadada!" },
+  ],
+};
+
+const islamicPrimary: Course = {
+  id: "islamic-primary", slug: "islamic-primary",
+  title: "Islamic Studies – School Level", titleAr: "الدراسات الإسلامية – المستوى المدرسي", titleSo: "Cilmiga Islaamiga – Heerka Dugsiga",
+  description: "Learn the fundamentals of Islam: pillars, prayer, Quran basics, Islamic manners, and stories of the prophets for young students.",
+  descriptionAr: "تعلم أساسيات الإسلام: الأركان والصلاة وأساسيات القرآن والأخلاق الإسلامية.", descriptionSo: "Baro aasaaska Islaamka: tiirarka, salaadda, Qur'aanka, akhlaaqa Islaamiga.",
+  language: "arabic", level: "beginner", price: 15, duration: "8 weeks", lessonCount: 6, enrolledCount: 3421,
+  thumbnail: "🕋", imageUrl: "https://images.unsplash.com/photo-1590577976322-3d2d6e2130d5?w=800&q=80",
+  color: "from-amber-500 to-yellow-400", gradient: "bg-gradient-to-br from-amber-600/20 to-yellow-500/20",
+  category: "Islamic Studies", section: "curriculum", subSection: "school", rating: 4.9, ratingCount: 523,
+  certificate: true, instructor: "Sheikh Omar Islamic", popular: true,
+  lessons: [
+    { id: "isl-s-1", title: "Five Pillars of Islam", titleAr: "أركان الإسلام الخمسة", titleSo: "Tiirarka Shanta ee Islaamka", duration: "30 min", isLocked: false, hasQuiz: true, content: "Shahada, Salah, Zakat, Sawm, Hajj — meanings, importance, practice.", contentAr: "الشهادة والصلاة والزكاة والصيام والحج.", contentSo: "Shahaadada, Salaadda, Zakada, Sooma, Xajka." },
+    { id: "isl-s-2", title: "How to Pray (Salah)", titleAr: "كيفية الصلاة", titleSo: "Sida Loo Tukado", duration: "35 min", isLocked: false, hasQuiz: true, content: "Wudu, prayer positions, Fatiha, rakat, proper recitation.", contentAr: "الوضوء ومواضع الصلاة والفاتحة والركعات.", contentSo: "Wudhuca, goobaha salaadda, Fatixa, rakaatada." },
+    { id: "isl-s-3", title: "Quran Basics – Reading & Tajweed", titleAr: "أساسيات القرآن – القراءة والتجويد", titleSo: "Aasaaska Qur'aanka – Akhris & Tajwiid", duration: "35 min", isLocked: false, hasQuiz: true, content: "Arabic letters, Nooraniyah, basic tajweed rules, short suras.", contentAr: "الحروف العربية والنورانية وقواعد التجويد الأساسية.", contentSo: "Xarfaha Carabiga, Nooraniyah, xeerarka tajwiidka." },
+    { id: "isl-s-4", title: "Islamic Manners & Character", titleAr: "الآداب الإسلامية والأخلاق", titleSo: "Dhaqanka Islaamiga & Akhlaaqa", duration: "25 min", isLocked: true, hasQuiz: true, content: "Honesty, respect, sharing, Islamic greetings, dua, daily sunnahs.", contentAr: "الصدق والاحترام والتشارك والتحية الإسلامية.", contentSo: "Daacadnimada, xurmaynta, wadaagga, salaamaha Islaamiga." },
+    { id: "isl-s-5", title: "Stories of the Prophets", titleAr: "قصص الأنبياء", titleSo: "Sheekooyin Nabiyada", duration: "30 min", isLocked: true, hasQuiz: false, content: "Adam, Nuh, Ibrahim, Musa, Isa, Muhammad ﷺ — key stories and lessons.", contentAr: "آدم ونوح وإبراهيم وموسى وعيسى ومحمد ﷺ.", contentSo: "Aadam, Nuux, Ibraahim, Muuse, Ciise, Maxamed ﷺ." },
+    { id: "isl-s-6", title: "Memorizing Short Surahs & Certificate", titleAr: "حفظ السور القصيرة والشهادة", titleSo: "Xifditaanka Suraha Gaagaaban & Shahaadada", duration: "45 min", isLocked: true, hasQuiz: true, content: "Al-Fatiha, Al-Ikhlas, Al-Falaq, An-Nas, Al-Kawthar memorization & meaning. Certificate!", contentAr: "حفظ الفاتحة والإخلاص والفلق والناس والكوثر.", contentSo: "Xifditaanka Al-Fatixa, Al-Ikhlaas, Al-Falaq. Shahaadada!" },
+  ],
+};
+
+/* ─── New skills ─── */
+
+const publicSpeakingCourse: Course = {
+  id: "public-speaking", slug: "public-speaking",
+  title: "Public Speaking & Communication", titleAr: "الخطابة العامة والتواصل", titleSo: "Hadlidda Dadweynaha & Xiriirka",
+  description: "Overcome fear, build confidence, and master public speaking for presentations, debates, and professional settings.",
+  descriptionAr: "تغلب على الخوف وابنِ الثقة وأتقن الخطابة العامة للعروض والمناقشات.", descriptionSo: "Ka xukum cabsida, dhis is-kalsooni, oo soo xifdiso hadlidda dadweynaha.",
+  language: "multilingual", level: "beginner", price: 22, duration: "6 weeks", lessonCount: 8, enrolledCount: 1876,
+  thumbnail: "🎤", imageUrl: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800&q=80",
+  color: "from-purple-500 to-pink-400", gradient: "bg-gradient-to-br from-purple-600/20 to-pink-500/20",
+  category: "Communication", section: "skills", rating: 4.8, ratingCount: 287, certificate: true,
+  instructor: "Coach Yusuf Speaker", isNew: true,
+  lessons: [
+    { id: "ps-1", title: "Overcoming Fear of Public Speaking", titleAr: "التغلب على الخوف من الخطابة", titleSo: "Ka Xukumidda Cabsida Hadlidda", duration: "25 min", isLocked: false, hasQuiz: true, content: "Understanding stage fright, breathing techniques, mindset shifts.", contentAr: "فهم رهاب المسرح وتقنيات التنفس وتحويل العقلية.", contentSo: "Fahamka cabsida, farsamooyinka neefsiga." },
+    { id: "ps-2", title: "Body Language & Presence", titleAr: "لغة الجسد والحضور", titleSo: "Luuqadda Jirka & Joognanaanta", duration: "30 min", isLocked: false, hasQuiz: true, content: "Posture, eye contact, gestures, voice projection, movement.", contentAr: "الوضعية والتواصل البصري والإيماءات وإسقاط الصوت.", contentSo: "Qaabka joogsiga, indhaha, gacanta, codka." },
+    { id: "ps-3", title: "Structuring a Powerful Speech", titleAr: "هيكلة خطاب قوي", titleSo: "Qaabeynta Khudbad Xoog leh", duration: "35 min", isLocked: false, hasQuiz: true, content: "Introduction, body, conclusion. Hook, story, data, call to action.", contentAr: "المقدمة والجسم والخاتمة.", contentSo: "Hordhaca, jirka, gunaanadka." },
+    { id: "ps-4", title: "Storytelling That Captivates", titleAr: "السرد القصصي الجذاب", titleSo: "Sheeko Xiiseeya", duration: "30 min", isLocked: true, hasQuiz: true, content: "Story structure, emotional connection, vivid language, examples.", contentAr: "بنية القصة والاتصال العاطفي واللغة الحية.", contentSo: "Qaab-dhismeedka sheekada, xiriirka xisiga." },
+    { id: "ps-5", title: "Persuasion & Influence", titleAr: "الإقناع والتأثير", titleSo: "Qancinta & Saamaynta", duration: "30 min", isLocked: true, hasQuiz: false, content: "Aristotle's Ethos, Pathos, Logos. Debate tactics, argumentation.", contentAr: "الإيثوس والباثوس والشعار لأرسطو.", contentSo: "Ethos, Pathos, Logos-ka Aristotle." },
+    { id: "ps-6", title: "Presentations & Slides", titleAr: "العروض التقديمية والشرائح", titleSo: "Bandhigga & Golaha", duration: "30 min", isLocked: true, hasQuiz: true, content: "Design principles, slide structure, visual storytelling, delivery.", contentAr: "مبادئ التصميم وبنية الشريحة والتسليم.", contentSo: "Mabaadi'da naqshadeynta, qaab-dhismeedka." },
+    { id: "ps-7", title: "Impromptu Speaking", titleAr: "الخطابة الارتجالية", titleSo: "Hadlidda Isu-Diyaarinta", duration: "25 min", isLocked: true, hasQuiz: false, content: "PREP, STAR frameworks. Thinking on your feet, rapid content generation.", contentAr: "أطر PREP وSTAR. التفكير بسرعة.", contentSo: "Hab-raacyada PREP, STAR. Fikir degdeg ah." },
+    { id: "ps-8", title: "Final Speech & Certificate", titleAr: "الخطاب النهائي والشهادة", titleSo: "Khudbadda Kama-dambeysta & Shahaadada", duration: "60 min", isLocked: true, hasQuiz: true, content: "Deliver a 5-minute speech. Get feedback. Earn your Public Speaking Certificate!", contentAr: "ألقِ خطاباً مدته 5 دقائق. احصل على شهادتك!", contentSo: "Jeli khudbad 5-daqiiqo. Hel shahaadadaada!" },
+  ],
+};
+
+const tajweedCourse: Course = {
+  id: "tajweed-quran", slug: "tajweed-quran",
+  title: "Tajweed & Qur'an Memorization", titleAr: "التجويد وحفظ القرآن الكريم", titleSo: "Tajwiidka & Xifditaanka Qur'aanka",
+  description: "Learn the rules of Tajweed and begin memorizing the Qur'an. Perfect pronunciation, correct recitation, and build a Quran habit.",
+  descriptionAr: "تعلم أحكام التجويد وابدأ في حفظ القرآن. النطق الصحيح والتلاوة الصحيحة.", descriptionSo: "Baro xeerarka Tajwiidka oo bilow xifditaanka Qur'aanka Kariimka.",
+  language: "arabic", level: "beginner", price: 20, duration: "10 weeks", lessonCount: 8, enrolledCount: 4123,
+  thumbnail: "📖", imageUrl: "https://images.unsplash.com/photo-1585036156171-384164a8c675?w=800&q=80",
+  color: "from-amber-500 to-yellow-400", gradient: "bg-gradient-to-br from-amber-600/20 to-yellow-500/20",
+  category: "Islamic Studies", section: "skills", rating: 4.9, ratingCount: 634, certificate: true,
+  instructor: "Sheikh Mahad Tajweed", popular: true, featured: true,
+  lessons: [
+    { id: "tj-1", title: "Arabic Letters & Makharij", titleAr: "الحروف العربية ومخارجها", titleSo: "Xarfaha Carabiga & Makhaarijka", duration: "35 min", isLocked: false, hasQuiz: true, content: "All 28 Arabic letters, articulation points (makharij al-huruf).", contentAr: "28 حرفاً عربياً ونقاط الإخراج.", contentSo: "28 xarf Carabi, goobaha ka soo baxa (makharij)." },
+    { id: "tj-2", title: "Vowels, Sukoon & Shaddah", titleAr: "الحركات والسكون والشدة", titleSo: "Dhaqdhaqaaqayaasha, Sukuunka & Shaddada", duration: "30 min", isLocked: false, hasQuiz: true, content: "Fatha, kasra, damma, tanween, sukoon, shaddah, madd.", contentAr: "الفتح والكسر والضم والتنوين والسكون والشدة.", contentSo: "Fatixa, kasra, dhamma, tanwiin, sukuun, shaddah." },
+    { id: "tj-3", title: "Rules of Noon Sakinah & Tanween", titleAr: "أحكام النون الساكنة والتنوين", titleSo: "Xeerarka Noon Sakinah & Tanwiin", duration: "35 min", isLocked: false, hasQuiz: true, content: "Idhar, idghaam, ikhfaa, iqlab — with examples.", contentAr: "الإظهار والإدغام والإخفاء والإقلاب مع أمثلة.", contentSo: "Idhhaar, Idgaam, Ikhfaa, Iqlaab — tusaalooyin." },
+    { id: "tj-4", title: "Rules of Meem Sakinah", titleAr: "أحكام الميم الساكنة", titleSo: "Xeerarka Miim Sakinah", duration: "25 min", isLocked: true, hasQuiz: true, content: "Ikhfaa shafawi, idghaam shafawi, idhar shafawi.", contentAr: "الإخفاء الشفوي والإدغام الشفوي والإظهار الشفوي.", contentSo: "Ikhfaa Shafawi, Idgaam Shafawi, Idhhaar Shafawi." },
+    { id: "tj-5", title: "Madd (Elongation) Rules", titleAr: "أحكام المد", titleSo: "Xeerarka Madd (Dheeraynta)", duration: "30 min", isLocked: true, hasQuiz: true, content: "Madd asli, madd far'i, madd lazim, madd muttasil, madd munfasil.", contentAr: "المد الأصلي والفرعي اللازم والمتصل والمنفصل.", contentSo: "Madd asali, far'i, laazim, muttasil, munfasil." },
+    { id: "tj-6", title: "Memorizing Juz' Amma", titleAr: "حفظ جزء عم", titleSo: "Xifditaanka Juzu' Camma", duration: "50 min", isLocked: true, hasQuiz: true, content: "Al-Fatiha, An-Nas, Al-Falaq, Al-Ikhlas, short suras with tajweed.", contentAr: "الفاتحة والناس والفلق والإخلاص والسور القصيرة.", contentSo: "Al-Fatixa, An-Naas, Al-Falaq, Al-Ikhlaas, suraha gaagaaban." },
+    { id: "tj-7", title: "Waqf & Ibtida (Stop & Start Rules)", titleAr: "الوقف والابتداء", titleSo: "Waqfiga & Ibtidaada (Joojinta & Bilaabista)", duration: "25 min", isLocked: true, hasQuiz: false, content: "Where to stop and start in Quran. Symbols explained.", contentAr: "أين تتوقف وتبدأ في القرآن. الرموز موضحة.", contentSo: "Meel jooji lagu xusaayo, meel ku bilow." },
+    { id: "tj-8", title: "Recitation & Tajweed Certificate", titleAr: "التلاوة وشهادة التجويد", titleSo: "Tilaawaadda & Shahaadada Tajwiidka", duration: "60 min", isLocked: true, hasQuiz: true, content: "Full recitation with tajweed. Assessment. Earn your Tajweed Certificate!", contentAr: "تلاوة كاملة بالتجويد. التقييم. احصل على شهادتك!", contentSo: "Tilaawad buuxda tajwiid leh. Hel shahaadadaada Tajwiidka!" },
+  ],
+};
+
 export const CURRICULUM_COURSES: Course[] = [
   englishBeginner, englishIntermediate, englishAdvanced,
   arabicBeginner, arabicIntermediate,
   mathSchool, scienceSchool,
+  physicsSecondary, chemistrySecondary, biologySecondary,
+  geographySecondary, historySecondary,
+  somaliLanguage, islamicPrimary,
   computerScienceUni, islamicStudiesUni,
 ];
 
@@ -510,6 +707,7 @@ export const SKILLS_COURSES: Course[] = [
   aiCourse, pythonCourse, webDevCourse,
   businessCourse, designCourse, digitalMarketingCourse,
   freelancingCourse, selfDevCourse, dataScienceCourse,
+  publicSpeakingCourse, tajweedCourse,
 ];
 
 export const COURSES: Course[] = [...CURRICULUM_COURSES, ...SKILLS_COURSES];

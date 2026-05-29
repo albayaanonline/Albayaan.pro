@@ -22,6 +22,9 @@ import AccessCode       from "@/pages/AccessCode";
 import Payment          from "@/pages/Payment";
 import Pricing          from "@/pages/Pricing";
 import Verify           from "@/pages/Verify";
+import About            from "@/pages/About";
+import Contact          from "@/pages/Contact";
+import Leaderboard      from "@/pages/Leaderboard";
 import Login            from "@/pages/auth/Login";
 import Register         from "@/pages/auth/Register";
 import ForgotPassword   from "@/pages/auth/ForgotPassword";
@@ -49,10 +52,10 @@ function App() {
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                 <Switch>
 
-                  {/* Admin login — standalone, no AdminLayout */}
+                  {/* Admin login — standalone */}
                   <Route path="/admin/login" component={AdminLogin} />
 
-                  {/* All other /admin/* routes — wrapped in AdminLayout */}
+                  {/* Admin routes */}
                   <Route path="/admin">
                     <AdminLayout>
                       <Switch>
@@ -77,7 +80,7 @@ function App() {
                     </AdminLayout>
                   </Route>
 
-                  {/* All public / user routes — wrapped in MainLayout */}
+                  {/* All public / user routes */}
                   <Route>
                     <MainLayout>
                       <Switch>
@@ -86,6 +89,9 @@ function App() {
                         <Route path="/courses"                       component={Courses} />
                         <Route path="/courses/:courseId"             component={CourseDetail} />
                         <Route path="/learn/:courseId/:lessonId"     component={Learn} />
+                        <Route path="/about"                         component={About} />
+                        <Route path="/contact"                       component={Contact} />
+                        <Route path="/leaderboard"                   component={Leaderboard} />
                         <Route path="/auth/login"                    component={Login} />
                         <Route path="/auth/register"                 component={Register} />
                         <Route path="/auth/forgot-password"          component={ForgotPassword} />

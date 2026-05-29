@@ -9,10 +9,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu, X, BookOpen, LayoutDashboard, LogOut, User,
   GraduationCap, Lightbulb, Award, Bot, Search, ArrowRight,
-  Star, Zap,
+  Star, Zap, Info, Mail, DollarSign, Trophy,
 } from "lucide-react";
 
-const BRAND = "Al-Bayaan College";
+const BRAND = "Albayaan.pro";
 
 function SearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
@@ -22,9 +22,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     inputRef.current?.focus();
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
@@ -42,8 +40,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
       }).slice(0, 6)
     : COURSES.filter(c => c.popular || c.featured).slice(0, 6);
 
-  const getTitle = (c: any) =>
-    language === "ar" ? c.titleAr : language === "so" ? c.titleSo : c.title;
+  const getTitle = (c: any) => language === "ar" ? c.titleAr : language === "so" ? c.titleSo : c.title;
 
   return (
     <motion.div
@@ -97,11 +94,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
           {results.map((course, i) => (
-            <Link
-              key={course.id}
-              href={`/courses/${course.id}`}
-              onClick={onClose}
-            >
+            <Link key={course.id} href={`/courses/${course.id}`} onClick={onClose}>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -119,8 +112,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
                     <span className="text-xs text-muted-foreground">{course.category}</span>
                     <span className="text-muted-foreground/40">·</span>
                     <span className="flex items-center gap-0.5 text-xs text-yellow-400">
-                      <Star className="w-3 h-3 fill-yellow-400" />
-                      {course.rating}
+                      <Star className="w-3 h-3 fill-yellow-400" />{course.rating}
                     </span>
                     <span className="text-muted-foreground/40">·</span>
                     <span className="text-xs font-bold text-primary">${course.price}</span>
@@ -137,7 +129,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
             {results.length} course{results.length !== 1 ? "s" : ""} {query ? "found" : "available"}
           </span>
           <Link href="/courses" onClick={onClose} className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
-            View all courses <ArrowRight className="w-3 h-3" />
+            View all <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
       </motion.div>
@@ -163,10 +155,7 @@ export function Navbar() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setSearchOpen(v => !v);
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setSearchOpen(v => !v); }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
@@ -174,15 +163,21 @@ export function Navbar() {
 
   const isActive = (path: string) => location === path || location.startsWith(path + "/");
 
-  const navLinks = [
-    { href: "/curriculum",       label: t("Curriculum",   "المنهج الدراسي", "Manhajka"),          icon: GraduationCap },
-    { href: "/courses",          label: t("Skills",        "المهارات",       "Xirfadaha"),         icon: Lightbulb },
-    { href: "/ai-tutor",         label: t("AI Tutor",      "المعلم الذكي",   "Bare AI-ga"),        icon: Bot },
-    ...(user ? [
-      { href: "/dashboard",      label: t("Dashboard",    "لوحة التحكم",    "Dhaq-dhaqaaqa"),     icon: LayoutDashboard },
-      { href: "/my-certificates", label: t("Certificates", "شهاداتي",       "Shahaadooyinkayga"), icon: Award },
-    ] : []),
+  const mainLinks = [
+    { href: "/curriculum",  label: t("School",   "المنهج",      "Manhajka"),     icon: GraduationCap },
+    { href: "/courses",     label: t("Skills",   "المهارات",    "Xirfadaha"),    icon: Lightbulb },
+    { href: "/ai-tutor",    label: t("AI Tutor", "المعلم الذكي","Bare AI-ga"),   icon: Bot, badge: true },
+    { href: "/leaderboard", label: t("Ranks",    "التصنيفات",   "Qiimaynta"),    icon: Trophy },
+    { href: "/about",       label: t("About",    "عنا",         "Naga"),         icon: Info },
+    { href: "/pricing",     label: t("Pricing",  "الأسعار",     "Qiimaha"),      icon: DollarSign },
   ];
+
+  const userLinks = user ? [
+    { href: "/dashboard",       label: t("Dashboard",    "لوحة التحكم",     "Dhaq-dhaqaaqa"),     icon: LayoutDashboard },
+    { href: "/my-certificates", label: t("Certificates", "شهاداتي",         "Shahaadooyinkayga"), icon: Award },
+  ] : [];
+
+  const allMobileLinks = [...mainLinks, ...userLinks];
 
   return (
     <>
@@ -198,15 +193,14 @@ export function Navbar() {
         }`}
         style={{ transform: "translateZ(0)" }}
       >
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
+          {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <div className="relative">
-              <img
-                src="/logo-48.png"
-                alt="Al-Bayaan College"
-                className="h-9 w-9 object-contain"
+              <img src="/logo-48.png" alt={BRAND} className="h-9 w-9 object-contain"
                 style={{ filter: "drop-shadow(0 0 8px rgba(59,130,246,0.6))" }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
             </div>
             <div className="hidden sm:flex flex-col leading-none">
@@ -214,44 +208,46 @@ export function Navbar() {
                 {BRAND}
               </span>
               <span className="text-[9px] text-muted-foreground tracking-widest uppercase font-medium">
-                Learning Platform
+                AI Learning Platform
               </span>
             </div>
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex flex-1 items-center justify-center gap-1">
-            {navLinks.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+          {/* Desktop nav — center */}
+          <div className="hidden lg:flex flex-1 items-center justify-center gap-0.5">
+            {mainLinks.map(link => (
+              <Link key={link.href} href={link.href}
+                className={`relative flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   isActive(link.href)
                     ? "bg-primary/10 text-primary border border-primary/20"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                } ${link.href === "/ai-tutor" ? "relative" : ""}`}
-              >
-                <link.icon className="w-4 h-4" />
+                }`}>
+                <link.icon className="w-3.5 h-3.5" />
                 {link.label}
-                {link.href === "/ai-tutor" && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-400 border border-background animate-pulse" />
+                {link.badge && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-400 border border-background animate-pulse" />
                 )}
+              </Link>
+            ))}
+            {userLinks.map(link => (
+              <Link key={link.href} href={link.href}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  isActive(link.href)
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                }`}>
+                <link.icon className="w-3.5 h-3.5" />
+                {link.label}
               </Link>
             ))}
           </div>
 
           {/* Desktop right */}
-          <div className="hidden md:flex items-center gap-2">
-            {/* Search button */}
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full text-sm text-muted-foreground border border-white/10 hover:border-primary/30 hover:text-foreground hover:bg-white/5 transition-all"
-            >
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <button onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-full text-sm text-muted-foreground border border-white/10 hover:border-primary/30 hover:text-foreground hover:bg-white/5 transition-all">
               <Search className="w-4 h-4" />
-              <span className="hidden lg:inline">Search</span>
-              <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">
-                ⌘K
-              </kbd>
+              <kbd className="text-[10px] opacity-60">⌘K</kbd>
             </button>
             <LanguageToggle />
             <ThemeToggle />
@@ -264,12 +260,9 @@ export function Navbar() {
                   </div>
                   <span className="text-sm font-medium text-foreground">{user.name?.split(" ")[0]}</span>
                 </Link>
-                <button
-                  onClick={() => logout()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                >
+                <button onClick={() => logout()}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
                   <LogOut className="w-4 h-4" />
-                  {t("Logout", "خروج", "Bax")}
                 </button>
               </div>
             ) : (
@@ -286,21 +279,17 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile toggle */}
-          <div className="flex md:hidden items-center gap-2">
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
-            >
+          {/* Mobile right */}
+          <div className="flex lg:hidden items-center gap-2">
+            <button onClick={() => setSearchOpen(true)}
+              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
               <Search className="w-5 h-5" />
             </button>
             <LanguageToggle compact />
             <ThemeToggle />
-            <button
-              onClick={() => setMobileOpen(v => !v)}
+            <button onClick={() => setMobileOpen(v => !v)}
               className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
-              aria-label="Toggle menu"
-            >
+              aria-label="Toggle menu">
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
@@ -314,29 +303,32 @@ export function Navbar() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="fixed top-16 left-0 right-0 z-40 bg-background/98 backdrop-blur-xl border-b border-border shadow-xl"
+            className="fixed top-16 left-0 right-0 z-40 bg-background/98 backdrop-blur-xl border-b border-border shadow-xl max-h-[80vh] overflow-y-auto"
             style={{ transform: "translateZ(0)" }}
           >
             <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
-              {navLinks.map(link => (
-                <Link
-                  key={link.href}
-                  href={link.href}
+              {allMobileLinks.map(link => (
+                <Link key={link.href} href={link.href}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                     isActive(link.href)
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                  }`}
-                >
+                  }`}>
                   <link.icon className="w-5 h-5" />
                   {link.label}
-                  {link.href === "/ai-tutor" && (
+                  {(link as any).badge && (
                     <span className="ml-auto flex items-center gap-1 text-xs text-green-400">
                       <Zap className="w-3 h-3" /> AI
                     </span>
                   )}
                 </Link>
               ))}
+
+              <Link href="/contact"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors">
+                <Mail className="w-5 h-5" />
+                {t("Contact", "تواصل", "Xiriir")}
+              </Link>
 
               <div className="pt-3 border-t border-border/50 space-y-2">
                 {user ? (
@@ -350,27 +342,23 @@ export function Navbar() {
                         <div className="text-xs text-muted-foreground">{user.email}</div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => logout()}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
-                    >
+                    <button onClick={() => logout()}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full">
                       <LogOut className="w-5 h-5" />
                       {t("Logout", "تسجيل الخروج", "Bixitaan")}
                     </button>
                   </>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Link href="/auth/login"
-                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
-                        <User className="w-4 h-4" />
-                        {t("Login", "دخول", "Gal")}
-                      </Link>
-                      <Link href="/auth/register"
-                        className="flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold transition-all">
-                        {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
-                      </Link>
-                    </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/auth/login"
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
+                      <User className="w-4 h-4" />
+                      {t("Login", "دخول", "Gal")}
+                    </Link>
+                    <Link href="/auth/register"
+                      className="flex items-center justify-center px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold transition-all">
+                      {t("Sign Up", "إنشاء حساب", "Is Diiwaangeli")}
+                    </Link>
                   </div>
                 )}
               </div>

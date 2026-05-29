@@ -1,623 +1,602 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Link } from "wouter";
 import {
   BookOpen, Users, Trophy, Zap, Globe, ShieldCheck, Star, ArrowRight,
   CheckCircle, Sparkles, Brain, Target, GraduationCap, Lightbulb,
   Code2, Briefcase, Palette, TrendingUp, FlaskConical, Calculator,
-  Play, Award, ChevronRight, Bot, MessageCircle,
+  Play, Award, Bot, MessageCircle, Flame, Medal, ChevronRight,
+  Atom, BookMarked, Languages, Music, Mic,
 } from "lucide-react";
 
-const CUBIC = [0.22, 1, 0.36, 1] as const;
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (delay = 0) => ({
-    opacity: 1, y: 0,
-    transition: { duration: 0.5, delay, ease: CUBIC },
-  }),
+  hidden: { opacity: 0, y: 28 },
+  visible: (d = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.55, delay: d, ease: EASE } }),
 };
-
-const cardVariant = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i = 0) => ({
-    opacity: 1, y: 0,
-    transition: { duration: 0.45, delay: i * 0.07, ease: CUBIC },
-  }),
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: (d = 0) => ({ opacity: 1, transition: { duration: 0.6, delay: d } }),
 };
 
 const HERO_PHRASES = [
-  { en: "Learn with AI",        ar: "تعلم بالذكاء الاصطناعي",   so: "AI ku Baro" },
-  { en: "Build Your Future",    ar: "ابنِ مستقبلك",              so: "Mustaqbalkaaga Dhis" },
-  { en: "Master Modern Skills", ar: "أتقن المهارات الحديثة",    so: "Xirfadaha Casriga Soo Xifdiso" },
-  { en: "Study Anywhere",       ar: "ادرس في أي مكان",          so: "Meel kasta ka Baro" },
-  { en: "Learn Without Limits", ar: "تعلم بلا حدود",            so: "Xad La'aane Baro" },
+  { en: "Master English & Arabic",          ar: "أتقن الإنجليزية والعربية",          so: "Ingiriisi & Carabi Soo Xifdiso" },
+  { en: "Build Your Future Today",           ar: "ابنِ مستقبلك اليوم",               so: "Maanta Mustaqbalkaaga Dhis" },
+  { en: "Learn with AI Intelligence",        ar: "تعلم بالذكاء الاصطناعي",           so: "AI ku Baro" },
+  { en: "Study School & University",         ar: "ادرس المدرسة والجامعة",            so: "Dugsiga & Jaamacadda Baro" },
+  { en: "Master Modern Skills",              ar: "أتقن المهارات الحديثة",            so: "Xirfadaha Casriga Soo Xifdiso" },
 ];
+
+const SCHOOL_SUBJECTS = [
+  { icon: Calculator,  label: "Mathematics",      labelAr: "الرياضيات",      labelSo: "Xisaabta",        color: "from-blue-500 to-cyan-400",    bg: "bg-blue-500/10",    glow: "hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]" },
+  { icon: FlaskConical,label: "Science",          labelAr: "العلوم",          labelSo: "Sayniska",        color: "from-green-500 to-emerald-400",bg: "bg-green-500/10",   glow: "hover:shadow-[0_0_20px_rgba(34,197,94,0.3)]"  },
+  { icon: Globe,       label: "English",          labelAr: "الإنجليزية",      labelSo: "Ingiriisiga",     color: "from-indigo-500 to-blue-400",  bg: "bg-indigo-500/10",  glow: "hover:shadow-[0_0_20px_rgba(99,102,241,0.3)]" },
+  { icon: BookMarked,  label: "Arabic",           labelAr: "اللغة العربية",   labelSo: "Carabiga",        color: "from-amber-500 to-yellow-400", bg: "bg-amber-500/10",   glow: "hover:shadow-[0_0_20px_rgba(245,158,11,0.3)]" },
+  { icon: Atom,        label: "Physics",          labelAr: "الفيزياء",        labelSo: "Physics",         color: "from-purple-500 to-violet-400",bg: "bg-purple-500/10",  glow: "hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]" },
+  { icon: Lightbulb,   label: "Chemistry",        labelAr: "الكيمياء",        labelSo: "Kiimikada",       color: "from-orange-500 to-red-400",   bg: "bg-orange-500/10",  glow: "hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]" },
+  { icon: BookOpen,    label: "Biology",          labelAr: "الأحياء",         labelSo: "Biology",         color: "from-teal-500 to-green-400",   bg: "bg-teal-500/10",    glow: "hover:shadow-[0_0_20px_rgba(20,184,166,0.3)]" },
+  { icon: Users,       label: "Islamic Studies",  labelAr: "الدراسات الإسلامية",labelSo: "Cilmiga Islaamiga",color:"from-yellow-500 to-amber-400", bg: "bg-yellow-500/10", glow: "hover:shadow-[0_0_20px_rgba(234,179,8,0.3)]"  },
+  { icon: Globe,       label: "Geography",        labelAr: "الجغرافيا",       labelSo: "Juqraafiga",      color: "from-cyan-500 to-blue-400",    bg: "bg-cyan-500/10",    glow: "hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]"  },
+  { icon: BookOpen,    label: "History",          labelAr: "التاريخ",         labelSo: "Taariikhda",      color: "from-rose-500 to-pink-400",    bg: "bg-rose-500/10",    glow: "hover:shadow-[0_0_20px_rgba(244,63,94,0.3)]"  },
+  { icon: Languages,   label: "Somali",           labelAr: "الصومالية",       labelSo: "Soomaali",        color: "from-sky-500 to-cyan-400",     bg: "bg-sky-500/10",     glow: "hover:shadow-[0_0_20px_rgba(14,165,233,0.3)]" },
+  { icon: Code2,       label: "Computer Sci.",    labelAr: "علوم الحاسوب",   labelSo: "Sayniska CS",     color: "from-violet-500 to-purple-400",bg: "bg-violet-500/10",  glow: "hover:shadow-[0_0_20px_rgba(124,58,237,0.3)]" },
+];
+
+const SKILLS_LIST = [
+  { icon: Brain,      label: "AI & Machine Learning", labelAr: "الذكاء الاصطناعي",  labelSo: "AI & ML",           color: "from-violet-500 to-blue-500" },
+  { icon: Code2,      label: "Python Programming",     labelAr: "برمجة Python",      labelSo: "Barnaamijka Python", color: "from-yellow-500 to-green-500" },
+  { icon: Globe,      label: "Web Development",        labelAr: "تطوير الويب",       labelSo: "Horumarinta Web",   color: "from-blue-500 to-cyan-400" },
+  { icon: Palette,    label: "Graphic Design",         labelAr: "التصميم الجرافيكي", labelSo: "Naqshadeynta",      color: "from-pink-500 to-rose-400" },
+  { icon: Briefcase,  label: "Digital Marketing",      labelAr: "التسويق الرقمي",    labelSo: "Suuqgeynta",        color: "from-green-500 to-teal-400" },
+  { icon: TrendingUp, label: "Freelancing",            labelAr: "العمل الحر",         labelSo: "Freelancing",       color: "from-orange-500 to-amber-400" },
+  { icon: Mic,        label: "Public Speaking",        labelAr: "الخطابة العامة",    labelSo: "Hadlidda Dadweynaha",color:"from-purple-500 to-pink-400" },
+  { icon: Music,      label: "Tajweed & Qur'an",       labelAr: "التجويد والقرآن",   labelSo: "Tajwiidka & Qur'aan",color:"from-amber-500 to-yellow-400" },
+];
+
+const AI_FEATURES = [
+  { icon: "🤖", title: "AI Tutor",            titleAr: "المعلم الذكي",           titleSo: "Bare AI-ga",          desc: "24/7 personalized AI assistant that answers your questions instantly.",                   descAr: "مساعد AI شخصي متاح على مدار الساعة.",                  descSo: "Kaaliye AI ah oo joogto ah oo su'aalahaaga si degdeg ah u jawaaba." },
+  { icon: "📝", title: "AI Quiz Generator",   titleAr: "مولد الاختبارات الذكي",  titleSo: "Abuuraha Imtixaanka", desc: "Automatically generates quizzes after each lesson to test your knowledge.",               descAr: "يولد اختبارات تلقائية بعد كل درس.",                    descSo: "Imtixaanad si toos ah uga sameeya ka dib casharka." },
+  { icon: "✍️", title: "AI Lesson Summaries", titleAr: "ملخصات الدروس الذكية",   titleSo: "Koobbiyada AI",       desc: "Instant, clear summaries of every lesson so you never miss the key points.",               descAr: "ملخصات فورية وواضحة لكل درس.",                         descSo: "Koobbiyada casharka si deg-deg ah." },
+  { icon: "🌍", title: "AI Translation",      titleAr: "الترجمة الذكية",          titleSo: "Turjumaada AI",       desc: "Translate any lesson or word into English, Arabic, or Somali in real time.",               descAr: "ترجمة أي درس أو كلمة في الوقت الحقيقي.",               descSo: "U turjum casharka Ingiriisi, Carabi, ama Soomaali." },
+  { icon: "🎯", title: "Personalized Paths",  titleAr: "مسارات مخصصة",           titleSo: "Dariiqdaha Gaarka",   desc: "AI recommends the best next course based on your learning history and goals.",             descAr: "الذكاء الاصطناعي يوصي بأفضل دورة تالية.",              descSo: "AI wuxuu kugula talinayaa koorso xigta." },
+  { icon: "🔊", title: "Pronunciation AI",    titleAr: "نطق الذكاء الاصطناعي",   titleSo: "Dhawaaqa AI",         desc: "Get instant pronunciation feedback on English & Arabic words.",                           descAr: "احصل على ملاحظات فورية على نطقك.",                     descSo: "Hel faalladaada dhawaaqa si degdeg ah." },
+];
+
+const TESTIMONIALS = [
+  { name: "Ahmed Mohamed",  country: "🇸🇴", role: "English Student",    content: "Albayaan.pro transformed my English in just 3 months. The AI tutor is like having a private teacher 24/7.", stars: 5 },
+  { name: "Faadumo Hassan", country: "🇸🇴", role: "Arabic Learner",      content: "I went from zero Arabic to reading Quran fluently. The lessons are beautiful and the community is supportive.", stars: 5 },
+  { name: "Omar Abdullah",  country: "🇬🇧", role: "Python Developer",    content: "Finished the Python course in 8 weeks and landed a $3,000/month freelancing job. Best investment ever!", stars: 5 },
+  { name: "Nasra Ali",      country: "🇸🇴", role: "School Student",      content: "I use Albayaan.pro to study for my school exams. The curriculum is exactly what we learn in class!", stars: 5 },
+  { name: "Yusuf Ibrahim",  country: "🇺🇸", role: "AI Entrepreneur",     content: "The AI Mastery course gave me the skills to launch my own AI agency. Revenue hit $10K in 4 months.", stars: 5 },
+];
+
+function ParticleOrbs() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+      <div className="absolute top-[-10%] left-[15%] w-[500px] h-[500px] rounded-full bg-blue-600/12 blur-[100px] animate-glow-pulse" />
+      <div className="absolute top-[20%] right-[5%] w-[400px] h-[400px] rounded-full bg-purple-600/10 blur-[90px] animate-glow-pulse" style={{ animationDelay: "1.5s" }} />
+      <div className="absolute bottom-[10%] left-[30%] w-[350px] h-[350px] rounded-full bg-cyan-600/8 blur-[80px] animate-glow-pulse" style={{ animationDelay: "3s" }} />
+      <div className="absolute top-[50%] left-[50%] w-[600px] h-[600px] rounded-full bg-blue-500/4 blur-[120px] -translate-x-1/2 -translate-y-1/2" />
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="absolute w-1 h-1 bg-blue-400/60 rounded-full animate-ping-slow"
+          style={{
+            top: `${15 + i * 13}%`,
+            left: `${10 + i * 14}%`,
+            animationDelay: `${i * 0.8}s`,
+            animationDuration: `${2.5 + i * 0.4}s`,
+          }} />
+      ))}
+      <div className="absolute top-[30%] left-[10%] w-6 h-6 opacity-20 animate-float text-blue-400" style={{ animationDelay: "0s" }}>✦</div>
+      <div className="absolute top-[60%] right-[8%] w-4 h-4 opacity-15 animate-float text-purple-400" style={{ animationDelay: "2s" }}>✦</div>
+      <div className="absolute top-[15%] right-[25%] w-3 h-3 opacity-20 animate-float text-cyan-400" style={{ animationDelay: "1s" }}>◆</div>
+    </div>
+  );
+}
+
+function CountUp({ to, suffix = "" }: { to: number; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  const [val, setVal] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    let start = 0;
+    const duration = 1400;
+    const step = (to / duration) * 16;
+    const id = setInterval(() => {
+      start += step;
+      if (start >= to) { setVal(to); clearInterval(id); }
+      else setVal(Math.floor(start));
+    }, 16);
+    return () => clearInterval(id);
+  }, [inView, to]);
+
+  return <span ref={ref}>{val.toLocaleString()}{suffix}</span>;
+}
 
 export default function Home() {
   const { t, language } = useLanguage();
   const [heroIdx, setHeroIdx] = useState(0);
+  const [testimonialIdx, setTestimonialIdx] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setHeroIdx(i => (i + 1) % HERO_PHRASES.length), 2800);
+    const id = setInterval(() => setHeroIdx(i => (i + 1) % HERO_PHRASES.length), 3000);
     return () => clearInterval(id);
   }, []);
 
-  const heroPhrase = HERO_PHRASES[heroIdx];
-  const heroText =
-    language === "ar" ? heroPhrase.ar : language === "so" ? heroPhrase.so : heroPhrase.en;
+  useEffect(() => {
+    const id = setInterval(() => setTestimonialIdx(i => (i + 1) % TESTIMONIALS.length), 4000);
+    return () => clearInterval(id);
+  }, []);
 
-  const stats = [
-    { value: "25K+", label: t("Active Students", "طالب نشط", "Ardayda Firfircoon") },
-    { value: "18",   label: t("Expert Courses", "دورة متخصصة", "Koorso Khubradi ah") },
-    { value: "95%",  label: t("Completion Rate", "معدل الإتمام", "Heerka Dhamaystirka") },
-    { value: "4.9★", label: t("Average Rating", "متوسط التقييم", "Celceliska Qiimaynta") },
-  ];
+  const heroText = language === "ar" ? HERO_PHRASES[heroIdx].ar :
+                   language === "so" ? HERO_PHRASES[heroIdx].so :
+                   HERO_PHRASES[heroIdx].en;
 
-  const features = [
-    {
-      icon: Brain, color: "from-blue-500 to-blue-600", bg: "bg-blue-500/10 border-blue-500/20",
-      title: t("AI-Powered Learning", "التعلم بالذكاء الاصطناعي", "Waxbarasho AI ah"),
-      desc: t("Our AI assistant helps you understand complex topics instantly.", "مساعدنا الذكي يساعدك على فهم المواضيع المعقدة فوراً.", "Kaaliyahaaga AI-ga ayaa kaa caawiya."),
-    },
-    {
-      icon: Globe, color: "from-purple-500 to-purple-600", bg: "bg-purple-500/10 border-purple-500/20",
-      title: t("3 Languages", "3 لغات", "3 Luuqadood"),
-      desc: t("Learn in English, Arabic, or Somali — your choice.", "تعلم بالإنجليزية أو العربية أو الصومالية.", "Ku baro Ingiriisi, Carabi, ama Soomaali."),
-    },
-    {
-      icon: Target, color: "from-green-500 to-emerald-600", bg: "bg-green-500/10 border-green-500/20",
-      title: t("Structured Curriculum", "منهج منظم", "Manhajka Nidaamsan"),
-      desc: t("Step-by-step lessons for school, university, and career.", "دروس منظمة للمدرسة والجامعة والمهنة.", "Casharro tillaabooyin ah dugsiga, jaamacadda, shaqada."),
-    },
-    {
-      icon: Trophy, color: "from-yellow-500 to-orange-500", bg: "bg-yellow-500/10 border-yellow-500/20",
-      title: t("Certificates", "شهادات", "Shahaadooyinka"),
-      desc: t("Earn verified PDF certificates upon completing your courses.", "احصل على شهادات PDF موثقة عند إتمام دوراتك.", "Hel shahaadooyin PDF ah marka aad dhamaysato."),
-    },
-    {
-      icon: Zap, color: "from-pink-500 to-rose-500", bg: "bg-pink-500/10 border-pink-500/20",
-      title: t("Interactive Quizzes", "اختبارات تفاعلية", "Imtixaanno Isdhexgal ah"),
-      desc: t("Reinforce your learning with quizzes after every lesson.", "عزز تعلمك باختبارات بعد كل درس.", "Xooji waxbarashadaada imtixaannada ku."),
-    },
-    {
-      icon: ShieldCheck, color: "from-cyan-500 to-teal-500", bg: "bg-cyan-500/10 border-cyan-500/20",
-      title: t("Access Code System", "نظام رموز الدخول", "Nidaamka Koodhka"),
-      desc: t("Flexible enrollment — pay once, learn forever.", "تسجيل مرن — ادفع مرة وتعلم إلى الأبد.", "Diiwaangelinta fudud — hal mar bixi."),
-    },
-  ];
-
-  const testimonials = [
-    { name: "Ahmed Mohamed",  role: t("English Student",    "طالب الإنجليزية", "Ardayga Ingiriisiga"),  content: t("Albayaan.pro transformed my English in just 3 months.", "غيّرت Albayaan.pro لغتي الإنجليزية في 3 أشهر.", "Albayaan.pro ayaa Ingiriiskayga ku baddalay 3 bilood."), stars: 5 },
-    { name: "Faadumo Hassan", role: t("Arabic Student",     "طالبة العربية",   "Ardayda Carabiga"),     content: t("The AI assistant is available 24/7. Amazing platform!", "المساعد الذكي متاح على مدار الساعة. منصة رائعة!", "Kaaliyaha AI-ga ayaa la heli karo 24/7. Platform cajiib ah!"), stars: 5 },
-    { name: "Omar Abdullah",  role: t("Python Developer",   "مطور Python",     "Python Developer"),     content: t("Finished Python in 12 weeks and landed a freelancing job!", "أنهيت Python في 12 أسبوعاً وحصلت على عمل مستقل!", "Python 12 toddobaad ugu dhammeeyay oo shaqo freelance helay!"), stars: 5 },
-  ];
-
-  const plans = [
-    { name: t("Starter", "المبتدئ", "Bilowga"),       price: "$15", desc: t("1 course, lifetime access", "دورة واحدة، وصول مدى الحياة", "1 koorso, weligeed"),       color: "from-blue-500 to-cyan-400",    popular: false },
-    { name: t("Pro Bundle", "الحزمة الاحترافية", "Xidhmo Xirfadeed"), price: "$45", desc: t("3 courses + AI tutoring", "3 دورات + تدريب AI", "3 koorso + AI"), color: "from-purple-500 to-indigo-400", popular: true },
-    { name: t("All Access", "الوصول الكامل", "Dhammaan"),   price: "$99", desc: t("All courses forever", "جميع الدورات للأبد", "Dhammaan koorsooyinka"),    color: "from-amber-500 to-orange-400", popular: false },
-  ];
+  const getLabel = (item: any) => language === "ar" ? item.labelAr : language === "so" ? item.labelSo : item.label;
 
   return (
-    <div className="w-full bg-background">
+    <div className="w-full bg-background overflow-x-hidden">
 
-      {/* ── Hero ── */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-20 pb-16 px-4 text-center overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" aria-hidden>
-          <div className="absolute top-0 left-1/4 w-80 h-80 bg-blue-600/15 rounded-full blur-[60px]" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/12 rounded-full blur-[70px]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[100px]" />
-        </div>
+      {/* ══════════════════ HERO ══════════════════ */}
+      <section className="relative min-h-[95vh] flex flex-col items-center justify-center pt-20 pb-20 px-4 text-center">
+        <ParticleOrbs />
 
-        <div className="relative z-10 max-w-4xl mx-auto w-full space-y-6">
+        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-7">
+
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary">
-            <Sparkles className="w-4 h-4" />
-            {t("Next-gen AI learning platform", "منصة التعلم بالذكاء الاصطناعي", "Madal waxbarasho AI ah oo casri ah")}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-primary mx-auto">
+            <Sparkles className="w-4 h-4 shrink-0 animate-float" />
+            {t("Next-Gen AI Learning for Somali Students", "منصة تعلم ذكي للطلاب الصوماليين", "Waxbarasho AI ah oo Casri ah oo Ardayda Soomaalida")}
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
           </motion.div>
 
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.1}
-            className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.1]">
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.08}>
             <AnimatePresence mode="wait">
-              <motion.span key={heroIdx}
-                initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
+              <motion.h1 key={heroIdx}
+                initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -20, filter: "blur(6px)" }}
-                transition={{ duration: 0.5, ease: CUBIC }}
-                className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-purple-500">
+                exit={{ opacity: 0, y: -30, filter: "blur(8px)" }}
+                transition={{ duration: 0.55, ease: EASE }}
+                className="text-4xl sm:text-5xl md:text-7xl font-black leading-[1.08] tracking-tight shimmer-text">
                 {heroText}
-              </motion.span>
+              </motion.h1>
             </AnimatePresence>
-            <span className="block text-foreground text-3xl sm:text-4xl md:text-5xl mt-2 font-black">
+            <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={0.15}
+              className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground mt-3">
               {t("at the Speed of AI", "بسرعة الذكاء الاصطناعي", "Xawliga AI ah")}
-            </span>
+            </motion.p>
           </motion.div>
 
-          <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={0.2}
-            className="text-base sm:text-lg md:text-xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
+          <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={0.22}
+            className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             {t(
-              "A premium AI-powered learning platform for School, University & Career skills in English, Arabic & Somali.",
-              "منصة تعلم متميزة بالذكاء الاصطناعي للمدرسة والجامعة والمهارات المهنية.",
-              "Madal waxbarasho AI ah oo heer sarena ah: Dugsiga, Jaamacadda & Xirfadaha."
+              "A cinematic AI-powered platform for school curriculum, skills mastery, and career growth — in English, Arabic & Somali.",
+              "منصة تعليمية سينمائية مدعومة بالذكاء الاصطناعي للمنهج المدرسي والمهارات والنمو المهني.",
+              "Madal waxbarasho oo AI ah oo heer sarena ah: manhajka dugsiga, xirfadaha, iyo kobocda shaqada."
             )}
           </motion.p>
 
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.3}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 pt-2">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
-              <Link href="/curriculum"
-                className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.35)] hover:shadow-[0_0_50px_rgba(59,130,246,0.5)] transition-shadow">
-                <GraduationCap className="w-5 h-5" />
-                {t("School & University", "المدرسة والجامعة", "Dugsiga & Jaamacadda")}
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2">
+            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               <Link href="/courses"
-                className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/5 border border-white/20 text-foreground font-bold text-lg flex items-center justify-center gap-2 hover:bg-white/10 transition-colors">
+                className="px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base flex items-center justify-center gap-2 shadow-[0_0_35px_rgba(59,130,246,0.4)] hover:shadow-[0_0_55px_rgba(59,130,246,0.6)] transition-shadow">
                 <Lightbulb className="w-5 h-5" />
-                {t("Skills & Courses", "المهارات والدورات", "Xirfadaha & Koorsooyinka")}
+                {t("Explore Courses", "استكشف الدورات", "Sahmi Koorsooyinka")}
               </Link>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
+            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+              <Link href="/auth/register"
+                className="px-8 py-4 rounded-full bg-white/8 border border-white/20 text-foreground font-bold text-base flex items-center justify-center gap-2 hover:bg-white/12 hover:border-white/30 transition-all">
+                <Zap className="w-5 h-5 text-purple-400" />
+                {t("Start Learning Free", "ابدأ التعلم مجاناً", "Bilaash Bilow")}
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               <Link href="/ai-tutor"
-                className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-violet-600/20 to-blue-600/20 border border-violet-500/40 text-violet-300 font-bold text-lg flex items-center justify-center gap-2 hover:bg-violet-600/30 transition-colors relative overflow-hidden">
-                <span className="absolute inset-0 bg-gradient-to-r from-violet-600/10 to-blue-600/10 animate-pulse" />
+                className="px-8 py-4 rounded-full bg-gradient-to-r from-violet-600/20 to-blue-600/20 border border-violet-500/40 text-violet-300 font-bold text-base flex items-center justify-center gap-2 hover:bg-violet-600/30 transition-all relative overflow-hidden">
+                <span className="absolute inset-0 bg-gradient-to-r from-violet-600/5 to-blue-600/5 animate-pulse" />
                 <Bot className="w-5 h-5 relative z-10" />
-                <span className="relative z-10">{t("AI Tutor", "المعلم الذكي", "Bare AI-ga")}</span>
+                <span className="relative z-10">{t("Try AI Tutor", "جرب المعلم الذكي", "AI Bare Tijaabi")}</span>
               </Link>
             </motion.div>
           </motion.div>
 
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.4}
-            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-2 text-sm text-muted-foreground">
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.38}
+            className="flex flex-wrap items-center justify-center gap-5 pt-2 text-sm text-muted-foreground">
             {[
-              t("No subscription required", "لا اشتراك مطلوب", "Rumeyn ma loo baahna"),
-              t("Lifetime access", "وصول مدى الحياة", "Galitaan weligeed ah"),
-              t("AI-assisted learning", "تعلم بمساعدة AI", "Waxbarasho AI la caawiso"),
+              t("No subscription", "بدون اشتراك", "Rumeyn la'aane"),
+              t("Lifetime access", "وصول مدى الحياة", "Weligeed galitaan"),
+              t("AI-powered", "مدعوم بالذكاء", "AI la taageero"),
+              t("3 Languages", "3 لغات", "3 Luuqadood"),
             ].map((item, i) => (
-              <span key={i} className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                {item}
+              <span key={i} className="flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" /> {item}
               </span>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* ── Stats ── */}
-      <section className="border-y border-border/50 bg-card/30">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.4 }}
-                variants={cardVariant} custom={i} className="text-center">
-                <div className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
+      {/* ══════════════════ STATS ══════════════════ */}
+      <section className="border-y border-border/50 bg-card/30 py-12">
+        <div className="max-w-6xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[
+            { to: 25000, suffix: "+", label: t("Active Students", "طالب نشط", "Ardayda Firfircoon") },
+            { to: 18,    suffix: "+", label: t("Expert Courses",  "دورة متخصصة", "Koorso Xirfadeed") },
+            { to: 95,    suffix: "%", label: t("Completion Rate", "معدل الإتمام", "Heerka Dhamaystirka") },
+            { to: 49,    suffix: "",  label: t("4.9★ Rating",     "تقييم 4.9 نجوم", "Qiimaynta 4.9 ★") },
+          ].map((s, i) => (
+            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={i * 0.08} className="text-center">
+              <div className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-1">
+                <CountUp to={s.to} suffix={s.suffix} />
+              </div>
+              <div className="text-sm text-muted-foreground">{s.label}</div>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* ── TWO LEARNING PATHS ── */}
-      <section className="py-24 max-w-7xl mx-auto px-4 w-full">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
-          variants={fadeUp} custom={0} className="text-center mb-16">
+      {/* ══════════════════ SCHOOL CURRICULUM ══════════════════ */}
+      <section className="py-24 max-w-7xl mx-auto px-4">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+          variants={fadeUp} custom={0} className="text-center mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-sm font-medium text-blue-400 mb-4">
-            <BookOpen className="w-4 h-4" />
-            {t("Choose Your Learning Path", "اختر مسار تعلمك", "Dooro Dariiqdaada Waxbarasho")}
+            <GraduationCap className="w-4 h-4" />
+            {t("Section 1 — School & University", "القسم الأول — المدرسة والجامعة", "Qaybta 1 — Dugsiga & Jaamacadda")}
           </div>
-          <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4">
-            {t("Two Powerful Ways to", "طريقتان قويتان", "Laba Hab oo Xoog leh")}
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-              {t("Learn at Al-Bayaan College", "للتعلم في كلية البيان", "Albayaan College ku Barasho")}
-            </span>
+          <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4 leading-tight">
+            {t("Complete School", "منهج مدرسي", "Manhaj Dugsi")}
+            <span className="shimmer-text mx-3">{t("Curriculum", "شامل", "Buuxa")}</span>
+            {t("Online", "عبر الإنترنت", "Online ah")}
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg">
+          <p className="text-muted-foreground max-w-2xl mx-auto text-base">
             {t(
-              "Whether you're studying for school, pursuing a university degree, or learning modern career skills — we have the perfect path for you.",
-              "سواء كنت تدرس للمدرسة أو تحصل على درجة جامعية أو تتعلم مهارات مهنية حديثة.",
-              "Haddaad dugsiga u baraneyso, shahaadada jaamacadda raadsaneyso, ama xirfadaha cusub baraneyso — dariiqdaada haye."
+              "Primary to Secondary school subjects. Physics, Chemistry, Biology, Math, English, Arabic, Islamic Studies, and more — all structured, quizzed, and certified.",
+              "مواد المرحلتين الابتدائية والثانوية: الفيزياء والكيمياء والأحياء والرياضيات وأكثر.",
+              "Xaaladaha Dugsiga Hoose ilaa Sare: Physics, Chemistry, Biology, Math, iyo wax badan."
             )}
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Path 1: School & University */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
-            variants={cardVariant} custom={0}
-            whileHover={{ y: -8, transition: { duration: 0.2 } }}
-            className="relative p-8 rounded-3xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 hover:border-blue-400/40 hover:shadow-[0_0_60px_rgba(59,130,246,0.15)] transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(59,130,246,0.4)]">
-                <GraduationCap className="w-7 h-7 text-white" />
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-10">
+          {SCHOOL_SUBJECTS.map((subj, i) => (
+            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={i * 0.04}
+              whileHover={{ y: -4, scale: 1.04 }}
+              className={`p-4 rounded-2xl ${subj.bg} border border-white/8 text-center flex flex-col items-center gap-2 cursor-pointer transition-all ${subj.glow}`}>
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${subj.color} flex items-center justify-center shadow-lg`}>
+                <subj.icon className="w-5 h-5 text-white" />
               </div>
-
-              <div className="mb-2">
-                <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
-                  {t("Section 1", "القسم الأول", "Qaybta 1")}
-                </span>
-              </div>
-              <h3 className="text-2xl md:text-3xl font-black text-foreground mb-2">
-                {t("School & University", "المدرسة والجامعة", "Dugsiga & Jaamacadda")}
-              </h3>
-              <p className="text-sm text-blue-400 font-semibold mb-4">
-                {t("Manhajka School-ka iyo Jaamacadaha", "منهج المدرسة والجامعات", "Manhajka School-ka iyo Jaamacadaha")}
-              </p>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                {t(
-                  "Structured academic curricula for school students and university learners. Mathematics, Science, English, Arabic, Computer Science, Islamic Studies, and more.",
-                  "مناهج أكاديمية منظمة لطلاب المدارس والجامعات. الرياضيات والعلوم والإنجليزية والعربية وعلوم الحاسوب والدراسات الإسلامية.",
-                  "Manhajyo nidaamsan oo ardayda dugsiga iyo jaamacadda. Xisaabta, Sayniska, Ingiriisiga, Carabiga, CS, Cilmiga Islaamiga."
-                )}
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {[
-                  { icon: Calculator,    label: t("Mathematics",     "الرياضيات",     "Xisaabta") },
-                  { icon: FlaskConical, label: t("Science",          "العلوم",        "Sayniska") },
-                  { icon: Globe,        label: t("English & Arabic", "الإنجليزية والعربية", "Ingiriisi & Carabi") },
-                  { icon: BookOpen,     label: t("Islamic Studies",  "الدراسات الإسلامية", "Cilmiga Islaamiga") },
-                  { icon: Code2,        label: t("Computer Science", "علوم الحاسوب",  "Sayniska CS") },
-                  { icon: GraduationCap,label: t("University Level", "مستوى الجامعة", "Heerka Jaamacadda") },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <item.icon className="w-4 h-4 text-blue-400 shrink-0" />
-                    <span>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <Link href="/curriculum">
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-center flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_35px_rgba(59,130,246,0.5)] transition-shadow">
-                  {t("Browse Curriculum", "تصفح المنهج", "Baadh Manhajka")}
-                  <ArrowRight className="w-5 h-5" />
-                </motion.div>
-              </Link>
-            </div>
-          </motion.div>
-
-          {/* Path 2: Skills & Courses */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
-            variants={cardVariant} custom={1}
-            whileHover={{ y: -8, transition: { duration: 0.2 } }}
-            className="relative p-8 rounded-3xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 hover:border-purple-400/40 hover:shadow-[0_0_60px_rgba(139,92,246,0.15)] transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(139,92,246,0.4)]">
-                <Lightbulb className="w-7 h-7 text-white" />
-              </div>
-
-              <div className="mb-2">
-                <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">
-                  {t("Section 2", "القسم الثاني", "Qaybta 2")}
-                </span>
-              </div>
-              <h3 className="text-2xl md:text-3xl font-black text-foreground mb-2">
-                {t("Courses & New Skills", "الدورات والمهارات الجديدة", "Koorsooyinka & Xirfadaha Cusub")}
-              </h3>
-              <p className="text-sm text-purple-400 font-semibold mb-4">
-                {t("Hel Courses iyo Skills Cusub", "احصل على دورات ومهارات جديدة", "Hel Courses iyo Skills Cusub")}
-              </p>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                {t(
-                  "Modern professional courses for career growth. AI, Programming, Web Dev, Design, Business, Freelancing, Data Science, and more — everything you need to succeed in 2025.",
-                  "دورات مهنية حديثة للنمو الوظيفي. الذكاء الاصطناعي والبرمجة وتطوير الويب والتصميم والأعمال والعمل الحر.",
-                  "Koorsooyinka xirfadlaha ah ee casriga ah: AI, Barnaamijka, Web Dev, Naqshadeynta, Ganacsiga, Freelancing."
-                )}
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {[
-                  { icon: Brain,      label: t("AI & Machine Learning", "الذكاء الاصطناعي", "AI & ML") },
-                  { icon: Code2,      label: t("Programming & Code",    "البرمجة",          "Barnaamijka") },
-                  { icon: Briefcase,  label: t("Business & Freelancing","الأعمال والعمل الحر","Ganacsi & Freelance") },
-                  { icon: Palette,    label: t("Design & Creativity",   "التصميم والإبداع", "Naqshadeynta") },
-                  { icon: TrendingUp, label: t("Self-Development",      "التطوير الذاتي",   "Is-Horumarinta") },
-                  { icon: Zap,        label: t("Career Growth",         "النمو المهني",     "Kobocda Xirfadeed") },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <item.icon className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <Link href="/courses">
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-center flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_35px_rgba(139,92,246,0.5)] transition-shadow">
-                  {t("Explore Courses", "استكشف الدورات", "Sahmi Koorsooyinka")}
-                  <ArrowRight className="w-5 h-5" />
-                </motion.div>
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Quick stats row */}
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
-          variants={fadeUp} custom={0.3}
-          className="mt-8 p-5 rounded-2xl bg-card/50 border border-border/50 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-          {[
-            { icon: BookOpen,    label: t("9 Curriculum Courses",     "9 دورات منهجية",       "9 Koorso Manhaj") },
-            { icon: Lightbulb,  label: t("9 Professional Courses",   "9 دورات مهنية",        "9 Koorso Xirfadeed") },
-            { icon: Award,      label: t("PDF Certificates",          "شهادات PDF",           "Shahaadooyiin PDF") },
-            { icon: Globe,      label: t("English · Arabic · Somali", "إنجليزي · عربي · صومالي", "Ingiriisi · Carabi · Soomaali") },
-          ].map((item, i) => (
-            <span key={i} className="flex items-center gap-2">
-              <item.icon className="w-4 h-4 text-primary shrink-0" />
-              {item.label}
-            </span>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ── Featured Courses Preview ── */}
-      <section className="py-16 bg-card/20 border-y border-border/50">
-        <div className="max-w-7xl mx-auto px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
-            variants={fadeUp} custom={0} className="flex items-center justify-between mb-10">
-            <div>
-              <div className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-2">
-                {t("🔥 Featured", "🔥 مميز", "🔥 Caanka ah")}
-              </div>
-              <h2 className="text-2xl md:text-3xl font-black text-foreground">
-                {t("Most Popular Courses", "الدورات الأكثر شعبية", "Koorsooyinka Ugu Caansan")}
-              </h2>
-            </div>
-            <Link href="/courses" className="hidden sm:flex items-center gap-1 text-sm text-primary hover:underline font-medium">
-              {t("View all", "عرض الكل", "Dhamaan arag")} <ChevronRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { id: "ai-mastery",      img: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=800&q=80", cat: "AI & Technology", badge: "🔥 Hot",    color: "from-violet-600 to-blue-500",   title: t("AI & Machine Learning Mastery", "إتقان الذكاء الاصطناعي", "AI & ML Soo Xifdiso"),     price: "$39", rating: "4.9", students: "4.5K+" },
-              { id: "python-programming", img: "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800&q=80", cat: "Programming", badge: "⭐ Popular", color: "from-yellow-500 to-green-500", title: t("Python – Zero to Hero",           "Python من الصفر",           "Python Eber ilaa Khabiir"), price: "$35", rating: "4.8", students: "3.2K+" },
-              { id: "ar-beginner",     img: "https://images.unsplash.com/photo-1585079374502-415f8516dcc3?w=800&q=80", cat: "Arabic",         badge: "📚 Top",    color: "from-green-500 to-emerald-400", title: t("Arabic for Beginners",           "العربية للمبتدئين",          "Carabi Bilowga"),          price: "$15", rating: "4.9", students: "3.4K+" },
-            ].map((course, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
-                variants={cardVariant} custom={i}
-                whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.2 } }}
-                className="rounded-2xl bg-card border border-white/10 overflow-hidden hover:border-primary/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all duration-300 group">
-                <div className="relative aspect-video overflow-hidden">
-                  <img src={course.img} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute top-3 left-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold bg-gradient-to-r ${course.color} text-white`}>
-                      {course.cat}
-                    </span>
-                  </div>
-                  <div className="absolute top-3 right-3">
-                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-black/60 backdrop-blur-sm text-white">
-                      {course.badge}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-3 right-3 flex items-center gap-1 text-white text-xs font-bold">
-                    <Play className="w-3 h-3" /> {t("Preview", "معاينة", "Daawo")}
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-foreground text-sm mb-2 line-clamp-2">{course.title}</h3>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                      <span>{course.rating}</span>
-                      <span className="text-muted-foreground/60">({course.students})</span>
-                    </div>
-                    <span className="font-bold text-primary">{course.price}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="mt-6 text-center sm:hidden">
-            <Link href="/courses" className="inline-flex items-center gap-1 text-sm text-primary hover:underline font-medium">
-              {t("View all courses", "عرض جميع الدورات", "Dhamaan koorsooyinka arag")} <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="py-20 max-w-7xl mx-auto px-4 w-full">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
-          variants={fadeUp} custom={0} className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-sm font-medium text-purple-400 mb-4">
-            <Zap className="w-4 h-4" />
-            {t("Why Albayaan.pro?", "لماذا Albayaan.pro؟", "Maxay Albayaan.pro u koobaantahay?")}
-          </div>
-          <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4">
-            {t("Everything you need to", "كل ما تحتاجه", "Waxkasta oo aad u baahan tahay")}
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-              {t("succeed in learning", "النجاح في التعلم", "in aad ku guulaysato")}
-            </span>
-          </h2>
-        </motion.div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((feature, i) => (
-            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
-              variants={cardVariant} custom={i}
-              whileHover={{ scale: 1.03, y: -4, transition: { duration: 0.2 } }}
-              className={`p-6 rounded-2xl border ${feature.bg} cursor-default`}>
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 shadow-md shrink-0`}>
-                <feature.icon className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-base font-bold text-foreground mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
+              <span className="text-xs font-semibold text-foreground leading-tight">{getLabel(subj)}</span>
             </motion.div>
           ))}
         </div>
+
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.3}
+          className="flex justify-center">
+          <Link href="/curriculum">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+              className="flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-[0_0_30px_rgba(59,130,246,0.35)] hover:shadow-[0_0_50px_rgba(59,130,246,0.5)] transition-shadow">
+              <GraduationCap className="w-5 h-5" />
+              {t("Browse Full Curriculum", "تصفح المنهج الكامل", "Baadh Manhajka Oo Dhan")}
+              <ArrowRight className="w-4 h-4" />
+            </motion.div>
+          </Link>
+        </motion.div>
       </section>
 
-      {/* ── How It Works ── */}
-      <section className="py-20 bg-card/20 border-y border-border/50">
+      {/* ══════════════════ SKILLS ACADEMY ══════════════════ */}
+      <section className="py-24 bg-card/20 border-y border-border/50">
         <div className="max-w-7xl mx-auto px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
             variants={fadeUp} custom={0} className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-3">
-              {t("How it works", "كيف يعمل", "Sida uu u shaqeeyo")}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-sm font-medium text-purple-400 mb-4">
+              <Lightbulb className="w-4 h-4" />
+              {t("Section 2 — Skills Academy", "القسم الثاني — أكاديمية المهارات", "Qaybta 2 — Akademiyada Xirfadaha")}
+            </div>
+            <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4 leading-tight">
+              {t("Modern Skills for the", "مهارات حديثة", "Xirfadaha Casriga")}
+              <span className="shimmer-text ml-3">{t("AI Era", "للعصر الذكي", "AI Wakhtiga")}</span>
             </h2>
-            <p className="text-muted-foreground">
-              {t("Start learning in 4 simple steps.", "ابدأ التعلم في 4 خطوات بسيطة.", "Bilow waxbarasho 4 tallaabooyood fudud.")}
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { icon: BookOpen,    title: t("Browse Courses", "تصفح الدورات", "Baadh Koorsooyinka"),   desc: t("Pick from 18+ courses across 2 sections.", "اختر من أكثر من 18 دورة في قسمين.", "Dooro 18+ koorso 2 qayb.") },
-              { icon: ShieldCheck, title: t("Enroll & Access", "سجل وادخل", "Diiwaangeli & Gal"),     desc: t("Pay or redeem an access code instantly.", "ادفع أو استرد رمز الوصول فوراً.", "Bixi ama geli koodh si deg-deg ah.") },
-              { icon: Brain,       title: t("Learn with AI", "تعلم مع AI", "AI la Baro"),             desc: t("Study at your pace with AI assistance.", "ادرس بوتيرتك مع مساعدة AI.", "Raaxo leh ku baro caawimaad AI ah.") },
-              { icon: Trophy,      title: t("Get Certified", "احصل على شهادة", "Shahaado Hel"),        desc: t("Download your PDF certificate instantly.", "حمّل شهادتك PDF فوراً.", "Degdeg soo degso shahaadadaada PDF.") },
-            ].map((step, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
-                variants={cardVariant} custom={i}
-                whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                className="text-center cursor-default">
-                <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 border border-white/10 flex items-center justify-center mx-auto mb-4">
-                  <step.icon className="w-7 h-7 text-primary" />
-                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-white text-xs font-black flex items-center justify-center">
-                    {i + 1}
-                  </span>
-                </div>
-                <h3 className="font-bold text-foreground mb-2">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ── */}
-      <section className="py-20 max-w-7xl mx-auto px-4 w-full">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
-          variants={fadeUp} custom={0} className="text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-black text-foreground mb-3">
-            {t("Loved by students", "يحبه الطلاب", "Ardaydu waxay jeclayaan")}
-          </h2>
-        </motion.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {testimonials.map((tm, i) => (
-            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
-              variants={cardVariant} custom={i}
-              whileHover={{ scale: 1.02, y: -4, transition: { duration: 0.2 } }}
-              className="p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-colors cursor-default">
-              <div className="flex gap-1 mb-4">
-                {Array.from({ length: tm.stars }).map((_, s) => (
-                  <Star key={s} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-5">"{tm.content}"</p>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                  {tm.name[0]}
-                </div>
-                <div>
-                  <div className="font-semibold text-foreground text-sm">{tm.name}</div>
-                  <div className="text-xs text-muted-foreground">{tm.role}</div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Pricing Teaser ── */}
-      <section className="py-16 bg-card/20 border-y border-border/50">
-        <div className="max-w-7xl mx-auto px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
-            variants={fadeUp} custom={0} className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-3">
-              {t("Simple, one-time pricing", "تسعير بسيط لمرة واحدة", "Qiime fudud oo hal mar ah")}
-            </h2>
-            <p className="text-muted-foreground">
-              {t("Pay once, learn forever. No subscriptions.", "ادفع مرة وتعلم للأبد. بلا اشتراكات.", "Hal mar bixi, weligaa baro. Rumeyn malaha.")}
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
-            {plans.map((plan, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
-                variants={cardVariant} custom={i}
-                whileHover={{ scale: 1.04, y: -4, transition: { duration: 0.2 } }}
-                className={`relative p-6 rounded-2xl bg-card border text-center cursor-default ${plan.popular ? "border-purple-500/50" : "border-border"}`}>
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold whitespace-nowrap">
-                    ⭐ {t("Most Popular", "الأكثر شعبية", "Ugu Caansan")}
-                  </div>
-                )}
-                <div className={`text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r ${plan.color} mb-1`}>{plan.price}</div>
-                <div className="font-bold text-foreground mb-1">{plan.name}</div>
-                <div className="text-sm text-muted-foreground mb-4">{plan.desc}</div>
-                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                  <Link href="/pricing"
-                    className={`block w-full py-2.5 rounded-xl font-bold text-sm text-center transition-all ${
-                      plan.popular
-                        ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-[0_0_20px_rgba(139,92,246,0.4)]"
-                        : "bg-white/5 border border-white/10 text-foreground hover:bg-white/10"
-                    }`}>
-                    {t("Get Started", "ابدأ الآن", "Hadda Bilow")}
-                  </Link>
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="py-24 max-w-7xl mx-auto px-4 text-center">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.4 }}
-          variants={fadeUp} custom={0} className="relative p-12 rounded-3xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none" aria-hidden>
-            <div className="absolute top-0 left-1/4 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-purple-500/15 rounded-full blur-3xl" />
-          </div>
-          <div className="relative z-10">
-            <div className="text-4xl mb-4">🎓</div>
-            <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4">
-              {t("Ready to Start Learning?", "هل أنت مستعد للبدء؟", "Ma Diyaar u tahay Barashada?")}
-            </h2>
-            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-base">
               {t(
-                "Join 25,000+ students already learning on Al-Bayaan College. Start for free or redeem your access code.",
-                "انضم إلى أكثر من 25,000 طالب يتعلمون على Albayaan College.",
-                "Ku biir 25,000+ ardayda ah ee hada ku baranaya Albayaan College."
+                "AI, Python, Web Dev, Design, Marketing, Freelancing, Public Speaking, Tajweed & more — everything you need to thrive in 2026.",
+                "AI والبرمجة وتطوير الويب والتصميم والتسويق والعمل الحر وأكثر.",
+                "AI, Python, Web Dev, Naqshadeynta, Suuqgeynta, Freelancing, iyo wax badan."
               )}
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            {SKILLS_LIST.map((skill, i) => (
+              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
+                variants={fadeUp} custom={i * 0.06}
+                whileHover={{ y: -6, scale: 1.02 }}
+                className="p-5 rounded-2xl bg-card border border-white/10 hover:border-purple-500/30 hover:shadow-[0_0_25px_rgba(139,92,246,0.12)] transition-all flex items-center gap-3 cursor-pointer group">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${skill.color} flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform`}>
+                  <skill.icon className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">{getLabel(skill)}</span>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.4}
+            className="flex justify-center">
+            <Link href="/courses">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-[0_0_30px_rgba(139,92,246,0.35)] hover:shadow-[0_0_50px_rgba(139,92,246,0.5)] transition-shadow">
+                <Lightbulb className="w-5 h-5" />
+                {t("Explore All Skills", "استكشف جميع المهارات", "Dhammaan Xirfadaha Sahmi")}
+                <ArrowRight className="w-4 h-4" />
+              </motion.div>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ══════════════════ AI FEATURES ══════════════════ */}
+      <section className="py-24 max-w-7xl mx-auto px-4">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+          variants={fadeUp} custom={0} className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-sm font-medium text-violet-400 mb-4">
+            <Brain className="w-4 h-4" />
+            {t("AI-Powered Learning", "التعلم بالذكاء الاصطناعي", "Waxbarasho AI ah")}
+          </div>
+          <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4">
+            {t("6 Powerful AI Tools", "6 أدوات ذكاء اصطناعي", "6 Qalab AI oo Xoog leh")}
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            {t(
+              "Every course is supercharged with AI tools that make learning 10x faster and more effective.",
+              "كل دورة مزودة بأدوات ذكاء اصطناعي تجعل التعلم أسرع بـ 10 مرات.",
+              "Koorso kasta waxaa ku xidhan qalab AI ah oo waxbarasho 10x ka dhaqsiya."
+            )}
+          </p>
+        </motion.div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {AI_FEATURES.map((f, i) => (
+            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={i * 0.07}
+              whileHover={{ y: -6 }}
+              className="p-6 rounded-2xl bg-card border border-white/10 hover:border-violet-500/30 hover:shadow-[0_0_30px_rgba(124,58,237,0.12)] transition-all">
+              <div className="text-3xl mb-4">{f.icon}</div>
+              <h3 className="font-black text-foreground mb-2">{language === "ar" ? f.titleAr : language === "so" ? f.titleSo : f.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{language === "ar" ? f.descAr : language === "so" ? f.descSo : f.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.5}
+          className="flex justify-center mt-10">
+          <Link href="/ai-tutor">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+              className="flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-violet-600/20 to-blue-600/20 border border-violet-500/40 text-violet-300 font-bold hover:bg-violet-600/30 transition-all">
+              <Bot className="w-5 h-5" />
+              {t("Try AI Tutor Free", "جرب المعلم الذكي مجاناً", "Bilaash AI Bare Tijaabi")}
+              <ArrowRight className="w-4 h-4" />
+            </motion.div>
+          </Link>
+        </motion.div>
+      </section>
+
+      {/* ══════════════════ GAMIFICATION ══════════════════ */}
+      <section className="py-24 bg-card/20 border-y border-border/50">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <div className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-3">
+                {t("Gamified Learning", "التعلم المُلعَّب", "Ciyaargelinta Waxbarasho")}
+              </div>
+              <h2 className="text-3xl md:text-4xl font-black text-foreground mb-6 leading-tight">
+                {t("Learning That's", "التعلم الذي", "Waxbarasho")}
+                <span className="shimmer-text ml-2">{t("Addictive", "مُدمِن", "Xiiseeya")}</span>
+              </h2>
+              <p className="text-muted-foreground mb-8 leading-relaxed">
+                {t(
+                  "Earn XP points, maintain streaks, unlock badges, compete on the leaderboard, and get rewarded for every lesson you complete.",
+                  "اكسب نقاط XP، حافظ على الاستمرارية، افتح الشارات، تنافس في لوحة التصنيف.",
+                  "Hel dhibcaha XP, joogso, fur astaamaha, tartam jadwalka, oo abaal-marin u hel casharka."
+                )}
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { icon: Zap,    label: "XP Points",      val: "500 XP / course",  color: "text-purple-400", bg: "bg-purple-500/10" },
+                  { icon: Flame,  label: "Daily Streak",   val: "10 XP / day",      color: "text-orange-400", bg: "bg-orange-500/10" },
+                  { icon: Trophy, label: "Leaderboard",    val: "Top 10 Ranking",   color: "text-yellow-400", bg: "bg-yellow-500/10" },
+                  { icon: Medal,  label: "Badges",         val: "6+ Achievements",  color: "text-cyan-400",   bg: "bg-cyan-500/10" },
+                ].map((g, i) => (
+                  <div key={i} className={`p-4 rounded-2xl ${g.bg} border border-white/10 flex items-center gap-3`}>
+                    <g.icon className={`w-5 h-5 ${g.color} shrink-0`} />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">{g.label}</p>
+                      <p className="text-xs text-muted-foreground">{g.val}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.2}
+              className="relative p-6 rounded-3xl bg-card border border-white/10 overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-yellow-500/8 rounded-full blur-3xl" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-black">A</div>
+                  <div>
+                    <p className="font-black text-foreground text-sm">Ahmed Mohamed</p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Flame className="w-3 h-3 text-orange-400" /> 14 day streak
+                    </div>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <p className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Level 8</p>
+                    <p className="text-xs text-muted-foreground">3,750 XP</p>
+                  </div>
+                </div>
+                <div className="h-2.5 rounded-full bg-white/5 mb-1 overflow-hidden">
+                  <motion.div initial={{ width: 0 }} whileInView={{ width: "75%" }} viewport={{ once: true }}
+                    transition={{ duration: 1.2, delay: 0.3 }}
+                    className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500" />
+                </div>
+                <p className="text-xs text-muted-foreground mb-5">3,750 / 4,000 XP to Level 9</p>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {["🚀","📚","🎯","🏆","⚡","🌟"].map((badge, i) => (
+                    <div key={i} className={`text-center p-3 rounded-xl border text-xl ${i < 4 ? "bg-yellow-500/10 border-yellow-500/20" : "bg-white/3 border-white/8 opacity-40 grayscale"}`}>
+                      {badge}
+                    </div>
+                  ))}
+                </div>
+                <Link href="/leaderboard" className="block">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 flex items-center gap-2 hover:border-yellow-400/40 transition-colors">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <span className="text-xs font-bold text-yellow-400">#3 on Leaderboard</span>
+                    <ChevronRight className="w-3 h-3 text-yellow-400 ml-auto" />
+                  </div>
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════ TESTIMONIALS ══════════════════ */}
+      <section className="py-24 max-w-6xl mx-auto px-4">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
+          className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-sm font-medium text-green-400 mb-4">
+            <Star className="w-4 h-4 fill-green-400" />
+            {t("Student Success Stories", "قصص نجاح الطلاب", "Sheekooyin Guusha Ardayda")}
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-foreground">
+            {t("25,000+ Students Can't Be Wrong", "25,000+ طالب لا يمكن أن يكونوا مخطئين", "25,000+ Arday Waxay Ku Hambalyeynayaan")}
+          </h2>
+        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {TESTIMONIALS.map((t, i) => (
+            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={i * 0.08}
+              className="p-6 rounded-2xl bg-card border border-white/10 hover:border-green-500/20 transition-all flex flex-col">
+              <div className="flex items-center gap-1 mb-3">
+                {[...Array(t.stars)].map((_, s) => <Star key={s} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />)}
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed flex-1 mb-5 italic">"{t.content}"</p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-black text-sm shrink-0">
+                  {t.name[0]}
+                </div>
+                <div>
+                  <div className="flex items-center gap-1">
+                    <p className="text-sm font-bold text-foreground">{t.name}</p>
+                    <span className="text-base">{t.country}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══════════════════ PRICING PREVIEW ══════════════════ */}
+      <section className="py-24 bg-card/20 border-y border-border/50">
+        <div className="max-w-5xl mx-auto px-4">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
+            className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-sm font-medium text-amber-400 mb-4">
+              <Zap className="w-4 h-4" />
+              {t("Simple Pricing", "أسعار بسيطة", "Qiimo Fudud")}
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-3">
+              {t("Invest in Your Future", "استثمر في مستقبلك", "Mustaqbalkaaga ka Maalgeli")}
+            </h2>
+            <p className="text-muted-foreground">
+              {t("Pay once. Learn forever. Zaad & Waafi accepted.", "ادفع مرة. تعلم إلى الأبد. Zaad وWaafi مقبولان.", "Hal mar bixi. Weligaa baro. Zaad & Waafi la aqbalaa.")}
+            </p>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { name: t("Starter", "المبتدئ", "Bilowga"),     price: "$15", desc: t("1 course · Lifetime access", "دورة واحدة · وصول مدى الحياة", "1 koorso · Weligeed"),       color: "from-blue-500 to-cyan-400",    popular: false },
+              { name: t("Pro Bundle", "الحزمة الاحترافية", "Xidhmo Pro"), price: "$45", desc: t("3 courses · AI tutoring · Certificate", "3 دورات · تدريب AI · شهادة", "3 koorso · AI · Shahaado"), color: "from-purple-500 to-indigo-400", popular: true  },
+              { name: t("All Access", "الوصول الكامل", "Dhammaan"),   price: "$99", desc: t("All courses · Forever · Priority support", "جميع الدورات · للأبد", "Dhammaan koorsooyinka"),     color: "from-amber-500 to-orange-400", popular: false },
+            ].map((plan, i) => (
+              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
+                variants={fadeUp} custom={i * 0.1}
+                whileHover={{ y: -6 }}
+                className={`p-7 rounded-2xl relative overflow-hidden flex flex-col ${
+                  plan.popular
+                    ? "bg-gradient-to-br from-purple-600/20 to-indigo-600/20 border-2 border-purple-500/50 shadow-[0_0_40px_rgba(139,92,246,0.2)]"
+                    : "bg-card border border-white/10"
+                }`}>
+                {plan.popular && (
+                  <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[10px] font-bold rounded-bl-xl">
+                    🔥 {t("Most Popular", "الأكثر شعبية", "Ugu Caansan")}
+                  </div>
+                )}
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${plan.color} flex items-center justify-center mb-4 shadow-lg`}>
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-black text-foreground mb-1">{plan.name}</h3>
+                <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2">{plan.price}</p>
+                <p className="text-sm text-muted-foreground mb-6 flex-1">{plan.desc}</p>
+                <Link href="/pricing">
+                  <div className={`w-full py-3 rounded-xl text-sm font-bold text-center transition-all ${
+                    plan.popular
+                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-[0_0_25px_rgba(139,92,246,0.4)]"
+                      : "bg-white/8 text-foreground hover:bg-white/12 border border-white/10"
+                  }`}>
+                    {t("Get Started", "ابدأ الآن", "Bilow Hadda")}
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.4}
+            className="mt-8 text-center">
+            <Link href="/pricing" className="text-primary hover:underline text-sm font-medium inline-flex items-center gap-1">
+              {t("View full pricing details", "عرض تفاصيل الأسعار الكاملة", "Fiiri faahfaahinta qiimaha oo buuxda")}
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ══════════════════ CTA BANNER ══════════════════ */}
+      <section className="py-24 max-w-5xl mx-auto px-4">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
+          className="relative p-10 md:p-16 rounded-3xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 text-center overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-80 h-80 bg-blue-500/12 rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/12 rounded-full blur-[80px] pointer-events-none" />
+          <div className="relative z-10">
+            <div className="text-5xl mb-4 animate-float">🚀</div>
+            <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4">
+              {t("Ready to Transform Your Life?", "هل أنت مستعد لتحويل حياتك؟", "Ma Diyaar u Tahay Noloshaada Baddalka?")}
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto mb-8">
+              {t(
+                "Join 25,000+ Somali students already learning with AI on Albayaan.pro.",
+                "انضم إلى أكثر من 25,000 طالب صومالي يتعلمون بالذكاء الاصطناعي.",
+                "Ku biir 25,000+ arday Soomaali oo horey AI ku baranaya Albayaan.pro."
+              )}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <Link href="/courses"
-                  className="px-10 py-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg flex items-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_50px_rgba(59,130,246,0.6)] transition-shadow">
-                  {t("Explore Courses", "استكشف الدورات", "Sahmi Koorsooyinka")}
-                  <ArrowRight className="w-5 h-5" />
+                <Link href="/auth/register"
+                  className="px-10 py-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg flex items-center gap-2 shadow-[0_0_40px_rgba(59,130,246,0.4)] hover:shadow-[0_0_60px_rgba(59,130,246,0.6)] transition-shadow">
+                  <Sparkles className="w-5 h-5" />
+                  {t("Join Now — Free", "انضم الآن — مجاناً", "Hadda Ku Biir — Bilaash")}
                 </Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <Link href="/ai-tutor"
-                  className="px-10 py-4 rounded-full bg-gradient-to-r from-violet-600/20 to-blue-600/20 border border-violet-500/40 text-violet-300 font-bold text-lg flex items-center gap-2 hover:bg-violet-600/30 transition-colors">
-                  <Bot className="w-5 h-5" />
-                  {t("Try AI Tutor", "جرّب المعلم الذكي", "AI Bare Tijaabi")}
-                </Link>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <Link href="/access-code"
-                  className="px-10 py-4 rounded-full bg-white/5 border border-white/20 text-foreground font-bold text-lg hover:bg-white/10 transition-colors">
-                  {t("Redeem Code", "استرداد الرمز", "Furo Koodhka")}
-                </Link>
+                <a href="https://wa.me/252656042512" target="_blank" rel="noopener noreferrer"
+                  className="px-10 py-4 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 font-bold text-lg flex items-center gap-2 hover:bg-green-500/30 transition-colors">
+                  <MessageCircle className="w-5 h-5" />
+                  WhatsApp
+                </a>
               </motion.div>
             </div>
           </div>
