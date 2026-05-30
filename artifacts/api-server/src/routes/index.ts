@@ -10,6 +10,7 @@ import testimonialsRouter from "./testimonials";
 import statsRouter from "./stats";
 import adminRouter from "./admin";
 import chatRouter from "./chat";
+import certificatesRouter from "./certificates";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(testimonialsRouter);
 router.use(statsRouter);
 router.use(adminRouter);
 router.use(chatRouter);
+router.use(certificatesRouter);
 
 export default router;

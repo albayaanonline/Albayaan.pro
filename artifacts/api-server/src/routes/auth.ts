@@ -2,10 +2,8 @@ import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
-import {
-  RegisterBody,
-  LoginBody,
-} from "@workspace/api-zod";
+import { RegisterBody, LoginBody } from "@workspace/api-zod";
+import { verifySupabaseToken } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -35,13 +33,11 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 
   req.session.userId = user.id;
   res.status(201).json({
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      createdAt: user.createdAt,
-    },
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
   });
 });
 
@@ -59,6 +55,11 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  if (user.passwordHash === "supabase-auth") {
+    res.status(400).json({ error: "Please sign in with your Supabase account." });
+    return;
+  }
+
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     res.status(401).json({ error: "Invalid credentials" });
@@ -67,13 +68,53 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   req.session.userId = user.id;
   res.json({
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      createdAt: user.createdAt,
-    },
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
+  });
+});
+
+router.post("/auth/session-from-supabase", async (req, res): Promise<void> => {
+  const authHeader = req.headers.authorization as string | undefined;
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "No token provided" });
+    return;
+  }
+
+  const token = authHeader.slice(7);
+  const supabaseUser = await verifySupabaseToken(token);
+  if (!supabaseUser || !supabaseUser.email) {
+    res.status(401).json({ error: "Invalid Supabase token" });
+    return;
+  }
+
+  const email = supabaseUser.email.toLowerCase().trim();
+  let [dbUser] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+
+  if (!dbUser) {
+    const name = supabaseUser.user_metadata?.name || email.split("@")[0];
+    const [created] = await db
+      .insert(usersTable)
+      .values({ name, email, passwordHash: "supabase-auth", role: "user" })
+      .returning();
+    dbUser = created;
+  } else if (dbUser.name === "supabase-auth" || !dbUser.name) {
+    const name = supabaseUser.user_metadata?.name || email.split("@")[0];
+    const [updated] = await db.update(usersTable).set({ name }).where(eq(usersTable.id, dbUser.id)).returning();
+    dbUser = updated;
+  }
+
+  req.session.userId = dbUser.id;
+
+  res.json({
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    role: dbUser.role,
+    supabaseId: supabaseUser.id,
+    createdAt: dbUser.createdAt,
   });
 });
 
@@ -83,11 +124,8 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Email is required" });
     return;
   }
-  // Always return success to prevent email enumeration attacks.
-  // In production, an email service would send a reset link here.
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim()));
   if (user) {
-    // A real implementation would send a reset token via email here.
     console.log(`[auth] Password reset requested for user id=${user.id}`);
   }
   res.json({ success: true, message: "If an account exists, a reset link will be sent." });
@@ -117,6 +155,35 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     role: user.role,
     createdAt: user.createdAt,
   });
+});
+
+router.post("/admin/elevate", async (req, res): Promise<void> => {
+  const { email, secret } = req.body;
+  const adminSecret = process.env.ADMIN_ELEVATION_SECRET;
+
+  if (!adminSecret || !secret || secret !== adminSecret) {
+    res.status(403).json({ error: "Invalid or missing admin secret." });
+    return;
+  }
+
+  if (!email) {
+    res.status(400).json({ error: "email is required" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim()));
+  if (!user) {
+    res.status(404).json({ error: "User not found. Register first, then elevate." });
+    return;
+  }
+
+  const [updated] = await db
+    .update(usersTable)
+    .set({ role: "admin" })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+
+  res.json({ success: true, user: { id: updated.id, email: updated.email, role: updated.role } });
 });
 
 export default router;

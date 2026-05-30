@@ -11,20 +11,6 @@ interface VerifyResult {
   certId?: string;
 }
 
-function verifyCertificate(code: string): VerifyResult {
-  const normalized = code.trim().toUpperCase();
-  if (!normalized.startsWith("ALBAYAAN-") || normalized.length < 20) {
-    return { valid: false };
-  }
-  return {
-    valid: true,
-    studentName: "Verified Student",
-    courseName: "Al-Bayaan College Course",
-    completionDate: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
-    certId: normalized,
-  };
-}
-
 export default function Verify() {
   const { t } = useLanguage();
   const [code, setCode] = useState("");
@@ -32,12 +18,33 @@ export default function Verify() {
   const [loading, setLoading] = useState(false);
 
   const handleVerify = async () => {
-    if (!code.trim()) return;
+    const normalized = code.trim().toUpperCase();
+    if (!normalized) return;
     setLoading(true);
     setResult(null);
-    await new Promise(r => setTimeout(r, 800));
-    setResult(verifyCertificate(code));
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/certificates/${encodeURIComponent(normalized)}`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const cert = await res.json();
+        setResult({
+          valid: true,
+          studentName: cert.studentName,
+          courseName: cert.courseName,
+          certId: cert.certId,
+          completionDate: new Date(cert.issuedAt).toLocaleDateString("en-US", {
+            year: "numeric", month: "long", day: "numeric",
+          }),
+        });
+      } else {
+        setResult({ valid: false });
+      }
+    } catch {
+      setResult({ valid: false });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

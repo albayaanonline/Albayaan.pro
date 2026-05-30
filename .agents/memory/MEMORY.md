@@ -1,3 +1,4 @@
 - [Albayaan Platform Architecture](ilmai-platform.md) — Rebranded from IlmAI to Albayaan.pro; Vite+React+Wouter+Tailwind monorepo; vite.config.ts requires PORT+BASE_PATH env vars.
-- [Albayaan Feature Set](ilmai-features.md) — 6 real courses (local data), Firebase Google Auth guard, Zaad/Waafi/card Payment.tsx, Pricing page, admin dashboard 6 tabs, AIChat rebranded. Firebase package installed; needs VITE_FIREBASE_* env vars.
+- [Albayaan Feature Set](ilmai-features.md) — Supabase auth, real DB (Drizzle/PostgreSQL), admin dashboard fully connected to API, certificates table + routes, COURSES static data fully removed from AdminDashboard.
 - [Albayaan Admin Routing](albayaan-admin-routing.md) — Wouter admin routing: /admin/login must be a top-level Route BEFORE any /admin/:rest* catch; nested AdminLayout routes below it. Default creds: admin@example.com / Admin123.
+- [Albayaan Admin Dashboard API](albayaan-admin-api.md) — All COURSES static refs replaced with apiCourses (from /api/admin/courses). Course/lesson IDs are numbers. editingCourse/deletingCourse/expandedLesson are all number|null.

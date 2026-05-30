@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabaseAnonKey!, {
@@ -15,34 +15,60 @@ export const supabase = isSupabaseConfigured
     })
   : null;
 
-export { isSupabaseConfigured };
-
 export type SupabaseClient = ReturnType<typeof createClient>;
 
+export async function signInWithEmail(email: string, password: string) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+export async function signUpWithEmail(email: string, password: string, name: string) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { name, role: "user" } },
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function resetPassword(email: string) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const redirectTo = `${window.location.origin}/auth/callback?type=recovery`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) throw error;
+}
+
+export async function updatePassword(newPassword: string) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
+export async function signOut() {
+  if (!supabase) return;
+  await supabase.auth.signOut();
+}
+
+export async function getSession() {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session;
+}
+
 export async function signInWithGoogle(): Promise<void> {
-  if (!supabase) {
-    throw new Error("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.");
-  }
-
-  const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL ?? "/"}auth/callback`.replace(/\/+/g, "/").replace(":/", "://");
-
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const redirectTo = `${window.location.origin}/auth/callback`;
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: {
-      redirectTo,
-      queryParams: {
-        access_type: "offline",
-        prompt: "consent",
-      },
-    },
+    options: { redirectTo, queryParams: { access_type: "offline", prompt: "consent" } },
   });
-
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 }
 
 export async function signOutFromSupabase(): Promise<void> {
-  if (!supabase) return;
-  await supabase.auth.signOut();
+  await signOut();
 }

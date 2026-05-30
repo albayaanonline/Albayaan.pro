@@ -3,19 +3,35 @@ import { eq, count, desc } from "drizzle-orm";
 import { db, usersTable, paymentsTable, accessCodesTable, coursesTable, courseEnrollmentsTable, lessonsTable } from "@workspace/db";
 import { ConfirmPaymentParams, ConfirmPaymentBody, CreateCodeBody, DeactivateCodeParams } from "@workspace/api-zod";
 import { randomBytes } from "crypto";
+import { verifySupabaseToken, getBearerToken } from "../middleware/auth";
 
 const router: IRouter = Router();
 
-function requireAdmin(req: any, res: any): boolean {
+async function requireAdmin(req: any, res: any): Promise<boolean> {
+  const token = getBearerToken(req);
+  if (token) {
+    const supabaseUser = await verifySupabaseToken(token);
+    if (supabaseUser) {
+      const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.email, supabaseUser.email));
+      if (dbUser?.role === "admin") return true;
+    }
+  }
+
   if (!req.session?.userId) {
     res.status(401).json({ error: "Unauthorized" });
+    return false;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
+  if (!user || user.role !== "admin") {
+    res.status(403).json({ error: "Forbidden: Admin access required" });
     return false;
   }
   return true;
 }
 
 router.get("/admin/stats", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const [{ cnt: totalUsers }] = await db.select({ cnt: count(usersTable.id) }).from(usersTable);
   const [{ cnt: totalCourses }] = await db.select({ cnt: count(coursesTable.id) }).from(coursesTable);
@@ -46,7 +62,7 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
 });
 
 router.get("/admin/users", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
   const enrollmentCounts = await db
@@ -71,7 +87,7 @@ router.get("/admin/users", async (req, res): Promise<void> => {
 // ── COURSES CRUD ──
 
 router.get("/admin/courses", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const courses = await db.select().from(coursesTable).orderBy(desc(coursesTable.createdAt));
   const lessonsCountData = await db
@@ -104,7 +120,7 @@ router.get("/admin/courses", async (req, res): Promise<void> => {
 });
 
 router.post("/admin/courses", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const { title, titleAr, titleSo, description, descriptionAr, descriptionSo, language, level, price, duration, thumbnailUrl } = req.body;
 
@@ -147,7 +163,7 @@ router.post("/admin/courses", async (req, res): Promise<void> => {
 });
 
 router.put("/admin/courses/:courseId", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const courseId = Number(req.params.courseId);
   if (isNaN(courseId)) {
@@ -193,7 +209,7 @@ router.put("/admin/courses/:courseId", async (req, res): Promise<void> => {
 });
 
 router.delete("/admin/courses/:courseId", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const courseId = Number(req.params.courseId);
   if (isNaN(courseId)) {
@@ -215,7 +231,7 @@ router.delete("/admin/courses/:courseId", async (req, res): Promise<void> => {
 // ── LESSONS CRUD ──
 
 router.get("/admin/courses/:courseId/lessons", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const courseId = Number(req.params.courseId);
   const lessons = await db.select().from(lessonsTable).where(eq(lessonsTable.courseId, courseId)).orderBy(lessonsTable.order);
@@ -237,7 +253,7 @@ router.get("/admin/courses/:courseId/lessons", async (req, res): Promise<void> =
 });
 
 router.post("/admin/courses/:courseId/lessons", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const courseId = Number(req.params.courseId);
   const { title, titleAr, titleSo, content, contentAr, contentSo, duration, isLocked, hasQuiz } = req.body;
@@ -268,7 +284,7 @@ router.post("/admin/courses/:courseId/lessons", async (req, res): Promise<void> 
 });
 
 router.put("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const lessonId = Number(req.params.lessonId);
   const { title, titleAr, titleSo, content, contentAr, contentSo, duration, isLocked, hasQuiz } = req.body;
@@ -295,7 +311,7 @@ router.put("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
 });
 
 router.delete("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const lessonId = Number(req.params.lessonId);
   const [deleted] = await db.delete(lessonsTable).where(eq(lessonsTable.id, lessonId)).returning();
@@ -311,7 +327,7 @@ router.delete("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
 // ── USER DELETE ──
 
 router.delete("/admin/users/:userId", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const userId = Number(req.params.userId);
   if (isNaN(userId)) {
@@ -337,7 +353,7 @@ router.delete("/admin/users/:userId", async (req, res): Promise<void> => {
 // ── USER ROLE MANAGEMENT ──
 
 router.patch("/admin/users/:userId/role", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const userId = Number(req.params.userId);
   const { role } = req.body;
@@ -360,7 +376,7 @@ router.patch("/admin/users/:userId/role", async (req, res): Promise<void> => {
 // ── PAYMENTS ──
 
 router.get("/admin/payments", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const payments = await db.select().from(paymentsTable).orderBy(desc(paymentsTable.createdAt));
 
@@ -388,7 +404,7 @@ router.get("/admin/payments", async (req, res): Promise<void> => {
 });
 
 router.post("/admin/payments/:paymentId/confirm", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const params = ConfirmPaymentParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
@@ -428,7 +444,7 @@ router.post("/admin/payments/:paymentId/confirm", async (req, res): Promise<void
 // ── CODES ──
 
 router.get("/admin/codes", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const codes = await db.select().from(accessCodesTable).orderBy(desc(accessCodesTable.createdAt));
 
@@ -459,7 +475,7 @@ router.get("/admin/codes", async (req, res): Promise<void> => {
 });
 
 router.post("/admin/codes", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const body = CreateCodeBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
@@ -487,7 +503,7 @@ router.post("/admin/codes", async (req, res): Promise<void> => {
 });
 
 router.patch("/admin/codes/:codeId/deactivate", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const params = DeactivateCodeParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
@@ -514,7 +530,7 @@ router.patch("/admin/codes/:codeId/deactivate", async (req, res): Promise<void> 
 // ── ANALYTICS ──
 
 router.get("/admin/analytics", async (req, res): Promise<void> => {
-  if (!requireAdmin(req, res)) return;
+  if (!await requireAdmin(req, res)) return;
 
   const totalUsers = await db.select({ cnt: count(usersTable.id) }).from(usersTable);
   const totalCourses = await db.select({ cnt: count(coursesTable.id) }).from(coursesTable);

@@ -4,7 +4,7 @@ import {
   useGetAdminStats, useGetAdminUsers, useGetAdminPayments,
   useGetAdminCodes, useConfirmPayment, useCreateCode, useDeactivateCode
 } from "@/lib/api-client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
@@ -12,7 +12,6 @@ import {
   Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X, Award, Download, RefreshCw,
   AlertTriangle, UserX
 } from "lucide-react";
-import { COURSES, type Course, type Lesson } from "@/data/courses";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend
@@ -140,9 +139,9 @@ export default function AdminDashboard() {
   const [newCodeCourseId, setNewCodeCourseId] = useState("1");
   const [courseSearch, setCourseSearch] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<string | null>(null);
-  const [deletingCourse, setDeletingCourse] = useState<string | null>(null);
-  const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
+  const [editingCourse, setEditingCourse] = useState<number | null>(null);
+  const [deletingCourse, setDeletingCourse] = useState<number | null>(null);
+  const [expandedLesson, setExpandedLesson] = useState<number | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [deletingUser, setDeletingUser] = useState<number | null>(null);
 
@@ -161,6 +160,16 @@ export default function AdminDashboard() {
   const { mutate: deactivateCode } = useDeactivateCode({
     mutation: { onSuccess: () => refetchCodes() },
   });
+
+  const { data: adminCoursesData, refetch: refetchCourses } = useQuery({
+    queryKey: ["admin-courses"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/courses", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+  const apiCourses: any[] = adminCoursesData ?? [];
 
   const handleDeleteUser = async (userId: number) => {
     try {
@@ -186,19 +195,34 @@ export default function AdminDashboard() {
     { id: "certificates", label: t("Certificates", "الشهادات",     "Shahaadooyinka"),  icon: Award },
   ];
 
-  const filteredCourses = COURSES.filter(c =>
-    !courseSearch || c.title.toLowerCase().includes(courseSearch.toLowerCase()) || c.titleAr.includes(courseSearch)
+  const filteredCourses = apiCourses.filter((c: any) =>
+    !courseSearch ||
+    (c.title ?? "").toLowerCase().includes(courseSearch.toLowerCase()) ||
+    (c.titleAr ?? "").includes(courseSearch)
   );
 
-  const handleSaveCourse = (data: CourseFormData) => {
-    console.log("Save course:", data);
+  const handleSaveCourse = async (data: CourseFormData) => {
+    try {
+      const method = editingCourse ? "PUT" : "POST";
+      const url = editingCourse ? `/api/admin/courses/${editingCourse}` : "/api/admin/courses";
+      await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      await refetchCourses();
+    } catch {}
     setShowAddForm(false);
     setEditingCourse(null);
   };
 
-  const handleDeleteCourse = (id: string) => {
+  const handleDeleteCourse = async (id: number) => {
+    try {
+      await fetch(`/api/admin/courses/${id}`, { method: "DELETE", credentials: "include" });
+      await refetchCourses();
+    } catch {}
     setDeletingCourse(null);
-    console.log("Delete course:", id);
   };
 
   return (
@@ -237,7 +261,7 @@ export default function AdminDashboard() {
           <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <StatCard icon={Users}      label={t("Total Users", "إجمالي المستخدمين", "Wadarta Isticmaalayaasha")} value={(stats as any)?.totalUsers ?? 0}       color="text-blue-400"   bg="bg-blue-500/10" />
-              <StatCard icon={BookOpen}   label={t("Courses",     "الدورات",            "Koorsooyinka")}           value={COURSES.length}                          color="text-purple-400" bg="bg-purple-500/10" />
+              <StatCard icon={BookOpen}   label={t("Courses",     "الدورات",            "Koorsooyinka")}           value={(stats as any)?.totalCourses ?? apiCourses.length} color="text-purple-400" bg="bg-purple-500/10" />
               <StatCard icon={CreditCard} label={t("Pending",     "المعلقة",            "Sugaya")}                 value={(stats as any)?.pendingPayments ?? 0}    color="text-yellow-400" bg="bg-yellow-500/10" />
               <StatCard icon={Star}       label={t("Avg Rating",  "متوسط التقييم",      "Celceliska Qiimaynta")}   value="4.9★"                                    color="text-green-400"  bg="bg-green-500/10" />
             </div>
@@ -249,8 +273,9 @@ export default function AdminDashboard() {
                   <Globe className="w-4 h-4 text-blue-400" /> Language Distribution
                 </h3>
                 {[
-                  { lang: "🇬🇧 English", count: COURSES.filter(c => c.language === "english").length, color: "bg-blue-500" },
-                  { lang: "🇸🇦 Arabic",  count: COURSES.filter(c => c.language === "arabic").length,  color: "bg-green-500" },
+                  { lang: "🇬🇧 English", count: apiCourses.filter((c: any) => c.language === "english").length, color: "bg-blue-500" },
+                  { lang: "🇸🇦 Arabic",  count: apiCourses.filter((c: any) => c.language === "arabic").length,  color: "bg-green-500" },
+                  { lang: "🌍 Multi",    count: apiCourses.filter((c: any) => c.language === "multilingual").length, color: "bg-purple-500" },
                 ].map((row, i) => (
                   <div key={i} className="mb-3">
                     <div className="flex justify-between text-sm mb-1">
@@ -258,7 +283,7 @@ export default function AdminDashboard() {
                       <span className="text-white font-medium">{row.count} courses</span>
                     </div>
                     <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div className={`h-full ${row.color} rounded-full`} style={{ width: `${(row.count / COURSES.length) * 100}%` }} />
+                      <div className={`h-full ${row.color} rounded-full`} style={{ width: apiCourses.length > 0 ? `${(row.count / apiCourses.length) * 100}%` : "0%" }} />
                     </div>
                   </div>
                 ))}
@@ -270,7 +295,7 @@ export default function AdminDashboard() {
                   <BarChart2 className="w-4 h-4 text-purple-400" /> Level Distribution
                 </h3>
                 {(["beginner", "intermediate", "advanced"] as const).map((lvl, i) => {
-                  const count = COURSES.filter(c => c.level === lvl).length;
+                  const count = apiCourses.filter((c: any) => c.level === lvl).length;
                   const colors = ["bg-green-500", "bg-yellow-500", "bg-red-500"];
                   return (
                     <div key={lvl} className="mb-3">
@@ -279,7 +304,7 @@ export default function AdminDashboard() {
                         <span className="text-white font-medium">{count} courses</span>
                       </div>
                       <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div className={`h-full ${colors[i]} rounded-full`} style={{ width: `${(count / COURSES.length) * 100}%` }} />
+                        <div className={`h-full ${colors[i]} rounded-full`} style={{ width: apiCourses.length > 0 ? `${(count / apiCourses.length) * 100}%` : "0%" }} />
                       </div>
                     </div>
                   );
@@ -333,8 +358,16 @@ export default function AdminDashboard() {
                   {/* Course row */}
                   <div className="p-4 rounded-xl bg-card border border-white/10 hover:border-white/20 transition-colors">
                     <div className="flex items-start gap-3 sm:gap-4">
-                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${course.color} flex items-center justify-center text-xl sm:text-2xl shrink-0`}>
-                        {course.thumbnail}
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                        course.language === "arabic" ? "bg-gradient-to-br from-green-500 to-emerald-600" :
+                        course.level === "advanced" ? "bg-gradient-to-br from-red-500 to-orange-600" :
+                        course.level === "intermediate" ? "bg-gradient-to-br from-purple-500 to-indigo-600" :
+                        "bg-gradient-to-br from-blue-500 to-cyan-600"
+                      }`}>
+                        {course.thumbnailUrl
+                          ? <img src={course.thumbnailUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+                          : <BookOpen className="w-5 h-5 text-white" />
+                        }
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -347,10 +380,10 @@ export default function AdminDashboard() {
                           <span className="text-xs text-muted-foreground">{course.language === "english" ? "🇬🇧" : "🇸🇦"}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-1">
-                          <span>{course.lessonCount} lessons</span>
-                          <span>${course.price}</span>
-                          <span className="hidden sm:inline">{course.enrolledCount.toLocaleString()} enrolled</span>
-                          <span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{course.rating}</span>
+                          <span>{course.lessonCount ?? 0} lessons</span>
+                          <span>${course.price ?? 0}</span>
+                          <span className="hidden sm:inline">{(course.enrolledCount ?? 0).toLocaleString()} enrolled</span>
+                          {course.duration && <span>{course.duration}</span>}
                         </div>
                         {/* Actions row — visible on mobile below info */}
                         <div className="flex items-center gap-2 mt-2 sm:hidden">
@@ -431,30 +464,18 @@ export default function AdminDashboard() {
                       </div>
                     )}
 
-                    {/* Lesson list */}
+                    {/* Lesson count summary */}
                     <AnimatePresence>
                       {expandedLesson === course.id && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                          <div className="mt-4 space-y-2">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-semibold text-white">{course.lessonCount} Lessons</h4>
-                              <button className="flex items-center gap-1 text-xs text-primary px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
-                                <Plus className="w-3 h-3" /> Add Lesson
-                              </button>
+                          <div className="mt-4 p-4 rounded-xl bg-white/3 border border-white/10 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <BookOpen className="w-4 h-4 text-blue-400" />
+                              <span>{course.lessonCount ?? 0} lessons in this course</span>
                             </div>
-                            {course.lessons.map((lesson, j) => (
-                              <div key={lesson.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 transition-colors group">
-                                <span className="text-xs text-muted-foreground font-mono w-5 shrink-0">{j + 1}</span>
-                                <div className="flex-1 min-w-0">
-                                  <span className="text-sm text-foreground truncate block">{lesson.title}</span>
-                                  <span className="text-xs text-muted-foreground">{lesson.duration} • {lesson.isLocked ? "🔒 Locked" : "🔓 Free"} {lesson.hasQuiz ? "• Quiz" : ""}</span>
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button className="p-1 rounded text-blue-400 hover:bg-blue-500/20 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                                  <button className="p-1 rounded text-red-400 hover:bg-red-500/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </div>
-                            ))}
+                            <button className="flex items-center gap-1 text-xs text-primary px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
+                              <Plus className="w-3 h-3" /> Add Lesson
+                            </button>
                           </div>
                         </motion.div>
                       )}
@@ -650,7 +671,7 @@ export default function AdminDashboard() {
                 />
                 <select value={newCodeCourseId} onChange={e => setNewCodeCourseId(e.target.value)}
                   className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-primary/40 text-sm">
-                  {COURSES.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  {apiCourses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
                 </select>
                 <button
                   onClick={() => createCode({ data: { code: newCode || undefined, courseId: Number(newCodeCourseId) } } as any)}
@@ -697,10 +718,10 @@ export default function AdminDashboard() {
           <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Est. Revenue", value: "$" + COURSES.reduce((s, c) => s + c.enrolledCount * c.price, 0).toLocaleString(), icon: CreditCard, color: "text-green-400", bg: "bg-green-500/10" },
-                { label: "Total Students", value: COURSES.reduce((s, c) => s + c.enrolledCount, 0).toLocaleString(), icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
-                { label: "Total Lessons", value: COURSES.reduce((s, c) => s + c.lessonCount, 0), icon: BookOpen, color: "text-purple-400", bg: "bg-purple-500/10" },
-                { label: "Avg Rating", value: (COURSES.reduce((s, c) => s + c.rating, 0) / COURSES.length).toFixed(1) + "★", icon: Star, color: "text-yellow-400", bg: "bg-yellow-500/10" },
+                { label: "Est. Revenue", value: "$" + apiCourses.reduce((s: number, c: any) => s + (c.enrolledCount ?? 0) * (c.price ?? 0), 0).toLocaleString(), icon: CreditCard, color: "text-green-400", bg: "bg-green-500/10" },
+                { label: "Total Students", value: apiCourses.reduce((s: number, c: any) => s + (c.enrolledCount ?? 0), 0).toLocaleString(), icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
+                { label: "Total Lessons", value: apiCourses.reduce((s: number, c: any) => s + (c.lessonCount ?? 0), 0), icon: BookOpen, color: "text-purple-400", bg: "bg-purple-500/10" },
+                { label: "Total Courses", value: apiCourses.length + " courses", icon: Star, color: "text-yellow-400", bg: "bg-yellow-500/10" },
               ].map((s, i) => <StatCard key={i} {...s} />)}
             </div>
 
@@ -710,7 +731,7 @@ export default function AdminDashboard() {
                 <BarChart2 className="w-4 h-4 text-blue-400" /> Top Courses by Enrollment
               </h3>
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={[...COURSES].sort((a, b) => b.enrolledCount - a.enrolledCount).slice(0, 8).map(c => ({ name: c.title.length > 20 ? c.title.slice(0, 18) + "…" : c.title, students: c.enrolledCount, revenue: c.enrolledCount * c.price }))} margin={{ top: 4, right: 4, left: -20, bottom: 4 }}>
+                <BarChart data={[...apiCourses].sort((a: any, b: any) => (b.enrolledCount ?? 0) - (a.enrolledCount ?? 0)).slice(0, 8).map((c: any) => ({ name: c.title.length > 20 ? c.title.slice(0, 18) + "…" : c.title, students: c.enrolledCount ?? 0, revenue: (c.enrolledCount ?? 0) * (c.price ?? 0) }))} margin={{ top: 4, right: 4, left: -20, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                   <XAxis dataKey="name" tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={48} />
                   <YAxis tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -732,7 +753,7 @@ export default function AdminDashboard() {
                 </h3>
                 {(() => {
                   const cats: Record<string, number> = {};
-                  COURSES.forEach(c => { cats[c.category] = (cats[c.category] || 0) + 1; });
+                  apiCourses.forEach((c: any) => { const key = c.language ?? c.level ?? "other"; cats[key] = (cats[key] || 0) + 1; });
                   const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899"];
                   const data = Object.entries(cats).map(([name, value]) => ({ name, value }));
                   return (
@@ -767,8 +788,8 @@ export default function AdminDashboard() {
                   <BarChart
                     data={["beginner", "intermediate", "advanced"].map(lvl => ({
                       name: lvl.charAt(0).toUpperCase() + lvl.slice(1),
-                      courses: COURSES.filter(c => c.level === lvl).length,
-                      students: COURSES.filter(c => c.level === lvl).reduce((s, c) => s + c.enrolledCount, 0),
+                      courses: apiCourses.filter((c: any) => c.level === lvl).length,
+                      students: apiCourses.filter((c: any) => c.level === lvl).reduce((s: number, c: any) => s + (c.enrolledCount ?? 0), 0),
                     }))}
                     margin={{ top: 4, right: 4, left: -20, bottom: 4 }}
                   >
@@ -788,28 +809,33 @@ export default function AdminDashboard() {
             <div className="p-6 rounded-2xl bg-card border border-white/10">
               <h3 className="font-semibold text-white mb-5">Course Performance</h3>
               <div className="space-y-3">
-                {[...COURSES].sort((a, b) => b.enrolledCount - a.enrolledCount).slice(0, 10).map((c, i) => (
+                {[...apiCourses].sort((a: any, b: any) => (b.enrolledCount ?? 0) - (a.enrolledCount ?? 0)).slice(0, 10).map((c: any, i: number) => {
+                  const maxEnrolled = Math.max(...apiCourses.map((x: any) => x.enrolledCount ?? 0), 1);
+                  return (
                   <div key={c.id} className="flex items-center gap-4">
                     <span className="text-muted-foreground text-sm font-mono w-6 shrink-0 text-right">#{i + 1}</span>
-                    <span className="text-xl shrink-0">{c.thumbnail}</span>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-blue-500 to-purple-600">
+                      <BookOpen className="w-4 h-4 text-white" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between mb-1">
                         <span className="text-sm text-foreground truncate">{c.title}</span>
-                        <span className="text-xs text-muted-foreground shrink-0 ml-2">{c.enrolledCount.toLocaleString()} students</span>
+                        <span className="text-xs text-muted-foreground shrink-0 ml-2">{(c.enrolledCount ?? 0).toLocaleString()} students</span>
                       </div>
                       <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                          style={{ width: `${(c.enrolledCount / Math.max(...COURSES.map(x => x.enrolledCount))) * 100}%` }}
+                          style={{ width: `${((c.enrolledCount ?? 0) / maxEnrolled) * 100}%` }}
                         />
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <div className="text-xs text-green-400 font-bold">${(c.enrolledCount * c.price).toLocaleString()}</div>
+                      <div className="text-xs text-green-400 font-bold">${((c.enrolledCount ?? 0) * (c.price ?? 0)).toLocaleString()}</div>
                       <div className="text-[10px] text-muted-foreground">revenue</div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </motion.div>
@@ -828,10 +854,10 @@ export default function AdminDashboard() {
             {/* Stats row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Total Issued", value: COURSES.reduce((s, c) => s + Math.floor(c.enrolledCount * 0.72), 0).toLocaleString(), icon: Award, color: "text-yellow-400", bg: "bg-yellow-500/10" },
+                { label: "Total Issued", value: apiCourses.reduce((s: number, c: any) => s + Math.floor((c.enrolledCount ?? 0) * 0.72), 0).toLocaleString(), icon: Award, color: "text-yellow-400", bg: "bg-yellow-500/10" },
                 { label: "This Month", value: "147", icon: TrendingUp, color: "text-green-400", bg: "bg-green-500/10" },
-                { label: "Verified", value: COURSES.reduce((s, c) => s + Math.floor(c.enrolledCount * 0.70), 0).toLocaleString(), icon: CheckCircle, color: "text-blue-400", bg: "bg-blue-500/10" },
-                { label: "Courses Covered", value: COURSES.length, icon: BookOpen, color: "text-purple-400", bg: "bg-purple-500/10" },
+                { label: "Verified", value: apiCourses.reduce((s: number, c: any) => s + Math.floor((c.enrolledCount ?? 0) * 0.70), 0).toLocaleString(), icon: CheckCircle, color: "text-blue-400", bg: "bg-blue-500/10" },
+                { label: "Courses Covered", value: apiCourses.length, icon: BookOpen, color: "text-purple-400", bg: "bg-purple-500/10" },
               ].map((s, i) => <StatCard key={i} {...s} />)}
             </div>
 
@@ -844,12 +870,15 @@ export default function AdminDashboard() {
                 </button>
               </div>
               <div className="space-y-3">
-                {COURSES.map((course, i) => {
-                  const issued = Math.floor(course.enrolledCount * 0.72);
-                  const pct = Math.round((issued / Math.max(course.enrolledCount, 1)) * 100);
+                {apiCourses.map((course: any, i: number) => {
+                  const issued = Math.floor((course.enrolledCount ?? 0) * 0.72);
+                  const enrolled = course.enrolledCount ?? 0;
+                  const pct = Math.round((issued / Math.max(enrolled, 1)) * 100);
                   return (
                     <div key={course.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/8 transition-colors group">
-                      <span className="text-xl shrink-0">{course.thumbnail}</span>
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-yellow-500 to-orange-600">
+                        <Award className="w-4 h-4 text-white" />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-sm font-medium text-foreground truncate">{course.title}</span>
@@ -863,7 +892,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex items-center justify-between mt-1">
                           <span className="text-[10px] text-muted-foreground">{pct}% completion rate</span>
-                          <span className="text-[10px] text-muted-foreground">{course.enrolledCount.toLocaleString()} enrolled</span>
+                          <span className="text-[10px] text-muted-foreground">{enrolled.toLocaleString()} enrolled</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

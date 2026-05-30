@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -43,6 +43,24 @@ export default function Certificate() {
 
   const courseTitle =
     language === "ar" ? course?.titleAr : language === "so" ? course?.titleSo : course?.title;
+
+  useEffect(() => {
+    if (!isCompleted || !user || !course || !certId) return;
+    const studentName = user.name || user.email?.split("@")[0] || "Student";
+    const courseName = course.title || "Al-Bayaan College Course";
+    fetch("/api/certificates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        certId,
+        userId: user.id,
+        courseId: course.id,
+        studentName,
+        courseName,
+      }),
+    }).catch(() => {});
+  }, [isCompleted, user?.id, course?.id, certId]);
 
   const downloadPDF = async () => {
     if (!certRef.current) return;

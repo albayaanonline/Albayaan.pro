@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { useRegister } from "@/lib/api-client";
-import { useAuth } from "@/lib/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { Eye, EyeOff, Loader2, User, Mail, Lock, CheckCircle, ArrowRight } from "lucide-react";
 
@@ -23,7 +22,6 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
 
 export default function Register() {
   const [, setLocation] = useLocation();
-  const { login } = useAuth();
   const { t } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,29 +31,15 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const strength = useMemo(() => getPasswordStrength(password), [password]);
   const passwordsMatch = confirmPassword && password === confirmPassword;
 
-  const { mutate, isPending } = useRegister({
-    mutation: {
-      onSuccess: (data: any) => {
-        login(data);
-        setSuccess(true);
-        setTimeout(() => setLocation("/dashboard"), 1200);
-      },
-      onError: (err: any) => {
-        setError(
-          err?.response?.data?.error ||
-          t("Registration failed. Please try again.", "فشل التسجيل. الرجاء المحاولة مرة أخرى.", "Diiwaan gelinta waa fashilantay.")
-        );
-      },
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
     if (!name.trim()) {
       setError(t("Please enter your full name.", "الرجاء إدخال اسمك الكامل.", "Fadlan gali magacaaga buuxa."));
       return;
@@ -68,7 +52,39 @@ export default function Register() {
       setError(t("Passwords do not match.", "كلمتا المرور غير متطابقتين.", "Furahada sir ah ma is-waafaqaan."));
       return;
     }
-    mutate({ data: { name: name.trim(), email: email.trim(), password } });
+
+    setLoading(true);
+    try {
+      if (!supabase) throw new Error("Auth service not configured.");
+
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: { name: name.trim(), role: "user" },
+        },
+      });
+
+      if (authError) {
+        if (authError.message.includes("already registered")) {
+          setError(t("This email is already registered.", "هذا البريد الإلكتروني مسجل بالفعل.", "Emailkaan horay ayaa loo diiwaan geliyey."));
+        } else {
+          setError(authError.message);
+        }
+        return;
+      }
+
+      if (data.session) {
+        setSuccess(true);
+        setTimeout(() => setLocation("/dashboard"), 1500);
+      } else {
+        setSuccess(true);
+      }
+    } catch (err: any) {
+      setError(err.message || t("Registration failed. Please try again.", "فشل التسجيل.", "Diiwaan gelinta waa fashilantay."));
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) {
@@ -85,9 +101,20 @@ export default function Register() {
           <h2 className="text-2xl font-black text-white mb-2">
             {t("Account created!", "تم إنشاء الحساب!", "Akoonka la sameeyay!")}
           </h2>
-          <p className="text-muted-foreground text-sm">
-            {t("Redirecting to your dashboard…", "جارٍ التوجيه إلى لوحة التحكم…", "Waxaa laguu wareejinayaa…")}
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {t(
+              "Check your email to verify your account, then sign in.",
+              "تحقق من بريدك الإلكتروني لتأكيد حسابك، ثم سجّل دخولك.",
+              "Hubi emailkaaga si aad u xaqiijiso akoonkaaga, ka dibna gal."
+            )}
           </p>
+          <Link
+            href="/auth/login"
+            className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:opacity-90 transition-opacity"
+          >
+            {t("Go to Sign In", "الذهاب لتسجيل الدخول", "Aad Galitaanka")}
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </motion.div>
       </div>
     );
@@ -108,7 +135,6 @@ export default function Register() {
       >
         <div className="p-8 sm:p-10 rounded-3xl bg-card border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.5)] backdrop-blur-xl">
 
-          {/* Logo & Header */}
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex flex-col items-center gap-3 mb-4 group">
               <div className="relative">
@@ -133,7 +159,6 @@ export default function Register() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
 
-            {/* Full Name */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
                 {t("Full Name", "الاسم الكامل", "Magaca Buuxa")}
@@ -152,7 +177,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
                 {t("Email Address", "البريد الإلكتروني", "Ciwaanka Emailka")}
@@ -171,7 +195,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
                 {t("Password", "كلمة المرور", "Furaha sir ah")}
@@ -196,7 +219,6 @@ export default function Register() {
                 </button>
               </div>
 
-              {/* Password strength meter */}
               {password && (
                 <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
                   <div className="flex gap-1 mb-1">
@@ -215,8 +237,8 @@ export default function Register() {
                     strength.score === 3 ? "text-yellow-400" :
                     "text-green-400"
                   }`}>
-                    {t(strength.label, strength.label, strength.label)}
-                    {" "}&mdash;{" "}
+                    {strength.label}
+                    {" "}—{" "}
                     {strength.score <= 2 && t("Try adding numbers or symbols.", "أضف أرقاماً أو رموزاً.", "Ku dar tiro ama astaan.")}
                     {strength.score === 3 && t("Add uppercase letters for better security.", "أضف حروفاً كبيرة لأمان أفضل.", "Ku dar xarfaha weyn.")}
                     {strength.score >= 4 && t("Great password!", "كلمة مرور ممتازة!", "Furaha waa fiican yahay!")}
@@ -225,7 +247,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
                 {t("Confirm Password", "تأكيد كلمة المرور", "Xaqiiji Furaha sir ah")}
@@ -262,11 +283,6 @@ export default function Register() {
                   </button>
                 </div>
               </div>
-              {confirmPassword && !passwordsMatch && (
-                <p className="text-xs text-red-400 mt-1">
-                  {t("Passwords do not match.", "كلمتا المرور غير متطابقتين.", "Furahada ma is-waafaqaan.")}
-                </p>
-              )}
             </div>
 
             {error && (
@@ -282,12 +298,12 @@ export default function Register() {
 
             <motion.button
               type="submit"
-              disabled={isPending}
-              whileHover={{ scale: isPending ? 1 : 1.02 }}
-              whileTap={{ scale: isPending ? 1 : 0.98 }}
+              disabled={loading}
+              whileHover={{ scale: loading ? 1 : 1.02 }}
+              whileTap={{ scale: loading ? 1 : 0.98 }}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all disabled:opacity-60 flex items-center justify-center gap-2.5 mt-2"
             >
-              {isPending ? (
+              {loading ? (
                 <><Loader2 className="w-5 h-5 animate-spin" /> {t("Creating account…", "جارٍ إنشاء الحساب…", "La samaynayaa…")}</>
               ) : (
                 <>{t("Create Free Account", "إنشاء حساب مجاني", "Samee Akoon Bilaash ah")} <ArrowRight className="w-4 h-4" /></>
@@ -295,7 +311,6 @@ export default function Register() {
             </motion.button>
           </form>
 
-          {/* Terms */}
           <p className="text-center text-xs text-muted-foreground mt-4">
             {t("By signing up, you agree to our", "بالتسجيل، أنت توافق على", "Diiwaangelinta, waxaad oggolaataa")}{" "}
             <span className="text-blue-400 cursor-pointer hover:underline">{t("Terms of Service", "شروط الخدمة", "Shuruudaha")}</span>
@@ -303,7 +318,6 @@ export default function Register() {
             <span className="text-blue-400 cursor-pointer hover:underline">{t("Privacy Policy", "سياسة الخصوصية", "Xeerka Sirta")}</span>
           </p>
 
-          {/* Sign in link */}
           <div className="mt-6 flex items-center gap-3">
             <div className="flex-1 h-px bg-white/8" />
             <span className="text-xs text-muted-foreground px-2">

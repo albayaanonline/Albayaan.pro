@@ -56,6 +56,13 @@ export default defineConfig(async () => {
       host: "0.0.0.0",
       allowedHosts: true as true,
       fs: { strict: false },
+      proxy: {
+        "/api": {
+          target: `http://localhost:${process.env.API_SERVER_PORT ?? "8080"}`,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
     preview: {
       port,
