@@ -31,6 +31,7 @@ import ForgotPassword   from "@/pages/auth/ForgotPassword";
 import AuthCallback     from "@/pages/auth/AuthCallback";
 import AdminLogin       from "@/pages/admin/AdminLogin";
 import AdminDashboard   from "@/pages/admin/AdminDashboard";
+import AdminSettings    from "@/pages/admin/AdminSettings";
 import Certificate      from "@/pages/Certificate";
 
 const queryClient = new QueryClient({
@@ -79,6 +80,7 @@ function App() {
                         <ProtectedRoute path="/admin/certificates"  component={AdminDashboard} adminOnly />
                         <ProtectedRoute path="/admin/content"       component={AdminDashboard} adminOnly />
                         <ProtectedRoute path="/admin/announcements" component={AdminDashboard} adminOnly />
+                        <ProtectedRoute path="/admin/settings"      component={AdminSettings}  adminOnly />
                         <Route component={NotFound} />
                       </Switch>
                     </AdminLayout>

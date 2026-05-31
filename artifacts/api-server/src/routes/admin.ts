@@ -618,4 +618,62 @@ router.get("/admin/analytics", async (req, res): Promise<void> => {
   });
 });
 
+router.post("/admin/change-password", async (req, res): Promise<void> => {
+  if (!await requireAdmin(req, res)) return;
+
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ error: "currentPassword and newPassword are required" });
+    return;
+  }
+
+  if (typeof newPassword !== "string" || newPassword.length < 8) {
+    res.status(400).json({ error: "New password must be at least 8 characters" });
+    return;
+  }
+
+  let userId: number | null = null;
+
+  const token = getBearerToken(req);
+  if (token) {
+    const supabaseUser = await verifySupabaseToken(token);
+    if (supabaseUser) {
+      const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.email, supabaseUser.email));
+      if (dbUser?.role === "admin") userId = dbUser.id;
+    }
+  }
+  if (!userId && req.session?.userId) {
+    userId = req.session.userId as number;
+  }
+
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (user.passwordHash === "supabase-auth") {
+    res.status(400).json({ error: "This account uses Supabase authentication. Change your password in your Supabase account settings." });
+    return;
+  }
+
+  const { default: bcrypt } = await import("bcryptjs");
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) {
+    res.status(401).json({ error: "Current password is incorrect" });
+    return;
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await db.update(usersTable).set({ passwordHash: newHash }).where(eq(usersTable.id, userId));
+
+  res.json({ success: true, message: "Password updated successfully" });
+});
+
 export default router;
