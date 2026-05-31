@@ -7,3 +7,5 @@ export * from "./codes";
 export * from "./payments";
 export * from "./testimonials";
 export * from "./certificates";
+export * from "./gamification";
+export * from "./exercises";
