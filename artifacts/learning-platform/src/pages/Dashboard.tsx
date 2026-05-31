@@ -152,7 +152,7 @@ export default function Dashboard() {
 
         {/* Tabs */}
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.1}
-          className="flex gap-1 p-1 rounded-2xl bg-card border border-white/10 mb-8 w-fit">
+          className="flex gap-1 p-1 rounded-2xl bg-card border border-white/10 mb-8 w-full sm:w-fit overflow-x-auto scrollbar-hide">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
               className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${

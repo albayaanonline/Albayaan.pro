@@ -141,7 +141,7 @@ export default function Home() {
     <div className="w-full bg-background overflow-x-hidden">
 
       {/* ══════════════════ HERO ══════════════════ */}
-      <section className="relative min-h-[95vh] flex flex-col items-center justify-center pt-20 pb-20 px-4 text-center">
+      <section className="relative min-h-[95vh] flex flex-col items-center justify-center pt-20 pb-20 px-4 text-center overflow-hidden">
         <ParticleOrbs />
 
         <div className="relative z-10 max-w-5xl mx-auto w-full space-y-7">
@@ -160,12 +160,12 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, y: -30, filter: "blur(8px)" }}
                 transition={{ duration: 0.55, ease: EASE }}
-                className="text-4xl sm:text-5xl md:text-7xl font-black leading-[1.08] tracking-tight shimmer-text">
+                className="text-3xl sm:text-5xl md:text-7xl font-black leading-[1.08] tracking-tight shimmer-text break-words">
                 {heroText}
               </motion.h1>
             </AnimatePresence>
             <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={0.15}
-              className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground mt-3">
+              className="text-2xl sm:text-4xl md:text-5xl font-black text-foreground mt-3">
               {t("at the Speed of AI", "بسرعة الذكاء الاصطناعي", "Xawliga AI ah")}
             </motion.p>
           </motion.div>
@@ -180,7 +180,7 @@ export default function Home() {
           </motion.p>
 
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.3}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2">
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 w-full">
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               <Link href="/courses"
                 className="px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base flex items-center justify-center gap-2 shadow-[0_0_35px_rgba(59,130,246,0.4)] hover:shadow-[0_0_55px_rgba(59,130,246,0.6)] transition-shadow">
@@ -263,16 +263,16 @@ export default function Home() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-10">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3 mb-10">
           {SCHOOL_SUBJECTS.map((subj, i) => (
             <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
               variants={fadeUp} custom={i * 0.04}
               whileHover={{ y: -4, scale: 1.04 }}
-              className={`p-4 rounded-2xl ${subj.bg} border border-white/8 text-center flex flex-col items-center gap-2 cursor-pointer transition-all ${subj.glow}`}>
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${subj.color} flex items-center justify-center shadow-lg`}>
-                <subj.icon className="w-5 h-5 text-white" />
+              className={`p-2.5 sm:p-4 rounded-2xl ${subj.bg} border border-white/8 text-center flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer transition-all ${subj.glow}`}>
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br ${subj.color} flex items-center justify-center shadow-lg`}>
+                <subj.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-xs font-semibold text-foreground leading-tight">{getLabel(subj)}</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-foreground leading-tight">{getLabel(subj)}</span>
             </motion.div>
           ))}
         </div>

@@ -103,7 +103,7 @@ export default function Leaderboard() {
             {/* Podium */}
             {top3.length >= 3 && (
               <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.3}
-                className="flex items-end justify-center gap-4 mb-12 px-4">
+                className="flex items-end justify-center gap-2 sm:gap-4 mb-12 px-4">
                 {TOP3_CONFIG.map(({ rank, color, glow, height }) => {
                   const leader = top3.find(l => l.rank === rank);
                   if (!leader) return null;

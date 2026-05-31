@@ -114,7 +114,7 @@ export default function Contact() {
 
       {/* ── Contact Cards ── */}
       <section className="max-w-6xl mx-auto px-4 pb-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-16">
           {contacts.map((c, i) => (
             <motion.a key={i} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"
