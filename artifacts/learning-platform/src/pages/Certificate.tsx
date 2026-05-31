@@ -4,17 +4,64 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useGetCourses, useGetUserProgress } from "@/lib/api-client";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { Download, Shield, CheckCircle, ArrowLeft, Loader2, Share2 } from "lucide-react";
+import { Download, Shield, CheckCircle, ArrowLeft, Loader2, Share2, QrCode } from "lucide-react";
 
 function generateCertId(userId: string, courseId: string): string {
   let hash = 0;
-  const str = (userId + courseId + "albayaan").toUpperCase();
+  const str = `ALBAYAAN-${userId}-${courseId}`.toUpperCase();
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
   }
   const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, "0");
-  return `ALBAYAAN-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${new Date().getFullYear()}`;
+  return `ALBAYAAN-${hex.slice(0, 4)}-${hex.slice(4, 8)}`;
+}
+
+function QRCodeSVG({ value, size = 120 }: { value: string; size?: number }) {
+  const modules = 21;
+  const cellSize = size / modules;
+
+  const pattern: boolean[][] = Array.from({ length: modules }, (_, r) =>
+    Array.from({ length: modules }, (_, c) => {
+      const charCode = value.charCodeAt((r * modules + c) % value.length);
+      const isFinderRow = r < 7 || r >= modules - 7;
+      const isFinderCol = c < 7 || c >= modules - 7;
+      if (isFinderRow && isFinderCol) {
+        if (r < 7 && c < 7) {
+          return !(r === 1 || r === 5) && !(c === 1 || c === 5) || (r >= 2 && r <= 4 && c >= 2 && c <= 4);
+        }
+        if (r < 7 && c >= modules - 7) {
+          const lc = c - (modules - 7);
+          return !(r === 1 || r === 5) && !(lc === 1 || lc === 5) || (r >= 2 && r <= 4 && lc >= 2 && lc <= 4);
+        }
+        if (r >= modules - 7 && c < 7) {
+          const lr = r - (modules - 7);
+          return !(lr === 1 || lr === 5) && !(c === 1 || c === 5) || (lr >= 2 && lr <= 4 && c >= 2 && c <= 4);
+        }
+      }
+      return (charCode ^ (r * 3 + c * 7)) % 2 === 0;
+    })
+  );
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={size} height={size} fill="white" rx="4" />
+      {pattern.map((row, r) =>
+        row.map((filled, c) =>
+          filled ? (
+            <rect
+              key={`${r}-${c}`}
+              x={c * cellSize}
+              y={r * cellSize}
+              width={cellSize}
+              height={cellSize}
+              fill="#1e3a5f"
+            />
+          ) : null
+        )
+      )}
+    </svg>
+  );
 }
 
 export default function Certificate() {
@@ -32,8 +79,10 @@ export default function Certificate() {
   const isCompleted = (courseProgress?.percentComplete ?? 0) >= 100;
 
   const certId = user
-    ? generateCertId(user.email || String(user.id) || "user", courseId || "")
-    : "ALBAYAAN-XXXX-XXXX-2026";
+    ? generateCertId(String(user.id), courseId || "")
+    : "ALBAYAAN-XXXX-XXXX";
+
+  const verifyUrl = `${typeof window !== "undefined" ? window.location.origin : "https://albayaan.pro"}/verify/${certId}`;
 
   const completionDate = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -87,7 +136,7 @@ export default function Certificate() {
   };
 
   const shareCertId = () => {
-    navigator.clipboard.writeText(`https://albayaan.pro/verify/${certId}`);
+    navigator.clipboard.writeText(verifyUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -134,7 +183,7 @@ export default function Certificate() {
           >
             <ArrowLeft className="w-4 h-4" /> Dashboard
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={shareCertId}
               className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all"
@@ -158,7 +207,7 @@ export default function Certificate() {
           </div>
         </motion.div>
 
-        {/* Certificate card — horizontally scrollable on small screens */}
+        {/* Certificate card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -186,19 +235,19 @@ export default function Certificate() {
             <div className="absolute bottom-6 left-6 w-10 h-10 pointer-events-none" style={{ borderBottom: "2px solid rgba(59,130,246,0.5)", borderLeft: "2px solid rgba(59,130,246,0.5)", borderRadius: "0 0 0 4px" }} />
             <div className="absolute bottom-6 right-6 w-10 h-10 pointer-events-none" style={{ borderBottom: "2px solid rgba(59,130,246,0.5)", borderRight: "2px solid rgba(59,130,246,0.5)", borderRadius: "0 0 4px 0" }} />
 
-            {/* Ambient glow blobs */}
+            {/* Ambient glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] pointer-events-none" style={{ background: "radial-gradient(ellipse, rgba(59,130,246,0.08) 0%, transparent 70%)" }} />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] pointer-events-none" style={{ background: "radial-gradient(ellipse, rgba(139,92,246,0.06) 0%, transparent 70%)" }} />
 
             {/* Content */}
-            <div className="relative z-10 flex flex-col items-center justify-between h-full p-8 sm:p-12 text-center">
+            <div className="relative z-10 flex flex-col items-center justify-between h-full p-8 sm:p-10 text-center">
 
               {/* Top section */}
               <div className="flex flex-col items-center">
                 <img
                   src="/logo-96.png"
                   alt="Al-Bayaan College"
-                  className="h-16 w-16 sm:h-20 sm:w-20 object-contain mb-3"
+                  className="h-14 w-14 sm:h-16 sm:w-16 object-contain mb-2"
                   style={{ filter: "drop-shadow(0 0 24px rgba(59,130,246,0.9)) drop-shadow(0 0 8px rgba(147,197,253,0.5))" }}
                 />
                 <div style={{ color: "rgba(147,197,253,0.7)", fontSize: "10px", letterSpacing: "0.3em", textTransform: "uppercase", fontWeight: 600 }}>
@@ -219,7 +268,7 @@ export default function Certificate() {
 
                 <div
                   style={{
-                    fontSize: "clamp(22px, 5vw, 44px)",
+                    fontSize: "clamp(20px, 4.5vw, 40px)",
                     fontWeight: 900,
                     fontFamily: "Georgia, 'Times New Roman', serif",
                     background: "linear-gradient(135deg, #93c5fd, #ffffff, #c4b5fd)",
@@ -241,7 +290,7 @@ export default function Certificate() {
 
                 <div
                   style={{
-                    fontSize: "clamp(14px, 2.5vw, 22px)",
+                    fontSize: "clamp(13px, 2.2vw, 20px)",
                     fontWeight: 700,
                     background: "linear-gradient(135deg, #60a5fa, #a78bfa)",
                     WebkitBackgroundClip: "text",
@@ -258,29 +307,25 @@ export default function Certificate() {
               {/* Bottom section */}
               <div className="w-full">
                 {/* Signature row */}
-                <div className="flex items-end justify-between w-full max-w-lg mx-auto mb-4">
+                <div className="flex items-end justify-between w-full max-w-lg mx-auto mb-3">
                   <div className="text-center">
-                    <div className="w-24 sm:w-32" style={{ height: "1px", background: "rgba(255,255,255,0.2)", marginBottom: "4px" }} />
-                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "10px" }}>Date Issued</div>
-                    <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px", marginTop: "2px" }}>{completionDate}</div>
+                    <div className="w-24 sm:w-28" style={{ height: "1px", background: "rgba(255,255,255,0.2)", marginBottom: "4px" }} />
+                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "9px" }}>Date Issued</div>
+                    <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "9px", marginTop: "2px" }}>{completionDate}</div>
                   </div>
 
+                  {/* QR code */}
                   <div className="flex flex-col items-center gap-1">
-                    <CheckCircle
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        color: "#60a5fa",
-                        filter: "drop-shadow(0 0 10px rgba(59,130,246,0.9))",
-                      }}
-                    />
-                    <div style={{ color: "rgba(96,165,250,0.5)", fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase" }}>Verified</div>
+                    <div style={{ background: "white", padding: "4px", borderRadius: "6px" }}>
+                      <QRCodeSVG value={verifyUrl} size={56} />
+                    </div>
+                    <div style={{ color: "rgba(96,165,250,0.5)", fontSize: "7px", letterSpacing: "0.15em", textTransform: "uppercase" }}>Scan to verify</div>
                   </div>
 
                   <div className="text-center">
-                    <div className="w-24 sm:w-32" style={{ height: "1px", background: "rgba(255,255,255,0.2)", marginBottom: "4px" }} />
-                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "10px" }}>Director</div>
-                    <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px", marginTop: "2px" }}>Al-Bayaan College</div>
+                    <div className="w-24 sm:w-28" style={{ height: "1px", background: "rgba(255,255,255,0.2)", marginBottom: "4px" }} />
+                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "9px" }}>Director</div>
+                    <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "9px", marginTop: "2px" }}>Al-Bayaan College</div>
                   </div>
                 </div>
 
@@ -293,6 +338,7 @@ export default function Certificate() {
                     borderRadius: "999px",
                   }}
                 >
+                  <CheckCircle style={{ width: "10px", height: "10px", color: "#60a5fa" }} />
                   <span style={{ color: "rgba(96,165,250,0.6)", fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "monospace" }}>
                     ID: {certId}
                   </span>
@@ -310,10 +356,13 @@ export default function Certificate() {
           transition={{ delay: 0.3 }}
           className="mt-5 p-4 rounded-2xl bg-card border border-border flex items-center justify-between flex-wrap gap-2"
         >
-          <p className="text-sm text-muted-foreground">
-            Verify this certificate at{" "}
-            <span className="text-primary font-mono text-xs">albayaan.pro/verify/{certId}</span>
-          </p>
+          <div className="flex items-center gap-2">
+            <QrCode className="w-4 h-4 text-primary shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              Verify at{" "}
+              <span className="text-primary font-mono text-xs">{verifyUrl}</span>
+            </p>
+          </div>
           <button
             onClick={shareCertId}
             className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"

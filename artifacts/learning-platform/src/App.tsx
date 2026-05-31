@@ -28,6 +28,7 @@ import Leaderboard      from "@/pages/Leaderboard";
 import Login            from "@/pages/auth/Login";
 import Register         from "@/pages/auth/Register";
 import ForgotPassword   from "@/pages/auth/ForgotPassword";
+import AuthCallback     from "@/pages/auth/AuthCallback";
 import AdminLogin       from "@/pages/admin/AdminLogin";
 import AdminDashboard   from "@/pages/admin/AdminDashboard";
 import Certificate      from "@/pages/Certificate";
@@ -51,6 +52,9 @@ function App() {
             <TooltipProvider>
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                 <Switch>
+
+                  {/* Auth callback — standalone, no layout */}
+                  <Route path="/auth/callback" component={AuthCallback} />
 
                   {/* Admin login — standalone */}
                   <Route path="/admin/login" component={AdminLogin} />

@@ -10,7 +10,7 @@ import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
   Plus, TrendingUp, Clock, Search, Edit2, Trash2, Eye, BarChart2,
   Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X, Award, Download, RefreshCw,
-  AlertTriangle, UserX
+  AlertTriangle, UserX, Radio, EyeOff, UserCog
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -111,13 +111,6 @@ function CourseForm({
           placeholder="وصف الدورة..." />
       </div>
 
-      {/* Thumbnail upload placeholder */}
-      <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-primary/40 transition-colors cursor-pointer">
-        <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">Click to upload thumbnail / video</p>
-        <p className="text-xs text-muted-foreground mt-1">PNG, JPG, MP4 up to 500MB</p>
-      </div>
-
       <div className="flex gap-3 pt-2">
         <button onClick={() => onSave(form)}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all">
@@ -144,6 +137,7 @@ export default function AdminDashboard() {
   const [expandedLesson, setExpandedLesson] = useState<number | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [deletingUser, setDeletingUser] = useState<number | null>(null);
+  const [togglingPublish, setTogglingPublish] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
   const { data: stats }    = useGetAdminStats();
@@ -171,6 +165,17 @@ export default function AdminDashboard() {
   });
   const apiCourses: any[] = adminCoursesData ?? [];
 
+  const { data: adminCertsData, refetch: refetchCerts } = useQuery({
+    queryKey: ["admin-certificates"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/certificates", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: tab === "certificates",
+  });
+  const adminCerts: any[] = adminCertsData ?? [];
+
   const handleDeleteUser = async (userId: number) => {
     try {
       const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE", credentials: "include" });
@@ -186,13 +191,13 @@ export default function AdminDashboard() {
   }, [users, userSearch]);
 
   const TABS: { id: AdminTab; label: string; icon: any }[] = [
-    { id: "overview",  label: t("Overview",    "نظرة عامة",         "Dulmar"),           icon: TrendingUp },
-    { id: "courses",   label: t("Courses",     "الدورات",           "Koorsooyinka"),     icon: BookOpen },
-    { id: "users",     label: t("Users",       "المستخدمون",        "Isticmaalayaasha"), icon: Users },
-    { id: "payments",  label: t("Payments",    "المدفوعات",         "Lacag Bixinta"),    icon: CreditCard },
-    { id: "codes",     label: t("Codes",       "الرموز",            "Koodhada"),         icon: Key },
-    { id: "analytics",    label: t("Analytics",    "التحليلات",    "Falanqaynta"),     icon: BarChart2 },
-    { id: "certificates", label: t("Certificates", "الشهادات",     "Shahaadooyinka"),  icon: Award },
+    { id: "overview",      label: t("Overview",      "نظرة عامة",      "Dulmar"),             icon: TrendingUp },
+    { id: "courses",       label: t("Courses",       "الدورات",        "Koorsooyinka"),       icon: BookOpen },
+    { id: "users",         label: t("Users",         "المستخدمون",     "Isticmaalayaasha"),   icon: Users },
+    { id: "payments",      label: t("Payments",      "المدفوعات",      "Lacag Bixinta"),      icon: CreditCard },
+    { id: "codes",         label: t("Codes",         "الرموز",         "Koodhada"),           icon: Key },
+    { id: "analytics",     label: t("Analytics",     "التحليلات",      "Falanqaynta"),        icon: BarChart2 },
+    { id: "certificates",  label: t("Certificates",  "الشهادات",       "Shahaadooyinka"),     icon: Award },
   ];
 
   const filteredCourses = apiCourses.filter((c: any) =>
@@ -224,6 +229,22 @@ export default function AdminDashboard() {
     } catch {}
     setDeletingCourse(null);
   };
+
+  const handleTogglePublish = async (course: any) => {
+    setTogglingPublish(course.id);
+    try {
+      await fetch(`/api/admin/courses/${course.id}/publish`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isPublished: !course.isPublished }),
+      });
+      await refetchCourses();
+    } catch {}
+    setTogglingPublish(null);
+  };
+
+  const statsData = stats as any;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -260,10 +281,17 @@ export default function AdminDashboard() {
         {tab === "overview" && (
           <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <StatCard icon={Users}      label={t("Total Users", "إجمالي المستخدمين", "Wadarta Isticmaalayaasha")} value={(stats as any)?.totalUsers ?? 0}       color="text-blue-400"   bg="bg-blue-500/10" />
-              <StatCard icon={BookOpen}   label={t("Courses",     "الدورات",            "Koorsooyinka")}           value={(stats as any)?.totalCourses ?? apiCourses.length} color="text-purple-400" bg="bg-purple-500/10" />
-              <StatCard icon={CreditCard} label={t("Pending",     "المعلقة",            "Sugaya")}                 value={(stats as any)?.pendingPayments ?? 0}    color="text-yellow-400" bg="bg-yellow-500/10" />
-              <StatCard icon={Star}       label={t("Avg Rating",  "متوسط التقييم",      "Celceliska Qiimaynta")}   value="4.9★"                                    color="text-green-400"  bg="bg-green-500/10" />
+              <StatCard icon={Users}      label={t("Total Users", "إجمالي المستخدمين", "Wadarta Isticmaalayaasha")} value={statsData?.totalUsers ?? 0}       color="text-blue-400"   bg="bg-blue-500/10" />
+              <StatCard icon={BookOpen}   label={t("Courses",     "الدورات",            "Koorsooyinka")}           value={statsData?.totalCourses ?? apiCourses.length} color="text-purple-400" bg="bg-purple-500/10" />
+              <StatCard icon={CreditCard} label={t("Pending",     "المعلقة",            "Sugaya")}                 value={statsData?.pendingPayments ?? 0}    color="text-yellow-400" bg="bg-yellow-500/10" />
+              <StatCard icon={Award}      label={t("Certificates","الشهادات",           "Shahaadooyinka")}         value={statsData?.totalCertificates ?? 0}  color="text-green-400"  bg="bg-green-500/10" />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <StatCard icon={BookOpen}   label={t("Published",   "المنشورة",           "La Daabacay")}            value={statsData?.publishedCourses ?? 0}   color="text-cyan-400"   bg="bg-cyan-500/10" />
+              <StatCard icon={Star}       label={t("Lessons",     "الدروس",             "Casharrada")}             value={statsData?.totalLessons ?? 0}       color="text-orange-400" bg="bg-orange-500/10" />
+              <StatCard icon={CheckCircle} label={t("Confirmed",  "المؤكدة",            "La Xaqiijiyay")}          value={statsData?.confirmedPayments ?? 0}  color="text-green-400"  bg="bg-green-500/10" />
+              <StatCard icon={TrendingUp} label={t("Enrollments", "التسجيلات",          "Diiwaangelinta")}         value={statsData?.totalEnrollments ?? 0}   color="text-violet-400" bg="bg-violet-500/10" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -327,6 +355,10 @@ export default function AdminDashboard() {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium hover:bg-green-500/20 transition-colors">
                   <Key className="w-4 h-4" /> Generate Codes
                 </button>
+                <button onClick={() => setTab("certificates")}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm font-medium hover:bg-yellow-500/20 transition-colors">
+                  <Award className="w-4 h-4" /> View Certificates
+                </button>
               </div>
             </div>
           </motion.div>
@@ -352,11 +384,31 @@ export default function AdminDashboard() {
               <CourseForm onSave={handleSaveCourse} onCancel={() => setShowAddForm(false)} />
             )}
 
+            {/* Published / Draft filter summary */}
+            <div className="flex items-center gap-3 text-sm">
+              <span className="flex items-center gap-1.5 text-green-400">
+                <Radio className="w-3.5 h-3.5" />
+                {apiCourses.filter((c: any) => c.isPublished).length} published
+              </span>
+              <span className="text-muted-foreground/40">|</span>
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <EyeOff className="w-3.5 h-3.5" />
+                {apiCourses.filter((c: any) => !c.isPublished).length} drafts
+              </span>
+            </div>
+
             <div className="space-y-3">
+              {filteredCourses.length === 0 && (
+                <div className="text-center py-16">
+                  <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-40" />
+                  <p className="text-muted-foreground">No courses found.</p>
+                  <button onClick={() => { setShowAddForm(true); setEditingCourse(null); }} className="mt-3 text-primary text-sm hover:underline">+ Add your first course</button>
+                </div>
+              )}
               {filteredCourses.map((course, i) => (
                 <motion.div key={course.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
                   {/* Course row */}
-                  <div className="p-4 rounded-xl bg-card border border-white/10 hover:border-white/20 transition-colors">
+                  <div className={`p-4 rounded-xl border transition-colors ${course.isPublished ? "bg-card border-white/10 hover:border-white/20" : "bg-white/2 border-white/5 hover:border-white/10"}`}>
                     <div className="flex items-start gap-3 sm:gap-4">
                       <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${
                         course.language === "arabic" ? "bg-gradient-to-br from-green-500 to-emerald-600" :
@@ -377,7 +429,18 @@ export default function AdminDashboard() {
                             : course.level === "intermediate" ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                             : "bg-red-500/20 text-red-400 border-red-500/30"
                           }`}>{course.level}</span>
-                          <span className="text-xs text-muted-foreground">{course.language === "english" ? "🇬🇧" : "🇸🇦"}</span>
+                          {/* Published badge */}
+                          <span className={`px-2 py-0.5 rounded-full text-xs border font-medium flex items-center gap-1 ${
+                            course.isPublished
+                              ? "bg-green-500/15 text-green-400 border-green-500/25"
+                              : "bg-gray-500/15 text-gray-400 border-gray-500/20"
+                          }`}>
+                            {course.isPublished
+                              ? <><Radio className="w-2.5 h-2.5" /> Published</>
+                              : <><EyeOff className="w-2.5 h-2.5" /> Draft</>
+                            }
+                          </span>
+                          <span className="text-xs text-muted-foreground">{course.language === "english" ? "🇬🇧" : course.language === "arabic" ? "🇸🇦" : "🌐"}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-1">
                           <span>{course.lessonCount ?? 0} lessons</span>
@@ -385,33 +448,60 @@ export default function AdminDashboard() {
                           <span className="hidden sm:inline">{(course.enrolledCount ?? 0).toLocaleString()} enrolled</span>
                           {course.duration && <span>{course.duration}</span>}
                         </div>
-                        {/* Actions row — visible on mobile below info */}
-                        <div className="flex items-center gap-2 mt-2 sm:hidden">
+                        {/* Mobile actions */}
+                        <div className="flex items-center gap-2 mt-2 sm:hidden flex-wrap">
+                          <button
+                            onClick={() => handleTogglePublish(course)}
+                            disabled={togglingPublish === course.id}
+                            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border transition-all ${
+                              course.isPublished
+                                ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20"
+                                : "bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20"
+                            } disabled:opacity-50`}
+                          >
+                            {togglingPublish === course.id ? <Loader2 className="w-3 h-3 animate-spin" /> : course.isPublished ? <EyeOff className="w-3 h-3" /> : <Radio className="w-3 h-3" />}
+                            {course.isPublished ? "Unpublish" : "Publish"}
+                          </button>
                           <button
                             onClick={() => setExpandedLesson(expandedLesson === course.id ? null : course.id)}
                             className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-all"
-                            title="View lessons"
                           >
                             {expandedLesson === course.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           </button>
                           <button
                             onClick={() => { setEditingCourse(course.id); setShowAddForm(true); }}
                             className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all"
-                            title="Edit course"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeletingCourse(course.id)}
                             className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
-                            title="Delete course"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
-                      {/* Actions row — visible on desktop to the right */}
+                      {/* Desktop right actions */}
                       <div className="hidden sm:flex items-center gap-2 shrink-0">
+                        {/* Publish/Unpublish toggle */}
+                        <button
+                          onClick={() => handleTogglePublish(course)}
+                          disabled={togglingPublish === course.id}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                            course.isPublished
+                              ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20"
+                              : "bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20"
+                          } disabled:opacity-50 whitespace-nowrap`}
+                        >
+                          {togglingPublish === course.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : course.isPublished ? (
+                            <><EyeOff className="w-3.5 h-3.5" /> Unpublish</>
+                          ) : (
+                            <><Radio className="w-3.5 h-3.5" /> Publish</>
+                          )}
+                        </button>
                         <button
                           onClick={() => setExpandedLesson(expandedLesson === course.id ? null : course.id)}
                           className="p-2 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-all"
@@ -473,9 +563,6 @@ export default function AdminDashboard() {
                               <BookOpen className="w-4 h-4 text-blue-400" />
                               <span>{course.lessonCount ?? 0} lessons in this course</span>
                             </div>
-                            <button className="flex items-center gap-1 text-xs text-primary px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
-                              <Plus className="w-3 h-3" /> Add Lesson
-                            </button>
                           </div>
                         </motion.div>
                       )}
@@ -534,44 +621,80 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredUsers.map((u: any, i: number) => (
-                        <>
-                          <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                                  {(u.name || "U")[0].toUpperCase()}
-                                </div>
-                                <span className="text-white text-sm font-medium">{u.name || "-"}</span>
+                      {filteredUsers.map((u: any) => (
+                        <tr key={u.id}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                {(u.name || "U")[0].toUpperCase()}
                               </div>
-                            </td>
-                            <td className="px-4 py-3 text-muted-foreground text-sm max-w-[160px] truncate">{u.email}</td>
-                            <td className="px-4 py-3 text-center">
-                              <span className="px-2 py-1 rounded-full text-xs font-bold bg-white/5 text-muted-foreground">{u.enrolledCourses ?? 0}</span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                                u.role === "admin"
-                                  ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
-                                  : "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                              }`}>{u.role}</span>
-                            </td>
-                            <td className="px-4 py-3 text-muted-foreground text-sm whitespace-nowrap">
-                              {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex gap-2">
+                              <span className="text-white text-sm font-medium">{u.name || "-"}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-sm max-w-[160px] truncate">{u.email}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-white/5 text-muted-foreground">{u.enrolledCourses ?? 0}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                              u.role === "admin"
+                                ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                                : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                            }`}>{u.role}</span>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-sm whitespace-nowrap">
+                            {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  const newRole = u.role === "admin" ? "user" : "admin";
+                                  await fetch(`/api/admin/users/${u.id}/role`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ role: newRole }) });
+                                  refetchUsers();
+                                }}
+                                className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors"
+                                title={u.role === "admin" ? "Demote to user" : "Promote to admin"}
+                              >
+                                <UserCog className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeletingUser(deletingUser === u.id ? null : u.id)}
+                                className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                title="Delete user"
+                              >
+                                <UserX className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredUsers.map((u: any) => deletingUser === u.id ? (
+                        <tr key={`del-${u.id}`}>
+                          <td colSpan={6} className="px-4 pb-3">
+                            <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                              <div className="flex items-center gap-2 text-red-300 text-sm">
+                                <AlertTriangle className="w-4 h-4 shrink-0" />
+                                Delete <strong>{u.name || u.email}</strong>? This action cannot be undone.
+                              </div>
+                              <div className="flex gap-2 shrink-0">
                                 <button
-                                  onClick={() => setDeletingUser(deletingUser === u.id ? null : u.id)}
-                                  className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                                  title="Delete user"
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors"
                                 >
-                                  <UserX className="w-3.5 h-3.5" />
+                                  Delete
+                                </button>
+                                <button
+                                  onClick={() => setDeletingUser(null)}
+                                  className="px-3 py-1.5 rounded-lg bg-white/10 text-muted-foreground text-xs hover:bg-white/20 transition-colors"
+                                >
+                                  Cancel
                                 </button>
                               </div>
-                            </td>
-                          </tr>
-                          {deletingUser === u.id && (
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null
                             <tr key={`del-${u.id}`}>
                               <td colSpan={6} className="px-4 pb-3">
                                 <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
@@ -615,22 +738,22 @@ export default function AdminDashboard() {
                 <Clock className="w-4 h-4 text-yellow-400" />
                 {t("Pending Payment Verifications", "التحقق من المدفوعات المعلقة", "Xaqiijinta Lacag Bixinta Sugaysa")}
               </h3>
-              {!payments || (payments as any[]).length === 0 ? (
+              {!payments || (payments as any[]).filter((p: any) => p.status === "pending").length === 0 ? (
                 <div className="text-center py-12">
                   <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3 opacity-50" />
                   <p className="text-muted-foreground">{t("No pending payments", "لا توجد مدفوعات معلقة", "Ma jiraan lacag bixin sugeynaysa")}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {(payments as any[]).map((p: any, i: number) => (
+                  {(payments as any[]).filter((p: any) => p.status === "pending").map((p: any, i: number) => (
                     <div key={i} className="flex items-center justify-between gap-4 p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-white text-sm">{p.user?.name || "Unknown User"}</div>
+                        <div className="font-medium text-white text-sm">{p.userName || "Unknown User"}</div>
                         <div className="text-xs text-muted-foreground mt-1">
                           WhatsApp: {p.whatsappNumber} {p.notes && `• ${p.notes}`}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Course #{p.courseId} • {new Date(p.createdAt).toLocaleDateString()}
+                          {p.courseName || `Course #${p.courseId}`} • {new Date(p.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
@@ -663,23 +786,18 @@ export default function AdminDashboard() {
             <div className="p-6 rounded-2xl bg-card border border-white/10">
               <h3 className="font-semibold text-white mb-4">{t("Generate New Access Code", "إنشاء رمز وصول جديد", "Abuur Koodh Galitaan Cusub")}</h3>
               <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  value={newCode}
-                  onChange={e => setNewCode(e.target.value.toUpperCase())}
-                  placeholder={t("Code (leave blank to auto-generate)", "الرمز (اتركه فارغاً للإنشاء التلقائي)", "Koodhka (ka tag madhan si toos ah u samee)")}
-                  className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/40 text-sm"
-                />
                 <select value={newCodeCourseId} onChange={e => setNewCodeCourseId(e.target.value)}
-                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-primary/40 text-sm">
+                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-primary/40 text-sm flex-1">
+                  {apiCourses.length === 0 && <option value="">No courses yet</option>}
                   {apiCourses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
                 </select>
                 <button
-                  onClick={() => createCode({ data: { code: newCode || undefined, courseId: Number(newCodeCourseId) } } as any)}
-                  disabled={creatingCode}
+                  onClick={() => createCode({ data: { courseId: Number(newCodeCourseId) } } as any)}
+                  disabled={creatingCode || apiCourses.length === 0}
                   className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all disabled:opacity-50 whitespace-nowrap"
                 >
                   {creatingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  Generate
+                  Generate Code
                 </button>
               </div>
             </div>
@@ -697,9 +815,11 @@ export default function AdminDashboard() {
                     <div key={i} className={`flex items-center justify-between gap-4 p-4 rounded-xl border ${code.isUsed ? "bg-white/5 border-white/5 opacity-60" : "bg-green-500/5 border-green-500/20"}`}>
                       <div>
                         <code className="font-mono font-bold text-white text-sm tracking-widest">{code.code}</code>
-                        <div className="text-xs text-muted-foreground mt-0.5">Course #{code.courseId} • {code.isUsed ? "Used" : "Available"}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {code.courseName || `Course #${code.courseId}`} • {code.isUsed ? `Used${code.usedByEmail ? " by " + code.usedByEmail : ""}` : "Available"}
+                        </div>
                       </div>
-                      {!code.isUsed && (
+                      {!code.isUsed && code.isActive && (
                         <button onClick={() => deactivateCode({ codeId: code.id } as any)}
                           className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors">
                           Deactivate
@@ -721,7 +841,7 @@ export default function AdminDashboard() {
                 { label: "Est. Revenue", value: "$" + apiCourses.reduce((s: number, c: any) => s + (c.enrolledCount ?? 0) * (c.price ?? 0), 0).toLocaleString(), icon: CreditCard, color: "text-green-400", bg: "bg-green-500/10" },
                 { label: "Total Students", value: apiCourses.reduce((s: number, c: any) => s + (c.enrolledCount ?? 0), 0).toLocaleString(), icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
                 { label: "Total Lessons", value: apiCourses.reduce((s: number, c: any) => s + (c.lessonCount ?? 0), 0), icon: BookOpen, color: "text-purple-400", bg: "bg-purple-500/10" },
-                { label: "Total Courses", value: apiCourses.length + " courses", icon: Star, color: "text-yellow-400", bg: "bg-yellow-500/10" },
+                { label: "Total Courses", value: apiCourses.length, icon: Star, color: "text-yellow-400", bg: "bg-yellow-500/10" },
               ].map((s, i) => <StatCard key={i} {...s} />)}
             </div>
 
@@ -730,32 +850,33 @@ export default function AdminDashboard() {
               <h3 className="font-semibold text-white mb-5 flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-blue-400" /> Top Courses by Enrollment
               </h3>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={[...apiCourses].sort((a: any, b: any) => (b.enrolledCount ?? 0) - (a.enrolledCount ?? 0)).slice(0, 8).map((c: any) => ({ name: c.title.length > 20 ? c.title.slice(0, 18) + "…" : c.title, students: c.enrolledCount ?? 0, revenue: (c.enrolledCount ?? 0) * (c.price ?? 0) }))} margin={{ top: 4, right: 4, left: -20, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="name" tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={48} />
-                  <YAxis tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "#fff", fontSize: 12 }}
-                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                  />
-                  <Bar dataKey="students" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Students" />
-                </BarChart>
-              </ResponsiveContainer>
+              {apiCourses.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-sm">No courses to display</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={[...apiCourses].sort((a: any, b: any) => (b.enrolledCount ?? 0) - (a.enrolledCount ?? 0)).slice(0, 8).map((c: any) => ({ name: c.title.length > 20 ? c.title.slice(0, 18) + "…" : c.title, students: c.enrolledCount ?? 0 }))} margin={{ top: 4, right: 4, left: -20, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="name" tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={48} />
+                    <YAxis tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "#fff", fontSize: 12 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                    <Bar dataKey="students" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Students" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
-            {/* Category distribution pie + performance bars */}
+            {/* Category distribution + Level bars */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Category pie chart */}
               <div className="p-6 rounded-2xl bg-card border border-white/10">
                 <h3 className="font-semibold text-white mb-5 flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-purple-400" /> Category Breakdown
+                  <Globe className="w-4 h-4 text-purple-400" /> Language Breakdown
                 </h3>
                 {(() => {
                   const cats: Record<string, number> = {};
-                  apiCourses.forEach((c: any) => { const key = c.language ?? c.level ?? "other"; cats[key] = (cats[key] || 0) + 1; });
-                  const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899"];
+                  apiCourses.forEach((c: any) => { const key = c.language ?? "other"; cats[key] = (cats[key] || 0) + 1; });
+                  const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b"];
                   const data = Object.entries(cats).map(([name, value]) => ({ name, value }));
+                  if (data.length === 0) return <div className="text-center py-8 text-muted-foreground text-sm">No data</div>;
                   return (
                     <>
                       <ResponsiveContainer width="100%" height={160}>
@@ -779,7 +900,6 @@ export default function AdminDashboard() {
                 })()}
               </div>
 
-              {/* Level distribution */}
               <div className="p-6 rounded-2xl bg-card border border-white/10">
                 <h3 className="font-semibold text-white mb-5 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-green-400" /> Level Distribution
@@ -789,7 +909,6 @@ export default function AdminDashboard() {
                     data={["beginner", "intermediate", "advanced"].map(lvl => ({
                       name: lvl.charAt(0).toUpperCase() + lvl.slice(1),
                       courses: apiCourses.filter((c: any) => c.level === lvl).length,
-                      students: apiCourses.filter((c: any) => c.level === lvl).reduce((s: number, c: any) => s + (c.enrolledCount ?? 0), 0),
                     }))}
                     margin={{ top: 4, right: 4, left: -20, bottom: 4 }}
                   >
@@ -797,46 +916,45 @@ export default function AdminDashboard() {
                     <XAxis dataKey="name" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "#fff", fontSize: 12 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                    <Legend wrapperStyle={{ fontSize: 11, color: "#6b7280" }} />
                     <Bar dataKey="courses" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Courses" />
-                    <Bar dataKey="students" fill="#10b981" radius={[4, 4, 0, 0]} name="Students" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Top courses performance table */}
+            {/* Top courses performance */}
             <div className="p-6 rounded-2xl bg-card border border-white/10">
               <h3 className="font-semibold text-white mb-5">Course Performance</h3>
-              <div className="space-y-3">
-                {[...apiCourses].sort((a: any, b: any) => (b.enrolledCount ?? 0) - (a.enrolledCount ?? 0)).slice(0, 10).map((c: any, i: number) => {
-                  const maxEnrolled = Math.max(...apiCourses.map((x: any) => x.enrolledCount ?? 0), 1);
-                  return (
-                  <div key={c.id} className="flex items-center gap-4">
-                    <span className="text-muted-foreground text-sm font-mono w-6 shrink-0 text-right">#{i + 1}</span>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-blue-500 to-purple-600">
-                      <BookOpen className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm text-foreground truncate">{c.title}</span>
-                        <span className="text-xs text-muted-foreground shrink-0 ml-2">{(c.enrolledCount ?? 0).toLocaleString()} students</span>
+              {apiCourses.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground text-sm">No courses yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {[...apiCourses].sort((a: any, b: any) => (b.enrolledCount ?? 0) - (a.enrolledCount ?? 0)).slice(0, 10).map((c: any, i: number) => {
+                    const maxEnrolled = Math.max(...apiCourses.map((x: any) => x.enrolledCount ?? 0), 1);
+                    return (
+                      <div key={c.id} className="flex items-center gap-4">
+                        <span className="text-muted-foreground text-sm font-mono w-6 shrink-0 text-right">#{i + 1}</span>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-blue-500 to-purple-600">
+                          <BookOpen className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm text-foreground truncate">{c.title}</span>
+                            <span className="text-xs text-muted-foreground shrink-0 ml-2">{(c.enrolledCount ?? 0).toLocaleString()} students</span>
+                          </div>
+                          <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style={{ width: `${((c.enrolledCount ?? 0) / maxEnrolled) * 100}%` }} />
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className="text-xs text-green-400 font-bold">${((c.enrolledCount ?? 0) * (c.price ?? 0)).toLocaleString()}</div>
+                          <div className="text-[10px] text-muted-foreground">revenue</div>
+                        </div>
                       </div>
-                      <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                          style={{ width: `${((c.enrolledCount ?? 0) / maxEnrolled) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-xs text-green-400 font-bold">${((c.enrolledCount ?? 0) * (c.price ?? 0)).toLocaleString()}</div>
-                      <div className="text-[10px] text-muted-foreground">revenue</div>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -847,96 +965,58 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-white">Certificate Management</h3>
-                <p className="text-sm text-muted-foreground mt-0.5">View, verify and regenerate student certificates</p>
+                <p className="text-sm text-muted-foreground mt-0.5">View and verify student certificates</p>
               </div>
+              <button onClick={() => refetchCerts()}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                <RefreshCw className="w-3.5 h-3.5" /> Refresh
+              </button>
             </div>
 
             {/* Stats row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: "Total Issued", value: apiCourses.reduce((s: number, c: any) => s + Math.floor((c.enrolledCount ?? 0) * 0.72), 0).toLocaleString(), icon: Award, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-                { label: "This Month", value: "147", icon: TrendingUp, color: "text-green-400", bg: "bg-green-500/10" },
-                { label: "Verified", value: apiCourses.reduce((s: number, c: any) => s + Math.floor((c.enrolledCount ?? 0) * 0.70), 0).toLocaleString(), icon: CheckCircle, color: "text-blue-400", bg: "bg-blue-500/10" },
-                { label: "Courses Covered", value: apiCourses.length, icon: BookOpen, color: "text-purple-400", bg: "bg-purple-500/10" },
-              ].map((s, i) => <StatCard key={i} {...s} />)}
+              <StatCard label="Total Issued"    value={adminCerts.length}        icon={Award}        color="text-yellow-400" bg="bg-yellow-500/10" />
+              <StatCard label="Courses Covered" value={new Set(adminCerts.map((c: any) => c.courseId)).size} icon={BookOpen} color="text-purple-400" bg="bg-purple-500/10" />
+              <StatCard label="Students"        value={new Set(adminCerts.map((c: any) => c.userId)).size}   icon={Users}    color="text-blue-400"   bg="bg-blue-500/10" />
+              <StatCard label="Unique Courses"  value={apiCourses.length}        icon={TrendingUp}   color="text-green-400"  bg="bg-green-500/10" />
             </div>
 
-            {/* Certificate table */}
+            {/* Certificate list */}
             <div className="p-6 rounded-2xl bg-card border border-white/10">
-              <div className="flex items-center justify-between mb-5">
-                <h4 className="font-semibold text-white">Certificates by Course</h4>
-                <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors">
-                  <RefreshCw className="w-3.5 h-3.5" /> Refresh
-                </button>
-              </div>
-              <div className="space-y-3">
-                {apiCourses.map((course: any, i: number) => {
-                  const issued = Math.floor((course.enrolledCount ?? 0) * 0.72);
-                  const enrolled = course.enrolledCount ?? 0;
-                  const pct = Math.round((issued / Math.max(enrolled, 1)) * 100);
-                  return (
-                    <div key={course.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/8 transition-colors group">
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-yellow-500 to-orange-600">
+              <h4 className="font-semibold text-white mb-4">All Issued Certificates</h4>
+              {adminCerts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Award className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-40" />
+                  <p className="text-muted-foreground text-sm">No certificates have been issued yet.</p>
+                  <p className="text-muted-foreground text-xs mt-1">Certificates are auto-issued when students complete a course.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {adminCerts.map((cert: any, i: number) => (
+                    <div key={cert.id} className="flex items-center gap-4 p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/10 hover:border-yellow-500/20 transition-colors">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-yellow-500 to-orange-600 shrink-0">
                         <Award className="w-4 h-4 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-medium text-foreground truncate">{course.title}</span>
-                          <span className="text-xs text-muted-foreground shrink-0 ml-3">{issued.toLocaleString()} certs</span>
-                        </div>
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-[10px] text-muted-foreground">{pct}% completion rate</span>
-                          <span className="text-[10px] text-muted-foreground">{enrolled.toLocaleString()} enrolled</span>
-                        </div>
+                        <div className="font-medium text-white text-sm">{cert.studentName}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{cert.courseName}</div>
+                        <div className="font-mono text-xs text-muted-foreground/60 mt-0.5">{cert.certId}</div>
                       </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <button
-                          className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
-                          title="View certificates"
+                      <div className="text-right shrink-0">
+                        <div className="text-xs text-muted-foreground">{new Date(cert.issuedAt).toLocaleDateString()}</div>
+                        <a
+                          href={`/verify/${cert.certId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline mt-0.5 inline-block"
                         >
-                          <Eye className="w-3.5 h-3.5" /> View
-                        </button>
-                        <button
-                          className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 px-2 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors"
-                          title="Regenerate certificates"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" /> Regen
-                        </button>
+                          Verify →
+                        </a>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Verify certificate ID */}
-            <div className="p-6 rounded-2xl bg-card border border-white/10">
-              <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-blue-400" />
-                Verify Certificate by ID
-              </h4>
-              <div className="flex gap-3">
-                <input
-                  placeholder="ALBAYAAN-XXXX-XXXX-2026"
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 text-sm font-mono"
-                />
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm flex items-center gap-2 hover:opacity-90 transition-opacity"
-                >
-                  <CheckCircle className="w-4 h-4" /> Verify
-                </motion.button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Enter a certificate ID to verify its authenticity and view student details.
-              </p>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
         )}

@@ -6,7 +6,12 @@ import { GetCourseParams, GetCourseLessonsParams } from "@workspace/api-zod";
 const router: IRouter = Router();
 
 router.get("/courses", async (_req, res): Promise<void> => {
-  const courses = await db.select().from(coursesTable).orderBy(coursesTable.id);
+  const courses = await db
+    .select()
+    .from(coursesTable)
+    .where(eq(coursesTable.isPublished, true))
+    .orderBy(coursesTable.id);
+
   const lessonsCountData = await db
     .select({ courseId: lessonsTable.courseId, cnt: count(lessonsTable.id) })
     .from(lessonsTable)
@@ -31,6 +36,7 @@ router.get("/courses", async (_req, res): Promise<void> => {
       duration: c.duration,
       thumbnailUrl: c.thumbnailUrl ?? null,
       enrolledCount: c.enrolledCount,
+      isPublished: c.isPublished,
     }))
   );
 });
@@ -70,6 +76,7 @@ router.get("/courses/:courseId", async (req, res): Promise<void> => {
     duration: course.duration,
     thumbnailUrl: course.thumbnailUrl ?? null,
     enrolledCount: course.enrolledCount,
+    isPublished: course.isPublished,
     lessons: lessons.map((l) => ({
       id: l.id,
       courseId: l.courseId,

@@ -5,13 +5,10 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signOutFromSupabase } from "@/lib/supabase";
 
-const ADMIN_STORAGE_KEY = "albayaan_admin_user";
-
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (user: User) => void;
-  loginAsAdmin: (user: User) => void;
   logout: () => void;
 }
 
@@ -22,20 +19,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     query: { queryKey: getGetMeQueryKey(), retry: false },
   });
 
-  const [localUser, setLocalUser] = useState<User | null>(() => {
-    try {
-      const stored = localStorage.getItem(ADMIN_STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as User) : null;
-    } catch { return null; }
-  });
+  const [localUser, setLocalUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!isQueryLoading) {
       if (apiUser) {
         setLocalUser(apiUser);
-        setIsLoading(false);
-        return;
       }
       setIsLoading(false);
     }
@@ -79,15 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLocalUser(userData);
   };
 
-  const loginAsAdmin = (userData: User) => {
-    const admin: User = { ...userData, role: "admin" as const };
-    setLocalUser(admin);
-    try { localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(admin)); } catch {}
-  };
-
   const logout = async () => {
     setLocalUser(null);
-    try { localStorage.removeItem(ADMIN_STORAGE_KEY); } catch {}
     await signOutFromSupabase();
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
@@ -95,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user: localUser, isLoading, login, loginAsAdmin, logout }}>
+    <AuthContext.Provider value={{ user: localUser, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

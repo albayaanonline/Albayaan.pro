@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useGetCourses, useGetUserProgress } from "@/lib/api-client";
+import { useStoreCertificate } from "@/lib/api-client/admin-hooks";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { Download, Shield, CheckCircle, ArrowLeft, Loader2, Share2 } from "lucide-react";
+import { Download, Shield, CheckCircle, ArrowLeft, Loader2, Share2, QrCode } from "lucide-react";
 
 function generateCertId(userId: string, courseId: string): string {
   let hash = 0;
@@ -23,9 +24,11 @@ export default function Certificate() {
   const { language } = useLanguage();
   const { data: courses } = useGetCourses();
   const { data: progress } = useGetUserProgress();
+  const { mutate: storeCert } = useStoreCertificate();
   const certRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [certStored, setCertStored] = useState(false);
 
   const course = courses?.find((c: any) => String(c.id) === String(courseId));
   const courseProgress = (progress as any[])?.find((p: any) => String(p.courseId) === String(courseId));
@@ -42,7 +45,31 @@ export default function Certificate() {
   });
 
   const courseTitle =
-    language === "ar" ? course?.titleAr : language === "so" ? course?.titleSo : course?.title;
+    language === "ar" ? (course as any)?.titleAr : language === "so" ? (course as any)?.titleSo : (course as any)?.title;
+
+  const verifyUrl = `${window.location.origin}/verify/${certId}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=60a5fa&bgcolor=020817&data=${encodeURIComponent(verifyUrl)}`;
+
+  useEffect(() => {
+    if (!user || !course || !isCompleted || certStored) return;
+
+    const courseIdNum = Number(courseId);
+    if (isNaN(courseIdNum)) return;
+
+    storeCert(
+      {
+        certId,
+        userId: user.id,
+        courseId: courseIdNum,
+        studentName: user.name || "Student",
+        courseName: (course as any).title || "Course",
+      },
+      {
+        onSuccess: () => setCertStored(true),
+        onError: () => setCertStored(true),
+      }
+    );
+  }, [user, course, isCompleted, certStored]);
 
   const downloadPDF = async () => {
     if (!certRef.current) return;
@@ -69,7 +96,7 @@ export default function Certificate() {
   };
 
   const shareCertId = () => {
-    navigator.clipboard.writeText(`https://albayaan.pro/verify/${certId}`);
+    navigator.clipboard.writeText(verifyUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -140,7 +167,7 @@ export default function Certificate() {
           </div>
         </motion.div>
 
-        {/* Certificate card — horizontally scrollable on small screens */}
+        {/* Certificate card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -168,7 +195,7 @@ export default function Certificate() {
             <div className="absolute bottom-6 left-6 w-10 h-10 pointer-events-none" style={{ borderBottom: "2px solid rgba(59,130,246,0.5)", borderLeft: "2px solid rgba(59,130,246,0.5)", borderRadius: "0 0 0 4px" }} />
             <div className="absolute bottom-6 right-6 w-10 h-10 pointer-events-none" style={{ borderBottom: "2px solid rgba(59,130,246,0.5)", borderRight: "2px solid rgba(59,130,246,0.5)", borderRadius: "0 0 4px 0" }} />
 
-            {/* Ambient glow blobs */}
+            {/* Ambient glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] pointer-events-none" style={{ background: "radial-gradient(ellipse, rgba(59,130,246,0.08) 0%, transparent 70%)" }} />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] pointer-events-none" style={{ background: "radial-gradient(ellipse, rgba(139,92,246,0.06) 0%, transparent 70%)" }} />
 
@@ -188,7 +215,7 @@ export default function Certificate() {
                 </div>
               </div>
 
-              {/* Middle — main certificate body */}
+              {/* Middle */}
               <div className="flex flex-col items-center gap-2 sm:gap-3 flex-1 justify-center">
                 <div style={{ color: "rgba(96,165,250,0.6)", fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 600 }}>
                   Certificate of Completion
@@ -239,7 +266,6 @@ export default function Certificate() {
 
               {/* Bottom section */}
               <div className="w-full">
-                {/* Signature row */}
                 <div className="flex items-end justify-between w-full max-w-lg mx-auto mb-4">
                   <div className="text-center">
                     <div className="w-24 sm:w-32" style={{ height: "1px", background: "rgba(255,255,255,0.2)", marginBottom: "4px" }} />
@@ -248,15 +274,16 @@ export default function Certificate() {
                   </div>
 
                   <div className="flex flex-col items-center gap-1">
-                    <CheckCircle
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        color: "#60a5fa",
-                        filter: "drop-shadow(0 0 10px rgba(59,130,246,0.9))",
-                      }}
+                    {/* QR Code for verification */}
+                    <img
+                      src={qrUrl}
+                      alt="Verify QR"
+                      width={56}
+                      height={56}
+                      style={{ borderRadius: "6px", opacity: 0.85 }}
+                      crossOrigin="anonymous"
                     />
-                    <div style={{ color: "rgba(96,165,250,0.5)", fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase" }}>Verified</div>
+                    <div style={{ color: "rgba(96,165,250,0.5)", fontSize: "8px", letterSpacing: "0.15em", textTransform: "uppercase" }}>Scan to Verify</div>
                   </div>
 
                   <div className="text-center">
@@ -266,7 +293,6 @@ export default function Certificate() {
                   </div>
                 </div>
 
-                {/* Certificate ID */}
                 <div
                   className="inline-flex items-center gap-2 px-3 py-1"
                   style={{
@@ -292,10 +318,15 @@ export default function Certificate() {
           transition={{ delay: 0.3 }}
           className="mt-5 p-4 rounded-2xl bg-card border border-border flex items-center justify-between flex-wrap gap-2"
         >
-          <p className="text-sm text-muted-foreground">
-            Verify this certificate at{" "}
-            <span className="text-primary font-mono text-xs">albayaan.pro/verify/{certId}</span>
-          </p>
+          <div className="flex items-center gap-3">
+            <QrCode className="w-4 h-4 text-primary shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              Verify at{" "}
+              <Link href={`/verify/${certId}`} className="text-primary font-mono text-xs hover:underline">
+                albayaan.pro/verify/{certId}
+              </Link>
+            </p>
+          </div>
           <button
             onClick={shareCertId}
             className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
@@ -303,6 +334,18 @@ export default function Certificate() {
             {copied ? "✓ Copied!" : "Copy verification link"}
           </button>
         </motion.div>
+
+        {/* Verified badge */}
+        {certStored && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2"
+          >
+            <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+            <p className="text-sm text-green-400">Certificate registered in Al-Bayaan College database.</p>
+          </motion.div>
+        )}
       </div>
     </div>
   );

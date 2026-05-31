@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/lib/supabase";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export interface AuthUser {
   id: number;
@@ -142,13 +143,19 @@ function LoadingScreen() {
 export function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: any) {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
         setLocation(adminOnly ? "/admin/login" : "/auth/login");
       } else if (adminOnly && user.role !== "admin") {
-        setLocation("/admin/login");
+        toast({
+          title: "Access Denied",
+          description: "You do not have permission to access the admin area.",
+          variant: "destructive",
+        });
+        setLocation("/");
       }
     }
   }, [user, isLoading, setLocation, adminOnly]);

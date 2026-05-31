@@ -4,8 +4,8 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { LanguageToggle } from "../shared/LanguageToggle";
 import { ThemeToggle } from "../shared/ThemeToggle";
-import { COURSES } from "@/data/courses";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import {
   Menu, X, BookOpen, LayoutDashboard, LogOut, User,
   GraduationCap, Lightbulb, Award, Bot, Search, ArrowRight,
@@ -20,6 +20,16 @@ function SearchModal({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [, navigate] = useLocation();
 
+  const { data: allCourses = [] } = useQuery<any[]>({
+    queryKey: ["courses-search"],
+    queryFn: async () => {
+      const res = await fetch("/api/courses");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
   useEffect(() => {
     inputRef.current?.focus();
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -28,19 +38,28 @@ function SearchModal({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const results = query.trim().length > 1
-    ? COURSES.filter(c => {
+    ? allCourses.filter(c => {
         const q = query.toLowerCase();
         return (
-          c.title.toLowerCase().includes(q) ||
-          c.description.toLowerCase().includes(q) ||
-          c.category.toLowerCase().includes(q) ||
+          (c.title || "").toLowerCase().includes(q) ||
+          (c.description || "").toLowerCase().includes(q) ||
+          (c.language || "").toLowerCase().includes(q) ||
           (c.titleAr || "").includes(q) ||
           (c.titleSo || "").toLowerCase().includes(q)
         );
       }).slice(0, 6)
-    : COURSES.filter(c => c.popular || c.featured).slice(0, 6);
+    : allCourses.slice(0, 6);
 
-  const getTitle = (c: any) => language === "ar" ? c.titleAr : language === "so" ? c.titleSo : c.title;
+  const getTitle = (c: any) =>
+    language === "ar" ? (c.titleAr || c.title) :
+    language === "so" ? (c.titleSo || c.title) :
+    c.title;
+
+  const LEVEL_COLORS: Record<string, string> = {
+    beginner:     "from-blue-500 to-cyan-600",
+    intermediate: "from-purple-500 to-indigo-600",
+    advanced:     "from-red-500 to-orange-600",
+  };
 
   return (
     <motion.div
@@ -81,10 +100,10 @@ function SearchModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="py-2 max-h-[400px] overflow-y-auto">
-          {!query && (
+          {!query && allCourses.length > 0 && (
             <div className="px-4 pt-2 pb-1">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">
-                🔥 Popular Courses
+                🔥 Available Courses
               </p>
             </div>
           )}
@@ -93,7 +112,12 @@ function SearchModal({ onClose }: { onClose: () => void }) {
               No courses found for "{query}"
             </div>
           )}
-          {results.map((course, i) => (
+          {results.length === 0 && !query && (
+            <div className="px-5 py-8 text-center text-muted-foreground text-sm">
+              No courses published yet
+            </div>
+          )}
+          {results.map((course: any, i: number) => (
             <Link key={course.id} href={`/courses/${course.id}`} onClick={onClose}>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
@@ -101,21 +125,23 @@ function SearchModal({ onClose }: { onClose: () => void }) {
                 transition={{ delay: i * 0.04 }}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer group"
               >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${course.color} flex items-center justify-center text-xl shrink-0`}>
-                  {course.thumbnail}
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${LEVEL_COLORS[course.level] ?? "from-blue-500 to-purple-600"} flex items-center justify-center shrink-0`}>
+                  <BookOpen className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">
                     {getTitle(course)}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-muted-foreground">{course.category}</span>
+                    <span className="text-xs text-muted-foreground capitalize">{course.language}</span>
                     <span className="text-muted-foreground/40">·</span>
-                    <span className="flex items-center gap-0.5 text-xs text-yellow-400">
-                      <Star className="w-3 h-3 fill-yellow-400" />{course.rating}
-                    </span>
-                    <span className="text-muted-foreground/40">·</span>
-                    <span className="text-xs font-bold text-primary">${course.price}</span>
+                    <span className="text-xs text-muted-foreground capitalize">{course.level}</span>
+                    {course.price > 0 && (
+                      <>
+                        <span className="text-muted-foreground/40">·</span>
+                        <span className="text-xs font-bold text-primary">${course.price}</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />

@@ -1,4 +1,8 @@
 - [Albayaan Platform Architecture](ilmai-platform.md) — Rebranded from IlmAI to Albayaan.pro; Vite+React+Wouter+Tailwind monorepo; vite.config.ts requires PORT+BASE_PATH env vars.
-- [Albayaan Feature Set](ilmai-features.md) — Supabase auth, real DB (Drizzle/PostgreSQL), admin dashboard fully connected to API, certificates table + routes, COURSES static data fully removed from AdminDashboard.
-- [Albayaan Admin Routing](albayaan-admin-routing.md) — Wouter admin routing: /admin/login must be a top-level Route BEFORE any /admin/:rest* catch; nested AdminLayout routes below it. Default creds: admin@example.com / Admin123.
-- [Albayaan Admin Dashboard API](albayaan-admin-api.md) — All COURSES static refs replaced with apiCourses (from /api/admin/courses). Course/lesson IDs are numbers. editingCourse/deletingCourse/expandedLesson are all number|null.
+- [Albayaan Feature Set](ilmai-features.md) — Supabase auth, real DB (Drizzle/PostgreSQL), admin dashboard fully connected to API, certificates table + routes, COURSES static data fully removed.
+- [Albayaan Admin Routing](albayaan-admin-routing.md) — Wouter admin routing: /admin/login must be a top-level Route BEFORE any /admin/:rest* catch; nested AdminLayout routes below it.
+- [Albayaan Admin Dashboard API](albayaan-admin-api.md) — All COURSES static refs replaced with apiCourses (from /api/admin/courses). Course/lesson IDs are numbers. editingCourse/deletingCourse are number|null.
+- [Albayaan DB Migration](albayaan-db-migration.md) — Use `pnpm --filter @workspace/db push-force` to push Drizzle schema. pg module is at node_modules/.pnpm/pg@8.20.0/. DB has all 11 tables + is_published on courses.
+- [Albayaan Publish System](albayaan-publish.md) — isPublished boolean on courses table; PATCH /admin/courses/:id/publish toggles it; public GET /api/courses only returns isPublished=true courses.
+- [Albayaan Certificates](albayaan-certs.md) — certId = ALBAYAAN-XXXX-XXXX (hash of userId+courseId, no year). Certificate includes inline SVG QR code pointing to /verify/:certId. Auto-saved via POST /api/certificates on page load if completed.
+- [Albayaan Auth Flow](albayaan-auth.md) — Supabase Auth on frontend → syncWithBackend POSTs Bearer token to /api/auth/session-from-supabase → verifies via Supabase REST API → returns user with role. Non-admins accessing /admin/* get toast + redirect to /.

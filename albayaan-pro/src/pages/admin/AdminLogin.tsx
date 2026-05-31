@@ -2,14 +2,11 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
-
-const DEMO_ADMIN_EMAIL    = "admin@example.com";
-const DEMO_ADMIN_PASSWORD = "Admin123";
+import { Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
-  const { loginAsAdmin } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw]     = useState(false);
@@ -21,20 +18,38 @@ export default function AdminLogin() {
     setError("");
     setLoading(true);
 
-    await new Promise(r => setTimeout(r, 600));
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (email === DEMO_ADMIN_EMAIL && password === DEMO_ADMIN_PASSWORD) {
-      loginAsAdmin({ id: -1, name: "Admin", email, role: "admin" } as any);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed. Please check your credentials.");
+        setLoading(false);
+        return;
+      }
+
+      if (data.role !== "admin") {
+        setError("Access denied. This account does not have admin privileges.");
+        setLoading(false);
+        return;
+      }
+
+      login(data);
       setLocation("/admin");
-    } else {
-      setError("Invalid admin credentials. Use admin@example.com / Admin123");
+    } catch {
+      setError("Network error. Please try again.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[80px]" />
       </div>
@@ -46,7 +61,6 @@ export default function AdminLogin() {
         className="w-full max-w-sm relative z-10"
       >
         <div className="p-8 rounded-3xl bg-card border border-white/10 shadow-2xl">
-          {/* Logo */}
           <div className="text-center mb-8">
             <img src="/logo-96.png" alt="Albayaan.pro" className="h-16 w-16 object-contain mx-auto mb-3 drop-shadow-[0_0_16px_rgba(59,130,246,0.7)]" />
             <h1 className="text-2xl font-black text-white">Admin Login</h1>
@@ -56,11 +70,9 @@ export default function AdminLogin() {
             </p>
           </div>
 
-          {/* Demo credentials hint */}
-          <div className="mb-5 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 space-y-1">
-            <div className="font-semibold text-blue-200">Demo credentials:</div>
-            <div>Email: <code className="font-mono">admin@example.com</code></div>
-            <div>Password: <code className="font-mono">Admin123</code></div>
+          <div className="mb-5 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 flex items-start gap-2">
+            <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>Sign in with your admin account. To elevate a user to admin, use the <code className="font-mono">/api/admin/elevate</code> endpoint with the admin secret.</span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -100,8 +112,9 @@ export default function AdminLogin() {
             </div>
 
             {error && (
-              <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl">
-                {error}
+              <div className="flex items-start gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
             )}
 
