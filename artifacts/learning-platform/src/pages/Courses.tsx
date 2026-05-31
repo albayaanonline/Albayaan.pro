@@ -144,35 +144,37 @@ export default function Courses() {
           </p>
         </motion.div>
 
-        {/* Category Icons */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-wrap items-center justify-center gap-2 mb-6">
-          {CATEGORIES.map((cat) => {
-            const Icon = CATEGORY_ICONS[cat] || Lightbulb;
-            const count = cat === "All" ? SKILLS_COURSES.length : SKILLS_COURSES.filter(c => c.category === cat).length;
-            return (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  categoryFilter === cat
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]"
-                    : "bg-white/5 text-muted-foreground hover:bg-white/10 border border-white/10"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {cat}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${categoryFilter === cat ? "bg-white/20" : "bg-white/10"}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+        {/* Category Icons — horizontal scroll on mobile */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 flex-nowrap">
+            {CATEGORIES.map((cat) => {
+              const Icon = CATEGORY_ICONS[cat] || Lightbulb;
+              const count = cat === "All" ? SKILLS_COURSES.length : SKILLS_COURSES.filter(c => c.category === cat).length;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter(cat)}
+                  className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    categoryFilter === cat
+                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]"
+                      : "bg-white/5 text-muted-foreground hover:bg-white/10 border border-white/10"
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {cat}
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${categoryFilter === cat ? "bg-white/20" : "bg-white/10"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </motion.div>
 
         {/* Search & Level Filters */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8 space-y-4">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8 space-y-3">
           <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={search}
@@ -182,8 +184,8 @@ export default function Courses() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 flex-nowrap justify-start sm:justify-center">
+            <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
             {(["all", "beginner", "intermediate", "advanced"] as const).map(lvl => {
               const labels: Record<string, string> = {
                 all: t("All Levels", "جميع المستويات", "Dhammaan Heerarka"),
@@ -195,7 +197,7 @@ export default function Courses() {
                 <button
                   key={lvl}
                   onClick={() => setLvlFilter(lvl)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                     lvlFilter === lvl
                       ? "bg-purple-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]"
                       : "bg-white/5 text-muted-foreground hover:bg-white/10 border border-white/10"
@@ -206,7 +208,7 @@ export default function Courses() {
               );
             })}
             {hasFilters && (
-              <button onClick={clearFilters} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-all">
+              <button onClick={clearFilters} className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-all">
                 <X className="w-3 h-3" /> {t("Clear", "مسح", "Nadiifi")}
               </button>
             )}

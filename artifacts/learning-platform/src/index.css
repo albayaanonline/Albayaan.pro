@@ -282,3 +282,32 @@ body {
 
 /* ─── RTL support ─── */
 [dir="rtl"] { font-family: 'Poppins', 'Noto Naskh Arabic', sans-serif; }
+
+/* ─── Mobile performance: disable heavy GPU effects on small screens ─── */
+@media (max-width: 639px) {
+  /* Replace backdrop-blur with solid background on mobile to prevent rendering glitches */
+  .backdrop-blur-xl,
+  .backdrop-blur-lg,
+  .backdrop-blur-md,
+  .backdrop-blur-sm {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Disable heavy box shadows on mobile */
+  .animate-glow-pulse {
+    animation: none !important;
+  }
+
+  /* Prevent any child element from causing horizontal scroll */
+  section, main, header, footer, nav {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+}
+
+/* ─── Prevent absolute/fixed elements from causing layout width issues ─── */
+.overflow-x-hidden-safe {
+  overflow-x: hidden;
+  position: relative;
+}

@@ -75,22 +75,13 @@ const TESTIMONIALS = [
 function ParticleOrbs() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      <div className="absolute top-[-10%] left-[15%] w-[500px] h-[500px] rounded-full bg-blue-600/12 blur-[100px] animate-glow-pulse" />
-      <div className="absolute top-[20%] right-[5%] w-[400px] h-[400px] rounded-full bg-purple-600/10 blur-[90px] animate-glow-pulse" style={{ animationDelay: "1.5s" }} />
-      <div className="absolute bottom-[10%] left-[30%] w-[350px] h-[350px] rounded-full bg-cyan-600/8 blur-[80px] animate-glow-pulse" style={{ animationDelay: "3s" }} />
-      <div className="absolute top-[50%] left-[50%] w-[600px] h-[600px] rounded-full bg-blue-500/4 blur-[120px] -translate-x-1/2 -translate-y-1/2" />
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="absolute w-1 h-1 bg-blue-400/60 rounded-full animate-ping-slow"
-          style={{
-            top: `${15 + i * 13}%`,
-            left: `${10 + i * 14}%`,
-            animationDelay: `${i * 0.8}s`,
-            animationDuration: `${2.5 + i * 0.4}s`,
-          }} />
-      ))}
-      <div className="absolute top-[30%] left-[10%] w-6 h-6 opacity-20 animate-float text-blue-400" style={{ animationDelay: "0s" }}>✦</div>
-      <div className="absolute top-[60%] right-[8%] w-4 h-4 opacity-15 animate-float text-purple-400" style={{ animationDelay: "2s" }}>✦</div>
-      <div className="absolute top-[15%] right-[25%] w-3 h-3 opacity-20 animate-float text-cyan-400" style={{ animationDelay: "1s" }}>◆</div>
+      {/* Reduced-size orbs — no overflow beyond section bounds */}
+      <div className="absolute top-[5%] left-[10%] w-[200px] h-[200px] sm:w-[400px] sm:h-[400px] rounded-full bg-blue-600/10 blur-[60px] sm:blur-[90px] animate-glow-pulse" />
+      <div className="absolute top-[30%] right-[5%] w-[160px] h-[160px] sm:w-[320px] sm:h-[320px] rounded-full bg-purple-600/8 blur-[50px] sm:blur-[80px] animate-glow-pulse" style={{ animationDelay: "1.5s" }} />
+      <div className="hidden sm:block absolute bottom-[10%] left-[30%] w-[280px] h-[280px] rounded-full bg-cyan-600/6 blur-[70px] animate-glow-pulse" style={{ animationDelay: "3s" }} />
+      {/* Small decorative dots — desktop only to avoid mobile GPU load */}
+      <div className="hidden sm:block absolute top-[30%] left-[10%] w-5 h-5 opacity-15 animate-float text-blue-400" style={{ animationDelay: "0s" }}>✦</div>
+      <div className="hidden sm:block absolute top-[60%] right-[8%] w-4 h-4 opacity-10 animate-float text-purple-400" style={{ animationDelay: "2s" }}>✦</div>
     </div>
   );
 }
@@ -156,16 +147,16 @@ export default function Home() {
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.08}>
             <AnimatePresence mode="wait">
               <motion.h1 key={heroIdx}
-                initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -30, filter: "blur(8px)" }}
-                transition={{ duration: 0.55, ease: EASE }}
-                className="text-3xl sm:text-5xl md:text-7xl font-black leading-[1.08] tracking-tight shimmer-text break-words">
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4, ease: EASE }}
+                className="text-3xl sm:text-5xl md:text-7xl font-black leading-[1.1] tracking-tight shimmer-text break-words">
                 {heroText}
               </motion.h1>
             </AnimatePresence>
             <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={0.15}
-              className="text-2xl sm:text-4xl md:text-5xl font-black text-foreground mt-3">
+              className="text-xl sm:text-3xl md:text-5xl font-black text-foreground mt-2">
               {t("at the Speed of AI", "بسرعة الذكاء الاصطناعي", "Xawliga AI ah")}
             </motion.p>
           </motion.div>
@@ -180,29 +171,22 @@ export default function Home() {
           </motion.p>
 
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.3}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 w-full">
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link href="/courses"
-                className="px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base flex items-center justify-center gap-2 shadow-[0_0_35px_rgba(59,130,246,0.4)] hover:shadow-[0_0_55px_rgba(59,130,246,0.6)] transition-shadow">
-                <Lightbulb className="w-5 h-5" />
-                {t("Explore Courses", "استكشف الدورات", "Sahmi Koorsooyinka")}
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link href="/auth/register"
-                className="px-8 py-4 rounded-full bg-white/8 border border-white/20 text-foreground font-bold text-base flex items-center justify-center gap-2 hover:bg-white/12 hover:border-white/30 transition-all">
-                <Zap className="w-5 h-5 text-purple-400" />
-                {t("Start Learning Free", "ابدأ التعلم مجاناً", "Bilaash Bilow")}
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link href="/ai-tutor"
-                className="px-8 py-4 rounded-full bg-gradient-to-r from-violet-600/20 to-blue-600/20 border border-violet-500/40 text-violet-300 font-bold text-base flex items-center justify-center gap-2 hover:bg-violet-600/30 transition-all relative overflow-hidden">
-                <span className="absolute inset-0 bg-gradient-to-r from-violet-600/5 to-blue-600/5 animate-pulse" />
-                <Bot className="w-5 h-5 relative z-10" />
-                <span className="relative z-10">{t("Try AI Tutor", "جرب المعلم الذكي", "AI Bare Tijaabi")}</span>
-              </Link>
-            </motion.div>
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2 w-full max-w-xl mx-auto sm:max-w-none">
+            <Link href="/courses"
+              className="px-6 py-3.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(59,130,246,0.35)] hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] transition-shadow">
+              <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              {t("Explore Courses", "استكشف الدورات", "Sahmi Koorsooyinka")}
+            </Link>
+            <Link href="/auth/register"
+              className="px-6 py-3.5 rounded-full bg-white/8 border border-white/20 text-foreground font-bold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-white/12 hover:border-white/30 transition-all">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 shrink-0" />
+              {t("Start Learning Free", "ابدأ التعلم مجاناً", "Bilaash Bilow")}
+            </Link>
+            <Link href="/ai-tutor"
+              className="px-6 py-3.5 rounded-full bg-violet-600/15 border border-violet-500/30 text-violet-300 font-bold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-violet-600/25 transition-all">
+              <Bot className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              {t("Try AI Tutor", "جرب المعلم الذكي", "AI Bare Tijaabi")}
+            </Link>
           </motion.div>
 
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.38}
@@ -568,9 +552,9 @@ export default function Home() {
       {/* ══════════════════ CTA BANNER ══════════════════ */}
       <section className="py-24 max-w-5xl mx-auto px-4">
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
-          className="relative p-10 md:p-16 rounded-3xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 text-center overflow-hidden">
-          <div className="absolute top-0 left-1/4 w-80 h-80 bg-blue-500/12 rounded-full blur-[80px] pointer-events-none" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/12 rounded-full blur-[80px] pointer-events-none" />
+          className="relative p-7 sm:p-10 md:p-16 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 text-center overflow-hidden">
+          <div className="hidden sm:block absolute top-0 left-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
+          <div className="hidden sm:block absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none" />
           <div className="relative z-10">
             <div className="text-5xl mb-4 animate-float">🚀</div>
             <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4">
@@ -583,21 +567,17 @@ export default function Home() {
                 "Ku biir 25,000+ arday Soomaali oo horey AI ku baranaya Albayaan.pro."
               )}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <Link href="/auth/register"
-                  className="px-10 py-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg flex items-center gap-2 shadow-[0_0_40px_rgba(59,130,246,0.4)] hover:shadow-[0_0_60px_rgba(59,130,246,0.6)] transition-shadow">
-                  <Sparkles className="w-5 h-5" />
-                  {t("Join Now — Free", "انضم الآن — مجاناً", "Hadda Ku Biir — Bilaash")}
-                </Link>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <a href="https://wa.me/252656042512" target="_blank" rel="noopener noreferrer"
-                  className="px-10 py-4 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 font-bold text-lg flex items-center gap-2 hover:bg-green-500/30 transition-colors">
-                  <MessageCircle className="w-5 h-5" />
-                  WhatsApp
-                </a>
-              </motion.div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/auth/register"
+                className="px-7 py-3.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_50px_rgba(59,130,246,0.6)] transition-shadow">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                {t("Join Now — Free", "انضم الآن — مجاناً", "Hadda Ku Biir — Bilaash")}
+              </Link>
+              <a href="https://wa.me/252656042512" target="_blank" rel="noopener noreferrer"
+                className="px-7 py-3.5 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 font-bold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-green-500/30 transition-colors">
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                WhatsApp
+              </a>
             </div>
           </div>
         </motion.div>
