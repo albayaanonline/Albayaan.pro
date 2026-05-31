@@ -6,3 +6,4 @@
 - [Albayaan Publish System](albayaan-publish.md) — isPublished boolean on courses table; PATCH /admin/courses/:id/publish toggles it; public GET /api/courses only returns isPublished=true courses.
 - [Albayaan Certificates](albayaan-certs.md) — certId = ALBAYAAN-XXXX-XXXX (hash of userId+courseId, no year). Certificate includes inline SVG QR code pointing to /verify/:certId. Auto-saved via POST /api/certificates on page load if completed.
 - [Albayaan Auth Flow](albayaan-auth.md) — Supabase Auth on frontend → syncWithBackend POSTs Bearer token to /api/auth/session-from-supabase → verifies via Supabase REST API → returns user with role. Non-admins accessing /admin/* get toast + redirect to /.
+- [Albayaan Running App Directory](albayaan-running-app.md) — The running artifact is artifacts/learning-platform/ (package @workspace/learning-platform). albayaan-pro/ is a stale sibling — all code edits must target artifacts/learning-platform/src/.

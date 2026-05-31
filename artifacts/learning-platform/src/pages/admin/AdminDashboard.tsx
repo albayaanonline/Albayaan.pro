@@ -125,6 +125,78 @@ function CourseForm({
   );
 }
 
+function CertVerifyWidget() {
+  const [inputId, setInputId] = useState("");
+  const [searchId, setSearchId] = useState<string | null>(null);
+  const [result, setResult] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+
+  const handleVerify = async () => {
+    const trimmed = inputId.trim().toUpperCase();
+    if (!trimmed) return;
+    setSearchId(trimmed);
+    setIsLoading(true);
+    setIsError(false);
+    setResult(null);
+    try {
+      const res = await fetch(`/api/certificates/${encodeURIComponent(trimmed)}`, { credentials: "include" });
+      if (!res.ok) { setIsError(true); return; }
+      const data = await res.json();
+      setResult(data);
+    } catch {
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-6 rounded-2xl bg-card border border-white/10">
+      <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+        <Shield className="w-4 h-4 text-blue-400" />
+        Verify Certificate by ID
+      </h4>
+      <div className="flex gap-3 mb-4">
+        <input
+          value={inputId}
+          onChange={e => setInputId(e.target.value.toUpperCase())}
+          placeholder="ALBAYAAN-XXXX-XXXX"
+          className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 text-sm font-mono"
+          onKeyDown={e => e.key === "Enter" && handleVerify()}
+        />
+        <button
+          onClick={handleVerify}
+          disabled={isLoading}
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Verify
+        </button>
+      </div>
+      {isError && searchId && !isLoading && (
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <XCircle className="w-4 h-4 shrink-0" />
+          Certificate <span className="font-mono text-xs ml-1">{searchId}</span> not found in database.
+        </div>
+      )}
+      {result && !isLoading && (
+        <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 space-y-2">
+          <div className="flex items-center gap-2 text-green-400 font-semibold text-sm">
+            <CheckCircle className="w-4 h-4" /> Valid Certificate
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div><span className="text-muted-foreground">Student:</span> <span className="text-white ml-1">{result.studentName}</span></div>
+            <div><span className="text-muted-foreground">Course:</span> <span className="text-white ml-1">{result.courseName}</span></div>
+            <div><span className="text-muted-foreground">Issued:</span> <span className="text-white ml-1">{new Date(result.issuedAt).toLocaleDateString()}</span></div>
+            <div><span className="text-muted-foreground">ID:</span> <span className="font-mono text-white ml-1 text-[10px]">{result.certId}</span></div>
+          </div>
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground mt-3">Enter a certificate ID to verify its authenticity and view student details.</p>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { t } = useLanguage();
   const [tab, setTab] = useState<AdminTab>("overview");
@@ -694,34 +766,7 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                         </tr>
-                      ) : null
-                            <tr key={`del-${u.id}`}>
-                              <td colSpan={6} className="px-4 pb-3">
-                                <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-                                  <div className="flex items-center gap-2 text-red-300 text-sm">
-                                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                                    Delete <strong>{u.name || u.email}</strong>? This action cannot be undone.
-                                  </div>
-                                  <div className="flex gap-2 shrink-0">
-                                    <button
-                                      onClick={() => handleDeleteUser(u.id)}
-                                      className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors"
-                                    >
-                                      Delete
-                                    </button>
-                                    <button
-                                      onClick={() => setDeletingUser(null)}
-                                      className="px-3 py-1.5 rounded-lg bg-white/10 text-muted-foreground text-xs hover:bg-white/20 transition-colors"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </>
-                      ))}
+                      ) : null)}
                     </tbody>
                   </table>
                 </div>
@@ -980,6 +1025,9 @@ export default function AdminDashboard() {
               <StatCard label="Students"        value={new Set(adminCerts.map((c: any) => c.userId)).size}   icon={Users}    color="text-blue-400"   bg="bg-blue-500/10" />
               <StatCard label="Unique Courses"  value={apiCourses.length}        icon={TrendingUp}   color="text-green-400"  bg="bg-green-500/10" />
             </div>
+
+            {/* Inline verify widget */}
+            <CertVerifyWidget />
 
             {/* Certificate list */}
             <div className="p-6 rounded-2xl bg-card border border-white/10">
