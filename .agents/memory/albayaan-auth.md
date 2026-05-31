@@ -17,8 +17,15 @@ description: Full authentication flow from Supabase to backend DB sync and RBAC.
 - Admin accessing `/admin/*` → allowed through
 
 ## Env Vars Required
-- `VITE_SUPABASE_URL` — used on both frontend AND backend (auth middleware reads it)
-- `VITE_SUPABASE_ANON_KEY` — same
+- `VITE_SUPABASE_URL` — frontend + backend auth middleware (also checks `SUPABASE_URL` first)
+- `VITE_SUPABASE_ANON_KEY` — same (also checks `SUPABASE_ANON_KEY` first)
+- Backend `auth.ts` middleware: reads `SUPABASE_URL ?? VITE_SUPABASE_URL` to support both naming conventions.
+
+## API Client Auth
+- `setAuthTokenGetter` is called in `AuthContext.tsx` on mount, providing the Supabase session access token to `customFetch`.
+- `customFetch` sends `credentials: "include"` by default on ALL requests (session cookie).
+- `customFetch` also injects `Authorization: Bearer <token>` if a getter is registered.
+- This means admin API hooks (from generated client) work with BOTH session cookies AND Bearer tokens — no extra setup needed.
 - `SESSION_SECRET` — for express-session (fallback: "ilmai-secret-fallback")
 - `DATABASE_URL` — PostgreSQL connection string
 

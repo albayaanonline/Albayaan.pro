@@ -6,19 +6,17 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   BookOpen, Trophy, CheckCircle, Clock, ArrowRight, Star, Award, Download,
-  Flame, Zap, TrendingUp, Target, BarChart2, Brain, Medal,
+  Flame, Zap, Brain, Medal,
 } from "lucide-react";
-import { COURSES } from "@/data/courses";
-
 function generateCertId(userId: string, courseId: string): string {
   let hash = 0;
-  const str = (userId + courseId + "albayaan").toUpperCase();
+  const str = ("ALBAYAAN-" + userId + "-" + courseId).toUpperCase();
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
   }
   const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, "0");
-  return `ALBAYAAN-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${new Date().getFullYear()}`;
+  return "ALBAYAAN-" + hex.slice(0, 4) + "-" + hex.slice(4, 8);
 }
 
 const fadeUp = {
@@ -53,7 +51,7 @@ export default function Dashboard() {
   const { data: progress } = useGetUserProgress();
   const [activeTab, setActiveTab] = useState<"overview" | "progress" | "certificates">("overview");
 
-  const courses = (apiCourses ?? COURSES) as any[];
+  const courses = (apiCourses ?? []) as any[];
 
   const getTitle = (item: any) =>
     language === "ar" ? item?.titleAr : language === "so" ? item?.titleSo : item?.title;
@@ -381,8 +379,8 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {completedCourses.map((course: any, i: number) => {
                     const certId = user
-                      ? generateCertId(user.email || String(user.id), String(course.id))
-                      : "ALBAYAAN-XXXX-XXXX-2026";
+                      ? generateCertId(String(user.id), String(course.id))
+                      : "ALBAYAAN-XXXX-XXXX";
                     const title = getTitle(course) || course.title;
                     const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 

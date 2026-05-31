@@ -11,13 +11,13 @@ import {
 
 function generateCertId(userId: string, courseId: string): string {
   let hash = 0;
-  const str = (userId + courseId + "albayaan").toUpperCase();
+  const str = ("ALBAYAAN-" + userId + "-" + courseId).toUpperCase();
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
   }
   const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, "0");
-  return `ALBAYAAN-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${new Date().getFullYear()}`;
+  return "ALBAYAAN-" + hex.slice(0, 4) + "-" + hex.slice(4, 8);
 }
 
 const fadeUp = {
@@ -147,10 +147,12 @@ export default function MyCertificates() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {filtered.map((course: any, i: number) => {
               const certId = user
-                ? generateCertId(user.email || String(user.id), String(course.id))
-                : "ALBAYAAN-XXXX-XXXX-2026";
+                ? generateCertId(String(user.id), String(course.id))
+                : "ALBAYAAN-XXXX-XXXX";
               const title = getTitle(course) || course.title;
-              const completionDate = new Date().toLocaleDateString("en-US", {
+              const progressEntry = (progress as any[])?.find((p: any) => String(p.courseId) === String(course.id));
+              const completionDateRaw = progressEntry?.completedAt ? new Date(progressEntry.completedAt) : new Date();
+              const completionDate = completionDateRaw.toLocaleDateString("en-US", {
                 year: "numeric", month: "long", day: "numeric",
               });
 

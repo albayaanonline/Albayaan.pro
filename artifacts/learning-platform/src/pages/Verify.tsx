@@ -82,7 +82,7 @@ export default function Verify() {
               value={code}
               onChange={e => setCode(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleVerify()}
-              placeholder="ALBAYAAN-XXXX-XXXX-2026"
+              placeholder="ALBAYAAN-XXXX-XXXX"
               className="flex-1 px-4 py-3 rounded-xl bg-background border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 font-mono text-sm"
             />
             <motion.button

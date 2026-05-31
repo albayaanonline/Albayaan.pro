@@ -9,16 +9,18 @@ description: Certificate generation, QR codes, and verification system.
 **Why no year:** Including `new Date().getFullYear()` would generate a different ID each year for the same student/course, breaking verification links.
 
 ## Generation
+**Input**: always `String(user.id)` (numeric DB id), never `user.email`. All three pages — Certificate.tsx, Dashboard.tsx, MyCertificates.tsx — must use `generateCertId(String(user.id), String(courseId))`.
+
 ```ts
 function generateCertId(userId: string, courseId: string): string {
   let hash = 0;
-  const str = `ALBAYAAN-${userId}-${courseId}`.toUpperCase();
+  const str = ("ALBAYAAN-" + userId + "-" + courseId).toUpperCase();
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
   }
   const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, "0");
-  return `ALBAYAAN-${hex.slice(0, 4)}-${hex.slice(4, 8)}`;
+  return "ALBAYAAN-" + hex.slice(0, 4) + "-" + hex.slice(4, 8);
 }
 ```
 

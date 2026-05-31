@@ -84,7 +84,10 @@ export default function Certificate() {
 
   const verifyUrl = `${typeof window !== "undefined" ? window.location.origin : "https://albayaan.pro"}/verify/${certId}`;
 
-  const completionDate = new Date().toLocaleDateString("en-US", {
+  const completionDateRaw = courseProgress?.completedAt
+    ? new Date(courseProgress.completedAt)
+    : new Date();
+  const completionDate = completionDateRaw.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
