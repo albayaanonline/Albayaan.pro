@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Shield, Search, CheckCircle, XCircle, Loader2, Award } from "lucide-react";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
+import { useRoute } from "wouter";
 
 interface VerifyResult {
   valid: boolean;
@@ -13,12 +14,13 @@ interface VerifyResult {
 
 export default function Verify() {
   const { t } = useLanguage();
-  const [code, setCode] = useState("");
+  const [, params] = useRoute("/verify/:certId");
+  const [code, setCode] = useState(params?.certId ?? "");
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleVerify = async () => {
-    const normalized = code.trim().toUpperCase();
+  const handleVerify = async (certCode?: string) => {
+    const normalized = (certCode ?? code).trim().toUpperCase();
     if (!normalized) return;
     setLoading(true);
     setResult(null);
@@ -46,6 +48,14 @@ export default function Verify() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (params?.certId) {
+      const id = decodeURIComponent(params.certId).toUpperCase();
+      setCode(id);
+      handleVerify(id);
+    }
+  }, [params?.certId]);
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
@@ -88,7 +98,7 @@ export default function Verify() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
-              onClick={handleVerify}
+              onClick={() => handleVerify()}
               disabled={loading || !code.trim()}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
             >
@@ -100,6 +110,17 @@ export default function Verify() {
             {t("Certificate IDs start with ALBAYAAN- and can be found at the bottom of any certificate.", "تبدأ معرفات الشهادات بـ ALBAYAAN- ويمكن العثور عليها في أسفل أي شهادة.", "ID-yada shahaadadu waxay ku bilaabmaan ALBAYAAN- waxaana laga heli karaa hoosta shahaadada kasta.")}
           </p>
         </motion.div>
+
+        {loading && !result && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-center gap-3 py-10 text-muted-foreground"
+          >
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <span className="text-sm">{t("Verifying certificate...", "جارٍ التحقق من الشهادة...", "Shahaadada la xaqiijinayaa...")}</span>
+          </motion.div>
+        )}
 
         {result && (
           <motion.div

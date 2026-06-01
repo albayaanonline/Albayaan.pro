@@ -13,6 +13,7 @@ import chatRouter from "./chat";
 import certificatesRouter from "./certificates";
 import gamificationRouter from "./gamification";
 import exercisesRouter from "./exercises";
+import contactRouter from "./contact";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(chatRouter);
 router.use(certificatesRouter);
 router.use(gamificationRouter);
 router.use(exercisesRouter);
+router.use(contactRouter);
 
 export default router;

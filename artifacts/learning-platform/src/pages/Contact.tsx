@@ -19,9 +19,20 @@ export default function Contact() {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) return;
     setSending(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setSending(false);
-    setSent(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("API error");
+    } catch {
+      const body = `Name: ${form.name}%0AEmail: ${form.email}%0ASubject: ${form.subject || "(none)"}%0A%0A${form.message}`;
+      window.open(`mailto:support@albayaan.pro?subject=${encodeURIComponent(form.subject || "Contact Form")} &body=${body}`, "_blank");
+    } finally {
+      setSending(false);
+      setSent(true);
+    }
   };
 
   const contacts = [
