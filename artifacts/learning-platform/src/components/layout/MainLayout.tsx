@@ -11,7 +11,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col" dir={dir}>
       <Navbar />
-      <main className="flex-1 w-full pt-16">
+      <main className="flex-1 w-full pt-16 pb-24 sm:pb-8">
         {children}
       </main>
       <Footer />

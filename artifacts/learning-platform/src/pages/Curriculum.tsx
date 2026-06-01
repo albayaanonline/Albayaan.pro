@@ -70,7 +70,7 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: Math.min(index * 0.04, 0.25) }}
-      className="rounded-2xl bg-card border border-white/10 overflow-hidden hover:border-blue-500/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all duration-300 group flex flex-col"
+      className="rounded-2xl bg-card border border-border overflow-hidden hover:border-blue-500/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all duration-300 group flex flex-col"
     >
       <div className="relative aspect-video overflow-hidden bg-card">
         <img src={course.imageUrl} alt={title}
@@ -130,21 +130,21 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
           <span className="flex items-center gap-1"><Users className="w-3 h-3" />{(course.enrolledCount || 0).toLocaleString()}</span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
               ${course.price}
             </span>
             {course.certificate && (
-              <span className="flex items-center gap-0.5 text-[10px] text-yellow-400 font-semibold">
-                <Award className="w-3 h-3" />{t("Certificate","شهادة","Shahaado")}
+              <span className="flex items-center gap-0.5 text-[10px] text-yellow-500 font-semibold whitespace-nowrap">
+                <Award className="w-3 h-3 shrink-0" />{t("Certificate","شهادة","Shahaado")}
               </span>
             )}
           </div>
-          <Link href={`/courses/${course.id}`}>
+          <Link href={`/courses/${course.id}`} className="shrink-0">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-              className="flex items-center gap-1 px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold shadow-lg hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-shadow">
-              {t("Enroll","التسجيل","Diiwaangeli")} <ArrowRight className="w-3 h-3" />
+              className="flex items-center gap-1 px-3 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold shadow-lg hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-shadow whitespace-nowrap">
+              {t("Enroll","التسجيل","Diiwaangeli")} <ArrowRight className="w-3 h-3 shrink-0" />
             </motion.div>
           </Link>
         </div>
@@ -216,7 +216,7 @@ export default function CurriculumPage() {
     <div className="w-full bg-background min-h-screen">
 
       {/* ── Hero ── */}
-      <section className="relative pt-28 pb-20 px-4 text-center overflow-hidden">
+      <section className="relative pt-16 sm:pt-28 pb-16 sm:pb-20 px-4 text-center overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-blue-600/10 rounded-full blur-[70px] sm:blur-[100px] animate-glow-pulse" />
           <div className="hidden sm:block absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/8 rounded-full blur-[80px] animate-glow-pulse" style={{ animationDelay: "2s" }} />
@@ -267,7 +267,7 @@ export default function CurriculumPage() {
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
             {PRIMARY_SUBJECTS.map((s, i) => (
               <div key={i}
-                className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl ${s.bg} border border-white/8 text-center flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer transition-all`}>
+                className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl ${s.bg} border border-border/40 text-center flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer transition-all`}>
                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center`}>
                   <s.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                 </div>
@@ -299,7 +299,7 @@ export default function CurriculumPage() {
           <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3">
             {SECONDARY_SUBJECTS.map((s, i) => (
               <div key={i}
-                className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl ${s.bg} border border-white/8 text-center flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer transition-all`}>
+                className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl ${s.bg} border border-border/40 text-center flex flex-col items-center gap-1.5 sm:gap-2 cursor-pointer transition-all`}>
                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center`}>
                   <s.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                 </div>
@@ -333,7 +333,7 @@ export default function CurriculumPage() {
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
                 variants={fadeUp} custom={i * 0.05}
                 whileHover={{ y: -4, scale: 1.02 }}
-                className={`p-4 rounded-2xl ${s.bg} border border-white/8 flex items-center gap-3 cursor-pointer transition-all`}>
+                className={`p-4 rounded-2xl ${s.bg} border border-border/40 flex items-center gap-3 cursor-pointer transition-all`}>
                 <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center shrink-0`}>
                   <s.icon className="w-4 h-4 text-white" />
                 </div>
@@ -354,7 +354,7 @@ export default function CurriculumPage() {
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
                   activeTab === tab.key
                     ? "bg-primary text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}>
                 {language === "ar" ? tab.ar : language === "so" ? tab.so : tab.en}
               </motion.button>
@@ -367,7 +367,7 @@ export default function CurriculumPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t("Search subjects...", "بحث في المواد...", "Raadi maaddooyinka...")}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-full bg-card border border-white/10 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/40 transition-colors"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-full bg-card border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/40 transition-colors"
             />
             {search && (
               <button onClick={() => setSearch("")}
@@ -411,7 +411,7 @@ export default function CurriculumPage() {
         {/* Stats bar */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           transition={{ delay: 0.3 }}
-          className="mt-16 p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10 flex flex-col items-center gap-4 text-center">
+          className="mt-16 p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-border flex flex-col items-center gap-4 text-center">
           <div>
             <h3 className="font-black text-foreground text-lg sm:text-xl mb-1">
               {t("Want to track your progress?", "هل تريد تتبع تقدمك؟", "Rabtaa inaad horumarkagaada la socotid?")}
@@ -428,7 +428,7 @@ export default function CurriculumPage() {
               </div>
             </Link>
             <Link href="/pricing" className="w-full sm:w-auto">
-              <div className="px-6 py-3 rounded-full border border-white/20 text-foreground text-sm font-bold flex items-center justify-center hover:bg-white/5 transition-colors">
+              <div className="px-6 py-3 rounded-full border border-border text-foreground text-sm font-bold flex items-center justify-center hover:bg-muted transition-colors">
                 {t("View Pricing", "عرض الأسعار", "Qiimaha Arag")}
               </div>
             </Link>

@@ -178,12 +178,12 @@ export default function Home() {
               {t("Explore Courses", "استكشف الدورات", "Sahmi Koorsooyinka")}
             </Link>
             <Link href="/auth/register"
-              className="px-6 py-3.5 rounded-full bg-white/8 border border-white/20 text-foreground font-bold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-white/12 hover:border-white/30 transition-all">
-              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 shrink-0" />
+              className="px-6 py-3.5 rounded-full bg-card border border-border text-foreground font-bold text-sm sm:text-base flex items-center justify-center gap-2 hover:border-primary/40 transition-all">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 shrink-0" />
               {t("Start Learning Free", "ابدأ التعلم مجاناً", "Bilaash Bilow")}
             </Link>
             <Link href="/ai-tutor"
-              className="px-6 py-3.5 rounded-full bg-violet-600/15 border border-violet-500/30 text-violet-300 font-bold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-violet-600/25 transition-all">
+              className="px-6 py-3.5 rounded-full bg-violet-50 dark:bg-violet-600/15 border border-violet-400/50 dark:border-violet-500/30 text-violet-700 dark:text-violet-300 font-bold text-sm sm:text-base flex items-center justify-center gap-2 hover:bg-violet-100 dark:hover:bg-violet-600/25 transition-all">
               <Bot className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
               {t("Try AI Tutor", "جرب المعلم الذكي", "AI Bare Tijaabi")}
             </Link>
