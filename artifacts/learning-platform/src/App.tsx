@@ -58,30 +58,30 @@ function App() {
                   {/* Auth callback — standalone, no layout */}
                   <Route path="/auth/callback" component={AuthCallback} />
 
-                  {/* Admin login — standalone */}
-                  <Route path="/admin/login" component={AdminLogin} />
+                  {/* Admin login — hidden, standalone */}
+                  <Route path="/management-portal/login" component={AdminLogin} />
 
-                  {/* Admin routes */}
-                  <Route path="/admin">
+                  {/* Admin routes — hidden URL, no auth restriction during development */}
+                  <Route path="/management-portal">
                     <AdminLayout>
                       <Switch>
-                        <ProtectedRoute path="/admin" component={AdminDashboard} adminOnly />
+                        <Route path="/management-portal" component={AdminDashboard} />
                         <Route component={NotFound} />
                       </Switch>
                     </AdminLayout>
                   </Route>
-                  <Route path="/admin/:rest*">
+                  <Route path="/management-portal/:rest*">
                     <AdminLayout>
                       <Switch>
-                        <ProtectedRoute path="/admin/courses"       component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/users"         component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/payments"      component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/codes"         component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/analytics"     component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/certificates"  component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/content"       component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/announcements" component={AdminDashboard} adminOnly />
-                        <ProtectedRoute path="/admin/settings"      component={AdminSettings}  adminOnly />
+                        <Route path="/management-portal/courses"       component={AdminDashboard} />
+                        <Route path="/management-portal/users"         component={AdminDashboard} />
+                        <Route path="/management-portal/payments"      component={AdminDashboard} />
+                        <Route path="/management-portal/codes"         component={AdminDashboard} />
+                        <Route path="/management-portal/analytics"     component={AdminDashboard} />
+                        <Route path="/management-portal/certificates"  component={AdminDashboard} />
+                        <Route path="/management-portal/content"       component={AdminDashboard} />
+                        <Route path="/management-portal/announcements" component={AdminDashboard} />
+                        <Route path="/management-portal/settings"      component={AdminSettings} />
                         <Route component={NotFound} />
                       </Switch>
                     </AdminLayout>

@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { Eye, EyeOff, Loader2, User, Mail, Lock, CheckCircle, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Loader2, User, Mail, Lock, CheckCircle, ArrowRight, SkipForward } from "lucide-react";
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   if (!pw) return { score: 0, label: "", color: "" };
@@ -318,7 +318,24 @@ export default function Register() {
             <span className="text-blue-400 cursor-pointer hover:underline">{t("Privacy Policy", "سياسة الخصوصية", "Xeerka Sirta")}</span>
           </p>
 
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-5 flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/8" />
+            <span className="text-xs text-muted-foreground px-2">or</span>
+            <div className="flex-1 h-px bg-white/8" />
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={() => setLocation("/")}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            className="mt-4 w-full py-3 rounded-xl border border-white/10 text-muted-foreground hover:text-white hover:border-white/20 hover:bg-white/5 font-medium text-sm flex items-center justify-center gap-2 transition-all"
+          >
+            <SkipForward className="w-4 h-4" />
+            {t("Skip for Now — Continue as Guest", "تخطى الآن — تصفح كضيف", "Hadda Ka Bood — Sii Wad Martida")}
+          </motion.button>
+
+          <div className="mt-4 flex items-center gap-3">
             <div className="flex-1 h-px bg-white/8" />
             <span className="text-xs text-muted-foreground px-2">
               {t("Already have an account?", "لديك حساب بالفعل؟", "Ma haysataa akoon?")}

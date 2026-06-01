@@ -159,7 +159,7 @@ export function ProtectedRoute({ component: Component, adminOnly = false, ...res
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        setLocation(adminOnly ? "/admin/login" : "/auth/login");
+        setLocation(adminOnly ? "/management-portal/login" : "/auth/login");
       } else if (adminOnly && user.role !== "admin") {
         toast({
           title: "Access Denied",

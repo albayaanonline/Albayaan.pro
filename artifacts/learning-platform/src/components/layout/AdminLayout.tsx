@@ -10,13 +10,13 @@ import { motion, AnimatePresence } from "framer-motion";
 const BRAND = "Albayaan.pro";
 
 const NAV_ITEMS = [
-  { href: "/admin",            icon: LayoutDashboard, label: "Overview",      color: "text-blue-400" },
-  { href: "/admin/courses",    icon: BookOpen,        label: "Courses",       color: "text-purple-400" },
-  { href: "/admin/users",      icon: Users,           label: "Users",         color: "text-green-400" },
-  { href: "/admin/payments",   icon: CreditCard,      label: "Payments",      color: "text-yellow-400" },
-  { href: "/admin/codes",      icon: Key,             label: "Access Codes",  color: "text-cyan-400" },
-  { href: "/admin/analytics",  icon: BarChart2,       label: "Analytics",     color: "text-pink-400" },
-  { href: "/admin/settings",   icon: Settings,        label: "Settings",      color: "text-gray-400" },
+  { href: "/management-portal",            icon: LayoutDashboard, label: "Overview",      color: "text-blue-400" },
+  { href: "/management-portal/courses",    icon: BookOpen,        label: "Courses",       color: "text-purple-400" },
+  { href: "/management-portal/users",      icon: Users,           label: "Users",         color: "text-green-400" },
+  { href: "/management-portal/payments",   icon: CreditCard,      label: "Payments",      color: "text-yellow-400" },
+  { href: "/management-portal/codes",      icon: Key,             label: "Access Codes",  color: "text-cyan-400" },
+  { href: "/management-portal/analytics",  icon: BarChart2,       label: "Analytics",     color: "text-pink-400" },
+  { href: "/management-portal/settings",   icon: Settings,        label: "Settings",      color: "text-gray-400" },
 ];
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {

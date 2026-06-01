@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { Eye, EyeOff, Loader2, GraduationCap, Mail, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Loader2, GraduationCap, Mail, Lock, ArrowRight, SkipForward } from "lucide-react";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -170,13 +170,24 @@ export default function Login() {
             </motion.button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
+          <div className="my-5 flex items-center gap-3">
             <div className="flex-1 h-px bg-white/8" />
-            <span className="text-xs text-muted-foreground px-2">Al-Bayaan College</span>
+            <span className="text-xs text-muted-foreground px-2">or</span>
             <div className="flex-1 h-px bg-white/8" />
           </div>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <motion.button
+            type="button"
+            onClick={() => setLocation("/")}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            className="w-full py-3 rounded-xl border border-white/10 text-muted-foreground hover:text-white hover:border-white/20 hover:bg-white/5 font-medium text-sm flex items-center justify-center gap-2 transition-all"
+          >
+            <SkipForward className="w-4 h-4" />
+            {t("Skip for Now — Continue as Guest", "تخطى الآن — تصفح كضيف", "Hadda Ka Bood — Sii Wad Martida")}
+          </motion.button>
+
+          <p className="text-center text-sm text-muted-foreground mt-5">
             {t("Don't have an account?", "ليس لديك حساب؟", "Ma lihin akoon?")}{" "}
             <Link href="/auth/register" className="text-blue-400 font-semibold hover:text-blue-300 transition-colors">
               {t("Create account free", "إنشاء حساب مجاناً", "Bilaash samee akoon")}

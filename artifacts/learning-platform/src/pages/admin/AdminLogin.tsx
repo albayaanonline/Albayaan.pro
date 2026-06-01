@@ -71,7 +71,7 @@ export default function AdminLogin() {
         supabaseId: userData.supabaseId,
       });
 
-      setLocation("/admin");
+      setLocation("/management-portal");
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
     } finally {

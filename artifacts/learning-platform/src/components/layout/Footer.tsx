@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   MessageCircle, Mail, Globe, BookOpen, LayoutDashboard,
-  Key, ShieldCheck, DollarSign, Info, Users, Trophy, Bot, GraduationCap, Lightbulb,
+  Key, DollarSign, Info, Users, Trophy, Bot, GraduationCap, Lightbulb,
 } from "lucide-react";
 
 const BRAND = "Albayaan.pro";
@@ -88,7 +88,6 @@ export function Footer() {
                 { href: "/contact",    icon: Mail,          label: t("Contact",     "تواصل معنا",      "Nala Xiriir") },
                 { href: "/access-code",icon: Key,           label: t("Redeem Code", "استرداد الرمز",   "Furo Koodhka") },
                 { href: "/dashboard",  icon: LayoutDashboard,label: t("Dashboard",  "لوحة التحكم",     "Dhaq-dhaqaaqa") },
-                { href: "/admin/login",icon: ShieldCheck,   label: "Admin Panel" },
               ].map((item, i) => (
                 <li key={i}>
                   <Link href={item.href}
