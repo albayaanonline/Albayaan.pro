@@ -5,11 +5,18 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    document.body.style.overflow = "hidden";
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(onDone, 500);
+      setTimeout(() => {
+        document.body.style.overflow = "";
+        onDone();
+      }, 500);
     }, 1800);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      document.body.style.overflow = "";
+    };
   }, [onDone]);
 
   return (

@@ -47,6 +47,7 @@ function App() {
   return (
     <>
       {!splashDone && <SplashScreen onDone={handleSplashDone} />}
+      <div style={{ visibility: splashDone ? "visible" : "hidden" }}>
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
           <AuthProvider>
@@ -122,6 +123,7 @@ function App() {
           </AuthProvider>
         </LanguageProvider>
       </QueryClientProvider>
+      </div>
     </>
   );
 }
