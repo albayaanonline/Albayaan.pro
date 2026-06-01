@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, count, desc } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import {
   db, usersTable, paymentsTable, accessCodesTable, coursesTable,
   courseEnrollmentsTable, lessonsTable, certificatesTable,
@@ -750,7 +751,6 @@ router.post("/admin/change-password", async (req, res): Promise<void> => {
     return;
   }
 
-  const { default: bcrypt } = await import("bcryptjs");
   const valid = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!valid) {
     res.status(401).json({ error: "Current password is incorrect" });

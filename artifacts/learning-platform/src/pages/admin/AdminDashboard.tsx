@@ -6,6 +6,8 @@ import {
   useGetAdminCodes, useConfirmPayment, useCreateCode, useDeactivateCode
 } from "@/lib/api-client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { adminFetch } from "@/lib/adminFetch";
+import { FileUploader } from "@/components/admin/FileUploader";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
@@ -274,7 +276,7 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
   const { data: lessonsData, refetch } = useQuery({
     queryKey: ["admin-lessons", courseId],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/courses/${courseId}/lessons`, { credentials: "include" });
+      const res = await adminFetch(`/api/admin/courses/${courseId}/lessons`);
       if (!res.ok) return [];
       return res.json();
     },
@@ -284,10 +286,8 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
   const handleAddLesson = async (data: LessonFormData) => {
     setSavingLesson(true);
     try {
-      const res = await fetch(`/api/admin/courses/${courseId}/lessons`, {
+      const res = await adminFetch(`/api/admin/courses/${courseId}/lessons`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ ...data, videoUrl: data.videoUrl || null }),
       });
       if (!res.ok) { const e = await res.json(); toast(e.error || "Failed to add lesson", "err"); return; }
@@ -300,10 +300,8 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
   const handleEditLesson = async (lessonId: number, data: LessonFormData) => {
     setSavingLesson(true);
     try {
-      const res = await fetch(`/api/admin/lessons/${lessonId}`, {
+      const res = await adminFetch(`/api/admin/lessons/${lessonId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ ...data, videoUrl: data.videoUrl || null }),
       });
       if (!res.ok) { const e = await res.json(); toast(e.error || "Failed to update lesson", "err"); return; }
@@ -315,7 +313,7 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
 
   const handleDeleteLesson = async (lessonId: number) => {
     try {
-      const res = await fetch(`/api/admin/lessons/${lessonId}`, { method: "DELETE", credentials: "include" });
+      const res = await adminFetch(`/api/admin/lessons/${lessonId}`, { method: "DELETE" });
       if (!res.ok) { toast("Failed to delete lesson", "err"); return; }
       toast("Lesson deleted");
       setDeletingId(null);
@@ -445,7 +443,7 @@ function CertVerifyWidget() {
     setIsError(false);
     setResult(null);
     try {
-      const res = await fetch(`/api/certificates/${encodeURIComponent(trimmed)}`, { credentials: "include" });
+      const res = await adminFetch(`/api/certificates/${encodeURIComponent(trimmed)}`);
       if (!res.ok) { setIsError(true); return; }
       const data = await res.json();
       setResult(data);
@@ -521,10 +519,8 @@ function CertificateIssueWidget({ users, courses, onIssued }: { users: any[]; co
     }
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/certificates/issue", {
+      const res = await adminFetch("/api/admin/certificates/issue", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ userId: Number(userId), courseId: Number(courseId), studentName, courseName }),
       });
       const data = await res.json();
@@ -626,7 +622,7 @@ export default function AdminDashboard() {
   const { data: adminCoursesData, refetch: refetchCourses } = useQuery({
     queryKey: ["admin-courses"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/courses", { credentials: "include" });
+      const res = await adminFetch("/api/admin/courses");
       if (!res.ok) return [];
       return res.json();
     },
@@ -636,7 +632,7 @@ export default function AdminDashboard() {
   const { data: adminCertsData, refetch: refetchCerts } = useQuery({
     queryKey: ["admin-certificates"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/certificates", { credentials: "include" });
+      const res = await adminFetch("/api/admin/certificates");
       if (!res.ok) return [];
       return res.json();
     },
@@ -647,7 +643,7 @@ export default function AdminDashboard() {
   const { data: analyticsData } = useQuery({
     queryKey: ["admin-analytics"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/analytics", { credentials: "include" });
+      const res = await adminFetch("/api/admin/analytics");
       if (!res.ok) return null;
       return res.json();
     },
@@ -683,14 +679,9 @@ export default function AdminDashboard() {
     try {
       const method = editingCourse ? "PUT" : "POST";
       const url = editingCourse ? `/api/admin/courses/${editingCourse}` : "/api/admin/courses";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
+      const res = await adminFetch(url, { method, body: JSON.stringify(data) });
       if (!res.ok) { const e = await res.json(); toast(e.error || "Failed to save course", "err"); return; }
-      toast(editingCourse ? "Course updated" : "Course created");
+      toast(editingCourse ? "Course updated" : "Course created — publish it to show on the website");
       await refetchCourses();
     } catch { toast("Network error", "err"); } finally {
       setSavingCourse(false);
@@ -701,7 +692,7 @@ export default function AdminDashboard() {
 
   const handleDeleteCourse = async (id: number) => {
     try {
-      const res = await fetch(`/api/admin/courses/${id}`, { method: "DELETE", credentials: "include" });
+      const res = await adminFetch(`/api/admin/courses/${id}`, { method: "DELETE" });
       if (!res.ok) { toast("Failed to delete course", "err"); return; }
       toast("Course deleted");
       await refetchCourses();
@@ -712,21 +703,19 @@ export default function AdminDashboard() {
   const handleTogglePublish = async (course: any) => {
     setTogglingPublish(course.id);
     try {
-      const res = await fetch(`/api/admin/courses/${course.id}/publish`, {
+      const res = await adminFetch(`/api/admin/courses/${course.id}/publish`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ isPublished: !course.isPublished }),
       });
       if (!res.ok) { toast("Failed to update publish status", "err"); return; }
-      toast(course.isPublished ? "Course unpublished" : "Course published");
+      toast(course.isPublished ? "Course unpublished (hidden from website)" : "Course published! Now visible on website");
       await refetchCourses();
     } catch { toast("Network error", "err"); } finally { setTogglingPublish(null); }
   };
 
   const handleDeleteUser = async (userId: number) => {
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE", credentials: "include" });
+      const res = await adminFetch(`/api/admin/users/${userId}`, { method: "DELETE" });
       if (!res.ok) { toast("Failed to delete user", "err"); return; }
       toast("User deleted");
       setDeletingUser(null);
@@ -737,10 +726,8 @@ export default function AdminDashboard() {
   const handleToggleUserRole = async (u: any) => {
     const newRole = u.role === "admin" ? "user" : "admin";
     try {
-      const res = await fetch(`/api/admin/users/${u.id}/role`, {
+      const res = await adminFetch(`/api/admin/users/${u.id}/role`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ role: newRole }),
       });
       if (!res.ok) { toast("Failed to change role", "err"); return; }
@@ -751,10 +738,7 @@ export default function AdminDashboard() {
 
   const handleRejectPayment = async (paymentId: number) => {
     try {
-      const res = await fetch(`/api/admin/payments/${paymentId}/reject`, {
-        method: "PATCH",
-        credentials: "include",
-      });
+      const res = await adminFetch(`/api/admin/payments/${paymentId}/reject`, { method: "PATCH" });
       if (!res.ok) { toast("Failed to reject payment", "err"); return; }
       toast("Payment rejected");
       refetchPayments();
@@ -1040,81 +1024,112 @@ export default function AdminDashboard() {
         {tab === "content" && (
           <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-white">Content Management</h2>
+              <h2 className="text-lg font-bold text-white">Content & File Uploads</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Attach video, PDF, and content to lessons. All content is referenced by URL — upload files to an external host and paste the link.
+                Upload videos, PDFs, images, and other course materials directly. Files are stored securely and the URL is automatically generated for you to attach to lessons.
               </p>
             </div>
 
-            {/* Upload guide */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                {
-                  icon: Video,
-                  title: "Video Content",
-                  color: "text-blue-400",
-                  bg: "bg-blue-500/10",
-                  border: "border-blue-500/20",
-                  items: [
-                    "YouTube: paste the full watch URL",
-                    "Vimeo: paste the video URL",
-                    "Direct MP4: any public HTTPS URL",
-                    "Google Drive: use shareable link",
-                  ],
-                },
-                {
-                  icon: FileText,
-                  title: "PDF / Documents",
-                  color: "text-green-400",
-                  bg: "bg-green-500/10",
-                  border: "border-green-500/20",
-                  items: [
-                    "Google Drive: File → Share → Copy link",
-                    "Dropbox: share link (set to public)",
-                    "AWS S3: public object URL",
-                    "Any public HTTPS PDF link",
-                  ],
-                },
-                {
-                  icon: ImageIcon,
-                  title: "Thumbnails & Images",
-                  color: "text-purple-400",
-                  bg: "bg-purple-500/10",
-                  border: "border-purple-500/20",
-                  items: [
-                    "Imgur: direct image link (.jpg/.png)",
-                    "Cloudinary: free tier available",
-                    "AWS S3: public bucket URL",
-                    "Any public HTTPS image URL",
-                  ],
-                },
-              ].map(({ icon: Icon, title, color, bg, border, items }) => (
-                <div key={title} className={`p-5 rounded-2xl bg-card border ${border}`}>
-                  <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center mb-3`}>
-                    <Icon className={`w-5 h-5 ${color}`} />
+            {/* Upload sections */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+              {/* Video Upload */}
+              <div className="p-5 rounded-2xl bg-card border border-blue-500/20">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <Video className="w-4 h-4 text-blue-400" />
                   </div>
-                  <h3 className="font-semibold text-white text-sm mb-3">{title}</h3>
-                  <ul className="space-y-1.5">
-                    {items.map(item => (
-                      <li key={item} className="flex items-start gap-2 text-xs text-muted-foreground">
-                        <ChevronRight className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground/50" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
+                  <div>
+                    <h3 className="font-semibold text-white text-sm">Upload Video</h3>
+                    <p className="text-xs text-muted-foreground">MP4, WebM, MOV — up to 500 MB</p>
+                  </div>
                 </div>
-              ))}
+                <FileUploader
+                  accept="video/*"
+                  label="Click or drag a video file here"
+                  maxSizeMb={500}
+                  onUploaded={(f) => toast(`Video uploaded: ${f.name}`)}
+                />
+                <p className="text-xs text-muted-foreground mt-3">Or paste a YouTube / Vimeo URL directly into the lesson's Video URL field.</p>
+              </div>
+
+              {/* PDF Upload */}
+              <div className="p-5 rounded-2xl bg-card border border-green-500/20">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white text-sm">Upload PDF / Document</h3>
+                    <p className="text-xs text-muted-foreground">PDF, DOCX, PPTX — up to 100 MB</p>
+                  </div>
+                </div>
+                <FileUploader
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  label="Click or drag a document here"
+                  maxSizeMb={100}
+                  onUploaded={(f) => toast(`Document uploaded: ${f.name}`)}
+                />
+              </div>
+
+              {/* Image Upload */}
+              <div className="p-5 rounded-2xl bg-card border border-purple-500/20">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                    <ImageIcon className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white text-sm">Upload Image / Thumbnail</h3>
+                    <p className="text-xs text-muted-foreground">JPG, PNG, WebP, GIF — up to 20 MB</p>
+                  </div>
+                </div>
+                <FileUploader
+                  accept="image/*"
+                  label="Click or drag an image here"
+                  maxSizeMb={20}
+                  onUploaded={(f) => toast(`Image uploaded: ${f.name}`)}
+                />
+              </div>
+
+              {/* General Files */}
+              <div className="p-5 rounded-2xl bg-card border border-orange-500/20">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                    <Upload className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white text-sm">Upload Any File</h3>
+                    <p className="text-xs text-muted-foreground">ZIP, audio, spreadsheets — up to 200 MB</p>
+                  </div>
+                </div>
+                <FileUploader
+                  accept="*/*"
+                  label="Click or drag any file here"
+                  maxSizeMb={200}
+                  onUploaded={(f) => toast(`File uploaded: ${f.name}`)}
+                />
+              </div>
+            </div>
+
+            {/* How to use uploaded URLs */}
+            <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/15">
+              <div className="flex items-start gap-3">
+                <LinkIcon className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-white">How to attach uploaded files to lessons</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    After uploading, copy the generated URL. Then go to <button className="text-primary hover:underline" onClick={() => setTab("courses")}>Courses</button>, expand a course, open a lesson for editing, and paste the URL into the <strong className="text-white">Video URL</strong> or <strong className="text-white">Content</strong> field.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Course selector for content management */}
             <div className="p-6 rounded-2xl bg-card border border-white/10">
               <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                <Upload className="w-4 h-4 text-blue-400" />
-                Manage Lesson Content
+                <BookOpen className="w-4 h-4 text-blue-400" />
+                Quick Access — Manage Lesson Content
               </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Go to a course below to add or edit lesson content (video URL, notes, duration, lock status).
-              </p>
               {apiCourses.length === 0 ? (
                 <div className="text-center py-8">
                   <BookOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-30" />
@@ -1126,9 +1141,9 @@ export default function AdminDashboard() {
                   {apiCourses.map((course: any) => (
                     <div key={course.id} className="flex items-center justify-between gap-4 p-4 rounded-xl bg-white/3 border border-white/8 hover:border-white/15 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0 overflow-hidden">
                           {course.thumbnailUrl
-                            ? <img src={course.thumbnailUrl} alt="" className="w-full h-full object-cover rounded-xl" onError={e => { (e.currentTarget as any).style.display = "none"; }} />
+                            ? <img src={course.thumbnailUrl} alt="" className="w-full h-full object-cover" onError={e => { (e.currentTarget as any).style.display = "none"; }} />
                             : <BookOpen className="w-4 h-4 text-white" />}
                         </div>
                         <div className="min-w-0">
@@ -1146,21 +1161,6 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Tips */}
-            <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/15">
-              <div className="flex items-start gap-3">
-                <LinkIcon className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-white">URL-based Content Works on Vercel</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Since the app is deployed on Vercel (serverless), files cannot be stored on the server directly.
-                    All content is referenced by public URL — this is the recommended, scalable approach.
-                    Use YouTube, Vimeo, Google Drive, Dropbox, or any CDN for hosting your media files.
-                  </p>
-                </div>
-              </div>
             </div>
           </motion.div>
         )}
