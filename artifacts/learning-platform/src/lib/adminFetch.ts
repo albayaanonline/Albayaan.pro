@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { env } from "@/lib/env";
 
 async function getAdminToken(): Promise<string | null> {
   if (!supabase) return null;
@@ -8,6 +9,26 @@ async function getAdminToken(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Resolves an API URL for production deployments.
+ *
+ * Convention: set VITE_API_BASE_URL to the full API server base including /api
+ * prefix, e.g. "https://api.albayaan.pro/api".
+ *
+ * adminFetch() takes paths like "/api/admin/courses" — in production the /api
+ * prefix is stripped so it is not doubled when prepended to the base URL.
+ * getApiUrl() takes paths like "/storage/upload" (no /api prefix) — the base
+ * URL's /api already provides the prefix.
+ */
+function resolveApiUrl(url: string): string {
+  if (!env.apiBaseUrl) return url; // dev: relative URL, Vite proxy handles it
+  const base = env.apiBaseUrl.replace(/\/$/, "");
+  // Strip leading /api from the path so it isn't doubled when using
+  // VITE_API_BASE_URL that already includes /api (e.g. https://host/api)
+  const path = url.replace(/^\/api(?=\/|$)/, "") || "/";
+  return `${base}${path}`;
 }
 
 export async function adminFetch(
@@ -24,7 +45,7 @@ export async function adminFetch(
   if (options.body && typeof options.body === "string" && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
-  return fetch(url, { ...options, headers, credentials: "include" });
+  return fetch(resolveApiUrl(url), { ...options, headers, credentials: "include" });
 }
 
 export async function adminJson<T = unknown>(

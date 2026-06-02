@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Upload, Link, CheckCircle, X, Loader2, Image as ImageIcon, Video, File as FileIcon, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/env";
 
 interface MediaUrlInputProps {
   value: string;
@@ -114,7 +115,7 @@ export function MediaUrlInput({
           reject(new Error("Upload cancelled"));
         });
 
-        xhr.open("POST", "/api/storage/upload");
+        xhr.open("POST", getApiUrl("/storage/upload"));
         // Send file type via custom header; browser sets Content-Type automatically
         xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
         xhr.setRequestHeader("x-filename", encodeURIComponent(file.name));

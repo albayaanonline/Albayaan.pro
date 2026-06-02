@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, X, CheckCircle, Loader2, FileText, Video, Image as ImageIcon, File as FileIcon, Copy, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/env";
 
 export interface UploadedFile {
   name: string;
@@ -109,19 +110,18 @@ export function FileUploader({
           reject(new Error("__CANCELLED__"));
         });
 
-        xhr.open("POST", "/api/storage/upload");
+        xhr.open("POST", getApiUrl("/storage/upload"));
         xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
         xhr.setRequestHeader("x-filename", encodeURIComponent(file.name));
         if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
         xhr.withCredentials = true;
-        // Send raw file — browser sets Content-Type automatically; server streams to GCS
         xhr.send(file);
       });
 
       const uploaded: UploadedFile = {
         name: file.name,
-        objectPath: result.objectPath,
-        publicUrl: result.publicUrl,
+        objectPath: result.objectPath ?? result.publicUrl ?? "",
+        publicUrl: result.publicUrl ?? (result as any).url ?? "",
         contentType: file.type || "application/octet-stream",
         size: file.size,
       };

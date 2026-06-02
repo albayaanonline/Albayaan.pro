@@ -624,21 +624,23 @@ export default function AdminDashboard() {
     queryFn: async () => {
       const res = await adminFetch("/api/admin/courses");
       if (!res.ok) return [];
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
   });
-  const apiCourses: any[] = adminCoursesData ?? [];
+  const apiCourses: any[] = Array.isArray(adminCoursesData) ? adminCoursesData : [];
 
   const { data: adminCertsData, refetch: refetchCerts } = useQuery({
     queryKey: ["admin-certificates"],
     queryFn: async () => {
       const res = await adminFetch("/api/admin/certificates");
       if (!res.ok) return [];
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: tab === "certificates",
   });
-  const adminCerts: any[] = adminCertsData ?? [];
+  const adminCerts: any[] = Array.isArray(adminCertsData) ? adminCertsData : [];
 
   const { data: analyticsData } = useQuery({
     queryKey: ["admin-analytics"],
@@ -651,9 +653,9 @@ export default function AdminDashboard() {
   });
 
   const statsData = stats as any;
-  const usersList: any[] = (users as any[]) ?? [];
-  const paymentsList: any[] = (payments as any[]) ?? [];
-  const codesList: any[] = (codes as any[]) ?? [];
+  const usersList: any[] = Array.isArray(users) ? users : [];
+  const paymentsList: any[] = Array.isArray(payments) ? payments : [];
+  const codesList: any[] = Array.isArray(codes) ? codes : [];
 
   const filteredUsers = useMemo(() => {
     if (!userSearch) return usersList;
@@ -683,6 +685,7 @@ export default function AdminDashboard() {
       if (!res.ok) { const e = await res.json(); toast(e.error || "Failed to save course", "err"); return; }
       toast(editingCourse ? "Course updated" : "Course created — publish it to show on the website");
       await refetchCourses();
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
     } catch { toast("Network error", "err"); } finally {
       setSavingCourse(false);
       setShowAddCourseForm(false);
@@ -696,6 +699,7 @@ export default function AdminDashboard() {
       if (!res.ok) { toast("Failed to delete course", "err"); return; }
       toast("Course deleted");
       await refetchCourses();
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
     } catch { toast("Network error", "err"); }
     setDeletingCourse(null);
   };
@@ -710,6 +714,7 @@ export default function AdminDashboard() {
       if (!res.ok) { toast("Failed to update publish status", "err"); return; }
       toast(course.isPublished ? "Course unpublished (hidden from website)" : "Course published! Now visible on website");
       await refetchCourses();
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
     } catch { toast("Network error", "err"); } finally { setTogglingPublish(null); }
   };
 
