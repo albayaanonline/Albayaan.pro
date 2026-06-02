@@ -83,6 +83,7 @@ export function FileUploader({
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        credentials: "include",
         body: JSON.stringify({
           filename: file.name,
           contentType: file.type || "application/octet-stream",

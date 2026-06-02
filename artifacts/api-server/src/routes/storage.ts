@@ -7,6 +7,7 @@ import { uploadToSupabase, createSignedUploadUrl } from "../lib/supabaseAdmin";
 const router: IRouter = Router();
 
 async function isAdmin(req: Request): Promise<boolean> {
+  // Path 1: Supabase Bearer token
   const token = getBearerToken(req);
   if (token) {
     const supabaseUser = await verifySupabaseToken(token);
@@ -15,17 +16,34 @@ async function isAdmin(req: Request): Promise<boolean> {
         .select()
         .from(usersTable)
         .where(eq(usersTable.email, supabaseUser.email));
-      if (dbUser?.role === "admin") return true;
+      if (dbUser?.role === "admin") {
+        console.log("[storage] isAdmin: granted via Supabase token for", supabaseUser.email);
+        return true;
+      }
+      console.warn("[storage] isAdmin: token valid but user is not admin, email=", supabaseUser.email, "role=", dbUser?.role ?? "not found");
+    } else {
+      console.warn("[storage] isAdmin: Bearer token present but Supabase verification failed");
     }
+  } else {
+    console.log("[storage] isAdmin: no Bearer token");
   }
+
+  // Path 2: Express session cookie
   const sessionUserId = (req as any).session?.userId;
   if (sessionUserId) {
     const [user] = await db
       .select()
       .from(usersTable)
       .where(eq(usersTable.id, sessionUserId));
-    if (user?.role === "admin") return true;
+    if (user?.role === "admin") {
+      console.log("[storage] isAdmin: granted via session for userId=", sessionUserId);
+      return true;
+    }
+    console.warn("[storage] isAdmin: session userId=", sessionUserId, "but role=", user?.role ?? "not found");
+  } else {
+    console.log("[storage] isAdmin: no session userId (cookie may be missing — credentials:include required)");
   }
+
   return false;
 }
 
