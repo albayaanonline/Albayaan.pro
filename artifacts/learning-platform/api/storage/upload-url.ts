@@ -68,11 +68,11 @@ export default async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
-  const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
+  // Ensure bucket exists
   try {
+    const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
     const { data: buckets } = await supabaseAdmin.storage.listBuckets();
     if (!buckets?.some((b: any) => b.name === BUCKET)) {
       await supabaseAdmin.storage.createBucket(BUCKET, {
@@ -81,36 +81,52 @@ export default async function handler(req: any, res: any): Promise<void> {
         allowedMimeTypes: null,
       });
     }
-  } catch {
-    // Non-fatal
-  }
+  } catch { /* non-fatal */ }
 
-  const folder = contentType.startsWith("video/")
+  const folder = (contentType as string).startsWith("video/")
     ? "videos"
-    : contentType.startsWith("image/")
+    : (contentType as string).startsWith("image/")
     ? "images"
     : "documents";
-  const ext =
-    (filename as string).split(".").pop()?.toLowerCase() ?? "bin";
-  const path = `${folder}/${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}.${ext}`;
+  const ext = (filename as string).split(".").pop()?.toLowerCase() ?? "bin";
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-  const { data, error } = await supabaseAdmin.storage
-    .from(BUCKET)
-    .createSignedUploadUrl(path);
+  // Use Supabase REST API to get signed upload URL
+  // Returns { url: "/object/upload/sign/...", token: "..." }
+  const signRes = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/upload/sign/${BUCKET}/${path}`,
+    {
+      method: "POST",
+      headers: {
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+    }
+  );
 
-  if (error || !data) {
+  if (!signRes.ok) {
+    const body = await signRes.text().catch(() => "");
     res.status(500).json({
-      error: `Failed to create signed upload URL: ${error?.message ?? "unknown error"}`,
+      error: `Failed to create signed upload URL (${signRes.status}): ${body}`,
     });
     return;
   }
 
+  const data = await signRes.json();
+
+  if (!data.url || !data.token) {
+    res.status(500).json({
+      error: `Unexpected Supabase response: ${JSON.stringify(data)}`,
+    });
+    return;
+  }
+
+  // Build the full PUT URL the client will use
+  const signedUrl = `${SUPABASE_URL}/storage/v1${data.url}`;
   const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 
   res.json({
-    signedUrl: data.signedUrl,
+    signedUrl,
     token: data.token,
     path,
     publicUrl,

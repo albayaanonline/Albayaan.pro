@@ -11,50 +11,59 @@ export const supabaseAdmin =
       })
     : null;
 
-export async function ensureStorageBucket(): Promise<void> {
-  if (!supabaseAdmin) {
-    console.warn(
-      "[storage] SUPABASE_SERVICE_ROLE_KEY is not set — file uploads via the backend will fail. " +
-        "Add it to your API server environment variables.",
-    );
-    return;
-  }
+async function ensureBucket(): Promise<void> {
+  if (!supabaseAdmin) return;
   try {
-    const { data: buckets, error } = await supabaseAdmin.storage.listBuckets();
-    if (error) {
-      console.warn("[storage] Could not list buckets:", error.message);
-      return;
-    }
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
     if (!buckets?.some((b) => b.name === BUCKET)) {
-      const { error: createErr } = await supabaseAdmin.storage.createBucket(BUCKET, {
+      await supabaseAdmin.storage.createBucket(BUCKET, {
         public: true,
         fileSizeLimit: null,
         allowedMimeTypes: null,
       });
-      if (createErr) {
-        console.warn("[storage] Could not create bucket:", createErr.message);
-      } else {
-        console.log(`[storage] Created Supabase Storage bucket: ${BUCKET}`);
-      }
-    } else {
-      console.log(`[storage] Bucket '${BUCKET}' is ready.`);
+      console.log(`[storage] Created bucket: ${BUCKET}`);
     }
-  } catch (err) {
-    console.warn("[storage] Bucket initialization failed:", err);
-  }
+  } catch { /* non-fatal */ }
 }
 
+export async function ensureStorageBucket(): Promise<void> {
+  if (!supabaseAdmin) {
+    console.warn(
+      "[storage] SUPABASE_SERVICE_ROLE_KEY is not set — file uploads will fail.",
+    );
+    return;
+  }
+  await ensureBucket();
+  console.log(`[storage] Bucket '${BUCKET}' is ready.`);
+}
+
+/**
+ * Creates a Supabase signed upload URL so the client can PUT the file
+ * directly to Supabase Storage — bypassing the server entirely.
+ * Works for any file size (no Vercel 4.5 MB function body limit).
+ *
+ * The Supabase REST API returns { url, token } where:
+ *   url  = relative path  e.g. /object/upload/sign/course-media/videos/xxx.mp4?token=...
+ *   token = the raw JWT
+ *
+ * The client must PUT to: ${SUPABASE_URL}/storage/v1${url}
+ * with Content-Type set to the file's MIME type.
+ */
 export async function createSignedUploadUrl(
   filename: string,
   contentType: string,
-): Promise<{ signedUrl: string; token: string; path: string; publicUrl: string; objectPath: string }> {
-  if (!supabaseAdmin) {
+): Promise<{
+  signedUrl: string;   // full PUT URL (SUPABASE_URL/storage/v1/object/upload/sign/...)
+  token: string;
+  path: string;
+  publicUrl: string;
+  objectPath: string;
+}> {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     throw new Error(
-      "Supabase admin not configured. Add SUPABASE_SERVICE_ROLE_KEY to the API server environment.",
+      "Supabase not configured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing.",
     );
   }
-
-  await ensureStorageBucket();
 
   const folder = contentType.startsWith("video/")
     ? "videos"
@@ -65,16 +74,35 @@ export async function createSignedUploadUrl(
   const ext = filename.split(".").pop()?.toLowerCase() ?? "bin";
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-  const { data, error } = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path);
+  // Use Supabase REST API directly — same as what the JS SDK calls internally
+  const res = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/upload/sign/${BUCKET}/${path}`,
+    {
+      method: "POST",
+      headers: {
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+    },
+  );
 
-  if (error || !data) {
-    throw new Error(`Failed to create signed upload URL: ${error?.message ?? "unknown error"}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to create signed upload URL (${res.status}): ${body}`);
   }
 
+  const data = (await res.json()) as { url?: string; token?: string };
+
+  if (!data.url || !data.token) {
+    throw new Error(`Unexpected Supabase response: ${JSON.stringify(data)}`);
+  }
+
+  // Build the full PUT URL the client will use
+  const signedUrl = `${SUPABASE_URL}/storage/v1${data.url}`;
   const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 
   return {
-    signedUrl: data.signedUrl,
+    signedUrl,
     token: data.token,
     path,
     publicUrl,

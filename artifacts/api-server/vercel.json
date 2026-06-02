@@ -1,17 +1,15 @@
 {
   "version": 2,
   "installCommand": "npm install -g pnpm && pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/api-server run build",
+  "buildCommand": "npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm --filter @workspace/api-server run build:vercel",
+  "outputDirectory": "dist-vercel",
   "functions": {
-    "api/index.ts": {
+    "dist-vercel/index.mjs": {
       "maxDuration": 300,
       "memory": 1024
     }
   },
   "routes": [
-    { "src": "/(.*)", "dest": "/api/index.ts" }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+    { "src": "/(.*)", "dest": "/dist-vercel/index.mjs" }
+  ]
 }
