@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
@@ -19,7 +19,6 @@ import {
   Image as ImageIcon, Link as LinkIcon, Play, Send, ChevronRight, Hash,
   Copy, CheckSquare
 } from "lucide-react";
-import { uploadToStorage } from "@/lib/supabase";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -41,19 +40,12 @@ const PATH_TO_TAB: Record<string, AdminTab> = {
 interface CourseFormData {
   title: string; titleAr: string; titleSo: string;
   language: "english" | "arabic" | "multilingual";
-  level: "beginner" | "intermediate" | "advanced"
+  level: "beginner" | "intermediate" | "advanced";
   price: number;
   duration: string;
   description: string;
   descriptionAr: string;
-  thumbnailUrl: string;
-}
-
-const DEFAULT_FORM: CourseFormData = {
-  title: "", titleAr: "", language: "english", level: "beginner",
-  price: 15, duration: "8 weeks", description: "", descriptionAr: "", thumbnailUrl: "",
-  price: number; duration: string;
-  description: string; descriptionAr: string; descriptionSo: string;
+  descriptionSo: string;
   thumbnailUrl: string;
 }
 
@@ -119,13 +111,6 @@ function StatCard({ icon: Icon, label, value, color, bg }: any) {
   );
 }
 
-function CourseForm({
-  initial, onSave, onCancel
-}: { initial?: Partial<CourseFormData>; onSave: (d: CourseFormData) => void; onCancel: () => void }) {
-  const [form, setForm] = useState<CourseFormData>({ ...DEFAULT_FORM, ...initial });
-  const [uploadingThumb, setUploadingThumb] = useState(false);
-  const [thumbError, setThumbError] = useState<string | null>(null);
-  const thumbInputRef = useRef<HTMLInputElement>(null);
 // ─── CourseForm ────────────────────────────────────────────────────────────
 
 function CourseForm({ initial, onSave, onCancel, saving }: {
@@ -136,19 +121,6 @@ function CourseForm({ initial, onSave, onCancel, saving }: {
 }) {
   const [form, setForm] = useState<CourseFormData>({ ...DEFAULT_COURSE, ...initial });
   const set = (k: keyof CourseFormData, v: any) => setForm(f => ({ ...f, [k]: v }));
-
-  const handleThumbUpload = async (file: File) => {
-    setUploadingThumb(true);
-    setThumbError(null);
-    try {
-      const url = await uploadToStorage("thumbnails", file);
-      set("thumbnailUrl", url);
-    } catch (err: any) {
-      setThumbError(err?.message ?? "Upload failed");
-    } finally {
-      setUploadingThumb(false);
-    }
-  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -186,45 +158,6 @@ function CourseForm({ initial, onSave, onCancel, saving }: {
         </Field>
       </div>
 
-      {/* Thumbnail upload */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Course Thumbnail</label>
-        <div className="flex items-center gap-3">
-          {form.thumbnailUrl && (
-            <img src={form.thumbnailUrl} alt="thumbnail" className="w-16 h-16 object-cover rounded-xl border border-white/10 shrink-0" />
-          )}
-          <div className="flex-1 space-y-2">
-            <input
-              value={form.thumbnailUrl}
-              onChange={e => set("thumbnailUrl", e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 text-sm"
-              placeholder="https://... or upload below"
-            />
-            <div className="flex items-center gap-2">
-              <input
-                ref={thumbInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleThumbUpload(f); }}
-              />
-              <button
-                type="button"
-                onClick={() => thumbInputRef.current?.click()}
-                disabled={uploadingThumb}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-muted-foreground hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
-              >
-                {uploadingThumb ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-                {uploadingThumb ? "Uploading…" : "Upload Image"}
-              </button>
-              {thumbError && <span className="text-xs text-red-400">{thumbError}</span>}
-              {form.thumbnailUrl && !uploadingThumb && !thumbError && (
-                <span className="text-xs text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Uploaded</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
       <Field label="Thumbnail Image — URL or Upload">
         <MediaUrlInput
           value={form.thumbnailUrl}
@@ -252,208 +185,6 @@ function CourseForm({ initial, onSave, onCancel, saving }: {
         </button>
       </div>
     </motion.div>
-  );
-}
-
-function LessonManager({ courseId }: { courseId: number }) {
-  const { data: lessons, refetch: refetchLessons } = useQuery({
-    queryKey: ["admin-lessons", courseId],
-    queryFn: async () => {
-      const res = await fetch(`/api/admin/courses/${courseId}/lessons`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json() as Promise<any[]>;
-    },
-  });
-
-  const [savingLesson, setSavingLesson] = useState<number | null>(null);
-  const [uploadingVideo, setUploadingVideo] = useState<number | null>(null);
-  const [uploadingPdf, setUploadingPdf] = useState<number | null>(null);
-  const [uploadErrors, setUploadErrors] = useState<Record<number, string>>({});
-  const [localUrls, setLocalUrls] = useState<Record<number, { videoUrl?: string; pdfUrl?: string }>>({});
-  const [newLessonTitle, setNewLessonTitle] = useState("");
-  const [addingLesson, setAddingLesson] = useState(false);
-
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const [activeUploadId, setActiveUploadId] = useState<number | null>(null);
-
-  const getUrl = (lesson: any, key: "videoUrl" | "pdfUrl") =>
-    localUrls[lesson.id]?.[key] ?? lesson[key] ?? "";
-
-  const setUrl = (lessonId: number, key: "videoUrl" | "pdfUrl", val: string) =>
-    setLocalUrls(prev => ({ ...prev, [lessonId]: { ...prev[lessonId], [key]: val } }));
-
-  const handleUpload = async (lessonId: number, file: File, type: "video" | "pdf") => {
-    const setter = type === "video" ? setUploadingVideo : setUploadingPdf;
-    const bucket = type === "video" ? "videos" as const : "pdfs" as const;
-    const urlKey = type === "video" ? "videoUrl" as const : "pdfUrl" as const;
-    setter(lessonId);
-    setUploadErrors(prev => { const n = { ...prev }; delete n[lessonId]; return n; });
-    try {
-      const url = await uploadToStorage(bucket, file);
-      setUrl(lessonId, urlKey, url);
-    } catch (err: any) {
-      setUploadErrors(prev => ({ ...prev, [lessonId]: err?.message ?? "Upload failed" }));
-    } finally {
-      setter(null);
-    }
-  };
-
-  const handleSaveLesson = async (lesson: any) => {
-    setSavingLesson(lesson.id);
-    try {
-      await fetch(`/api/admin/lessons/${lesson.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          videoUrl: getUrl(lesson, "videoUrl") || null,
-          pdfUrl: getUrl(lesson, "pdfUrl") || null,
-        }),
-      });
-      await refetchLessons();
-    } finally {
-      setSavingLesson(null);
-    }
-  };
-
-  const handleAddLesson = async () => {
-    if (!newLessonTitle.trim()) return;
-    setAddingLesson(true);
-    try {
-      await fetch(`/api/admin/courses/${courseId}/lessons`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ title: newLessonTitle.trim() }),
-      });
-      setNewLessonTitle("");
-      await refetchLessons();
-    } finally {
-      setAddingLesson(false);
-    }
-  };
-
-  const handleDeleteLesson = async (lessonId: number) => {
-    await fetch(`/api/admin/lessons/${lessonId}`, { method: "DELETE", credentials: "include" });
-    await refetchLessons();
-  };
-
-  const lessonList: any[] = lessons ?? [];
-
-  return (
-    <div className="mt-4 space-y-3">
-      {lessonList.length === 0 ? (
-        <div className="p-4 rounded-xl bg-white/3 border border-white/10 text-center text-sm text-muted-foreground">
-          No lessons yet. Add one below.
-        </div>
-      ) : (
-        lessonList.map((lesson: any) => (
-          <div key={lesson.id} className="p-4 rounded-xl bg-white/3 border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-white">{lesson.order}. {lesson.title}</span>
-              <button
-                onClick={() => handleDeleteLesson(lesson.id)}
-                className="p-1 rounded text-red-400 hover:bg-red-500/10 transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Video upload row */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <FileVideo className="w-3.5 h-3.5 text-blue-400" /> Video URL
-              </label>
-              <div className="flex gap-2">
-                <input
-                  value={getUrl(lesson, "videoUrl")}
-                  onChange={e => setUrl(lesson.id, "videoUrl", e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 text-xs"
-                  placeholder="https://... or upload →"
-                />
-                <input
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  ref={uploadingVideo === lesson.id ? videoInputRef : undefined}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(lesson.id, f, "video"); }}
-                  id={`video-input-${lesson.id}`}
-                />
-                <label
-                  htmlFor={`video-input-${lesson.id}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-muted-foreground hover:text-white hover:bg-white/10 transition-all cursor-pointer whitespace-nowrap"
-                >
-                  {uploadingVideo === lesson.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                  {uploadingVideo === lesson.id ? "…" : "Upload"}
-                </label>
-              </div>
-            </div>
-
-            {/* PDF upload row */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-green-400" /> PDF URL
-              </label>
-              <div className="flex gap-2">
-                <input
-                  value={getUrl(lesson, "pdfUrl")}
-                  onChange={e => setUrl(lesson.id, "pdfUrl", e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 text-xs"
-                  placeholder="https://... or upload →"
-                />
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(lesson.id, f, "pdf"); }}
-                  id={`pdf-input-${lesson.id}`}
-                />
-                <label
-                  htmlFor={`pdf-input-${lesson.id}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-muted-foreground hover:text-white hover:bg-white/10 transition-all cursor-pointer whitespace-nowrap"
-                >
-                  {uploadingPdf === lesson.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                  {uploadingPdf === lesson.id ? "…" : "Upload"}
-                </label>
-              </div>
-            </div>
-
-            {uploadErrors[lesson.id] && (
-              <p className="text-xs text-red-400">{uploadErrors[lesson.id]}</p>
-            )}
-
-            <button
-              onClick={() => handleSaveLesson(lesson)}
-              disabled={savingLesson === lesson.id}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
-            >
-              {savingLesson === lesson.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-              Save Lesson
-            </button>
-          </div>
-        ))
-      )}
-
-      {/* Add new lesson */}
-      <div className="flex gap-2 pt-1">
-        <input
-          value={newLessonTitle}
-          onChange={e => setNewLessonTitle(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleAddLesson()}
-          className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 text-sm"
-          placeholder="New lesson title…"
-        />
-        <button
-          onClick={handleAddLesson}
-          disabled={addingLesson || !newLessonTitle.trim()}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-muted-foreground text-sm hover:bg-white/10 hover:text-white transition-all disabled:opacity-50 whitespace-nowrap"
-        >
-          {addingLesson ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-          Add Lesson
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -865,6 +596,7 @@ export default function AdminDashboard() {
 
   const [courseSearch, setCourseSearch] = useState("");
   const [showAddCourseForm, setShowAddCourseForm] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState<number | null>(null);
   const [deletingCourse, setDeletingCourse] = useState<number | null>(null);
   const [expandedCourse, setExpandedCourse] = useState<number | null>(null);
@@ -1256,9 +988,9 @@ export default function AdminDashboard() {
 
                     {/* Lesson manager */}
                     <AnimatePresence>
-                      {expandedLesson === course.id && (
+                      {expandedCourse === course.id && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                          <LessonManager courseId={course.id} />
+                          <LessonManagerSection courseId={course.id} courseName={course.title ?? ""} />
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -1280,7 +1012,7 @@ export default function AdminDashboard() {
                         {expandedCourse === course.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
                       <button
-                        onClick={() => { setEditingCourse(course.id); setShowAddCourseForm(true); setExpandedCourse(null); }}
+                        onClick={() => { setEditingCourse(course.id); setShowAddForm(true); setExpandedCourse(null); }}
                         className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all"
                         title="Edit course"
                       >
