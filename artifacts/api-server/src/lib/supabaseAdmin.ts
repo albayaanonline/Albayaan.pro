@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
@@ -25,10 +26,13 @@ function bucketForContentType(contentType: string): BucketName {
 }
 
 // ── Singleton admin client ─────────────────────────────────────────────────
+// Node 20 lacks native WebSocket; pass the "ws" package as transport so
+// @supabase/realtime-js does not throw at startup.
 export const supabaseAdmin =
   SUPABASE_URL && SERVICE_ROLE_KEY
     ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false },
+        realtime: { transport: ws as any },
       })
     : null;
 
