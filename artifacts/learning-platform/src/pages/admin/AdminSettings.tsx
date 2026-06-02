@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { adminFetch } from "@/lib/adminFetch";
 import {
   Lock, Eye, EyeOff, CheckCircle, AlertTriangle, Loader2,
   Shield, User, Mail, Calendar, Key, Save,
@@ -94,10 +95,8 @@ export default function AdminSettings() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/change-password", {
+      const res = await adminFetch("/api/admin/change-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
       });
       const data = await res.json();

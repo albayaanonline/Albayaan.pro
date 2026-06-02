@@ -8,6 +8,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminFetch } from "@/lib/adminFetch";
 import { FileUploader } from "@/components/admin/FileUploader";
+import { MediaUrlInput } from "@/components/admin/MediaUrlInput";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
@@ -153,16 +154,14 @@ function CourseForm({ initial, onSave, onCancel, saving }: {
         </Field>
       </div>
 
-      <Field label="Thumbnail Image URL">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={form.thumbnailUrl} onChange={e => set("thumbnailUrl", e.target.value)} className={inp + " pl-9"} placeholder="https://example.com/thumbnail.jpg" />
-          </div>
-          {form.thumbnailUrl && (
-            <img src={form.thumbnailUrl} alt="" className="w-10 h-10 rounded-lg object-cover border border-white/10 shrink-0" onError={e => (e.currentTarget.style.display = "none")} />
-          )}
-        </div>
+      <Field label="Thumbnail Image — URL or Upload">
+        <MediaUrlInput
+          value={form.thumbnailUrl}
+          onChange={v => set("thumbnailUrl", v)}
+          type="image"
+          maxSizeMb={20}
+          placeholder="https://example.com/thumbnail.jpg"
+        />
       </Field>
 
       <Field label="Description (English)">
@@ -219,11 +218,14 @@ function LessonForm({ initial, onSave, onCancel, saving }: {
           </Field>
         </div>
 
-        <Field label="Video URL (YouTube / Vimeo / Direct)">
-          <div className="relative">
-            <Video className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={form.videoUrl} onChange={e => set("videoUrl", e.target.value)} className={inp + " pl-9"} placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." />
-          </div>
+        <Field label="Video — URL or Upload">
+          <MediaUrlInput
+            value={form.videoUrl}
+            onChange={v => set("videoUrl", v)}
+            type="video"
+            maxSizeMb={500}
+            placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+          />
         </Field>
 
         <Field label="Content / Notes (Markdown supported)">
@@ -602,7 +604,7 @@ export default function AdminDashboard() {
   const [deletingUser, setDeletingUser] = useState<number | null>(null);
 
   const [paymentFilter, setPaymentFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
-  const [newCodeCourseId, setNewCodeCourseId] = useState("1");
+  const [newCodeCourseId, setNewCodeCourseId] = useState("");
 
   const { data: stats } = useGetAdminStats();
   const { data: users, refetch: refetchUsers } = useGetAdminUsers();
@@ -1363,13 +1365,19 @@ export default function AdminDashboard() {
             <div className="p-6 rounded-2xl bg-card border border-white/10">
               <h3 className="font-semibold text-white mb-4">Generate New Access Code</h3>
               <div className="flex flex-col sm:flex-row gap-3">
-                <select value={newCodeCourseId} onChange={e => setNewCodeCourseId(e.target.value)}
+                <select
+                  value={newCodeCourseId || (apiCourses[0]?.id ?? "")}
+                  onChange={e => setNewCodeCourseId(e.target.value)}
                   className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-primary/40 text-sm flex-1">
-                  {apiCourses.length === 0 && <option value="">No courses yet</option>}
+                  {apiCourses.length === 0 && <option value="">No courses yet — add a course first</option>}
                   {apiCourses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
                 </select>
                 <button
-                  onClick={() => createCode({ data: { courseId: Number(newCodeCourseId) } } as any)}
+                  onClick={() => {
+                    const courseId = Number(newCodeCourseId || apiCourses[0]?.id);
+                    if (!courseId) return;
+                    createCode({ data: { courseId } } as any);
+                  }}
                   disabled={creatingCode || apiCourses.length === 0}
                   className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all disabled:opacity-50 whitespace-nowrap">
                   {creatingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -1627,12 +1635,24 @@ export default function AdminDashboard() {
                           </button>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
+                      <div className="text-right shrink-0 space-y-1.5">
                         <div className="text-xs text-muted-foreground">{new Date(cert.issuedAt).toLocaleDateString()}</div>
-                        <a href={`/verify/${cert.certId}`} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline mt-0.5 inline-flex items-center gap-1">
-                          Verify <ChevronRight className="w-3 h-3" />
-                        </a>
+                        <div className="flex items-center gap-2 justify-end">
+                          <a href={`/verify/${cert.certId}`} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+                            View <ChevronRight className="w-3 h-3" />
+                          </a>
+                          <button
+                            onClick={() => {
+                              const win = window.open(`/verify/${cert.certId}`, "_blank");
+                              if (win) {
+                                win.addEventListener("load", () => { setTimeout(() => win.print(), 500); });
+                              }
+                            }}
+                            className="text-xs text-yellow-400 hover:text-yellow-300 inline-flex items-center gap-1 transition-colors">
+                            Print
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

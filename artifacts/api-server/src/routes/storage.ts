@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Request, type Response } from "express";
+import express, { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { verifySupabaseToken, getBearerToken } from "../middleware/auth";
@@ -7,12 +7,6 @@ import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
-
-const RequestUploadUrlBody = z.object({
-  name: z.string(),
-  size: z.number().optional(),
-  contentType: z.string().optional(),
-});
 
 async function isAdmin(req: Request): Promise<boolean> {
   const token = getBearerToken(req);
@@ -30,6 +24,12 @@ async function isAdmin(req: Request): Promise<boolean> {
   }
   return false;
 }
+
+const RequestUploadUrlBody = z.object({
+  name: z.string(),
+  size: z.number().optional(),
+  contentType: z.string().optional(),
+});
 
 router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
   const admin = await isAdmin(req);
@@ -60,6 +60,44 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
   }
 });
 
+router.post(
+  "/storage/upload",
+  (req: Request, res: Response, next: Function) => {
+    express.raw({ type: "*/*", limit: "524288000" })(req as any, res as any, next as any);
+  },
+  async (req: Request, res: Response) => {
+    const admin = await isAdmin(req);
+    if (!admin) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const buffer: Buffer = req.body;
+    if (!buffer || buffer.length === 0) {
+      res.status(400).json({ error: "No file data received" });
+      return;
+    }
+
+    const contentType =
+      (req.headers["x-file-type"] as string) ||
+      req.headers["content-type"]?.split(";")[0] ||
+      "application/octet-stream";
+
+    const filename = req.headers["x-filename"] as string | undefined;
+
+    try {
+      const objectPath = await objectStorageService.uploadObject(buffer, contentType, filename);
+      const objectId = objectPath.replace("/objects/", "");
+      const host = `${req.protocol}://${req.get("host")}`;
+      const publicUrl = `${host}/api/storage/objects/${objectId}`;
+      res.json({ objectPath, publicUrl, objectId });
+    } catch (error: any) {
+      console.error("Upload failed:", error);
+      res.status(500).json({ error: error?.message || "Upload failed" });
+    }
+  }
+);
+
 router.get("/storage/objects/:objectId", async (req: Request, res: Response) => {
   try {
     const objectPath = `/objects/${req.params.objectId}`;
@@ -81,6 +119,7 @@ router.get("/storage/objects/:objectId", async (req: Request, res: Response) => 
     if (err instanceof ObjectNotFoundError) {
       res.status(404).json({ error: "Object not found" });
     } else {
+      console.error("Storage serve error:", err);
       res.status(500).json({ error: "Failed to serve object" });
     }
   }

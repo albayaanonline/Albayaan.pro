@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { Upload, X, CheckCircle, Loader2, FileText, Video, Image as ImageIcon, File as FileIcon, Copy } from "lucide-react";
 import { adminFetch } from "@/lib/adminFetch";
 
-interface UploadedFile {
+export interface UploadedFile {
   name: string;
   objectPath: string;
   publicUrl: string;
@@ -41,7 +41,7 @@ function copyText(text: string) {
   navigator.clipboard.writeText(text).catch(() => {});
 }
 
-function toast(msg: string, type: "ok" | "err" = "ok") {
+function showToast(msg: string, type: "ok" | "err" = "ok") {
   const el = document.createElement("div");
   el.className = `fixed bottom-6 right-6 z-[9999] px-4 py-3 rounded-xl text-sm font-medium shadow-2xl transition-all ${
     type === "ok" ? "bg-green-600 text-white" : "bg-red-600 text-white"
@@ -55,7 +55,6 @@ export function FileUploader({
   accept = "*/*",
   label = "Upload File",
   onUploaded,
-  multiple = false,
   maxSizeMb = 500,
 }: FileUploaderProps) {
   const [state, setState] = useState<UploadState>({ status: "idle" });
@@ -72,41 +71,51 @@ export function FileUploader({
     setState({ status: "uploading", progress: 0, name: file.name });
 
     try {
-      const urlRes = await adminFetch("/api/storage/uploads/request-url", {
-        method: "POST",
-        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "application/octet-stream" }),
-      });
-
-      if (!urlRes.ok) {
-        const err = await urlRes.json().catch(() => ({}));
-        setState({ status: "error", message: err.error || "Failed to get upload URL" });
-        return;
-      }
-
-      const { uploadURL, objectPath } = await urlRes.json();
-
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+      const xhr = new XMLHttpRequest();
+      const result = await new Promise<{ objectPath: string; publicUrl: string }>((resolve, reject) => {
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
             setState({ status: "uploading", progress: Math.round((e.loaded / e.total) * 100), name: file.name });
           }
         });
         xhr.addEventListener("load", () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(`Upload failed: ${xhr.status}`));
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch {
+              reject(new Error("Invalid response from server"));
+            }
+          } else {
+            let msg = `Upload failed (${xhr.status})`;
+            try { msg = JSON.parse(xhr.responseText)?.error || msg; } catch {}
+            reject(new Error(msg));
+          }
         });
         xhr.addEventListener("error", () => reject(new Error("Network error")));
-        xhr.open("PUT", uploadURL);
-        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-        xhr.send(file);
+
+        xhr.open("POST", "/api/storage/upload");
+        xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
+        xhr.setRequestHeader("x-filename", file.name);
+
+        import("@/lib/supabase").then(({ supabase }) => {
+          if (supabase) {
+            supabase.auth.getSession().then(({ data }) => {
+              const token = data.session?.access_token;
+              if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+              xhr.withCredentials = true;
+              xhr.send(file);
+            }).catch(() => { xhr.withCredentials = true; xhr.send(file); });
+          } else {
+            xhr.withCredentials = true;
+            xhr.send(file);
+          }
+        }).catch(() => { xhr.withCredentials = true; xhr.send(file); });
       });
 
-      const publicUrl = `${window.location.origin}/api${objectPath}`;
       const uploaded: UploadedFile = {
         name: file.name,
-        objectPath,
-        publicUrl,
+        objectPath: result.objectPath,
+        publicUrl: result.publicUrl,
         contentType: file.type || "application/octet-stream",
         size: file.size,
       };
@@ -129,8 +138,6 @@ export function FileUploader({
     handleFiles(e.dataTransfer.files);
   };
 
-  const FileIconComp = state.status === "done" ? getFileIcon(state.file.contentType) : Upload;
-
   return (
     <div className="space-y-3">
       <div
@@ -152,7 +159,6 @@ export function FileUploader({
           ref={inputRef}
           type="file"
           accept={accept}
-          multiple={multiple}
           className="hidden"
           onChange={e => handleFiles(e.target.files)}
         />
@@ -205,7 +211,7 @@ export function FileUploader({
               {state.file.publicUrl}
             </code>
             <button
-              onClick={() => { copyText(state.file.publicUrl); toast("URL copied!"); }}
+              onClick={() => { copyText(state.file.publicUrl); showToast("URL copied!"); }}
               className="p-1.5 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors shrink-0"
               title="Copy URL"
             >
