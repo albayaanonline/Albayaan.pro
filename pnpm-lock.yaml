@@ -260,6 +260,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.100.9(react@19.1.0)
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -296,6 +299,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
       react:
         specifier: ^19.1.0
         version: 19.1.0

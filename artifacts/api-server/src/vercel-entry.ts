@@ -15,19 +15,20 @@ const PgSession = ConnectPgSimple(session);
 
 const app: Express = express();
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "x-file-type",
-      "x-filename",
-    ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  }),
-);
+const corsOptions = {
+  origin: true,
+  credentials: true,
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "x-file-type",
+    "x-filename",
+  ],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -47,6 +48,7 @@ app.use(
       secure: true,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "none",
     },
   }),
 );
