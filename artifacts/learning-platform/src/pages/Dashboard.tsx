@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { useGetCourses, useGetUserProgress } from "@/lib/api-client";
@@ -6,19 +6,18 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   BookOpen, Trophy, CheckCircle, Clock, ArrowRight, Star, Award, Download,
-  Flame, Zap, TrendingUp, Target, BarChart2, Brain, Medal,
+  Flame, Zap, Brain, Medal, Target,
 } from "lucide-react";
-import { COURSES } from "@/data/courses";
-
+import { LevelCard, BadgesGrid } from "@/components/shared/XPBar";
 function generateCertId(userId: string, courseId: string): string {
   let hash = 0;
-  const str = (userId + courseId + "albayaan").toUpperCase();
+  const str = ("ALBAYAAN-" + userId + "-" + courseId).toUpperCase();
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
   }
   const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, "0");
-  return `ALBAYAAN-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${new Date().getFullYear()}`;
+  return "ALBAYAAN-" + hex.slice(0, 4) + "-" + hex.slice(4, 8);
 }
 
 const fadeUp = {
@@ -52,8 +51,17 @@ export default function Dashboard() {
   const { data: apiCourses } = useGetCourses();
   const { data: progress } = useGetUserProgress();
   const [activeTab, setActiveTab] = useState<"overview" | "progress" | "certificates">("overview");
+  const [gamification, setGamification] = useState<any>(null);
 
-  const courses = (apiCourses ?? COURSES) as any[];
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/gamification", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setGamification(d))
+      .catch(() => {});
+  }, [user?.id]);
+
+  const courses = (apiCourses ?? []) as any[];
 
   const getTitle = (item: any) =>
     language === "ar" ? item?.titleAr : language === "so" ? item?.titleSo : item?.title;
@@ -81,8 +89,9 @@ export default function Dashboard() {
     ? Math.round((progress as any[])?.reduce((s: number, p: any) => s + (p.percentComplete ?? 0), 0) / enrolledCourses.length)
     : 0;
 
-  const totalXP = completedCourses.length * 500 + totalLessonsCompleted * 25 + inProgressCourses.length * 100;
-  const streak = Math.min(enrolledCourses.length * 3 + completedCourses.length, 30);
+  const totalXP    = gamification?.xp    ?? (completedCourses.length * 500 + totalLessonsCompleted * 25);
+  const streak     = gamification?.streak ?? Math.min(enrolledCourses.length * 3 + completedCourses.length, 30);
+  const level      = gamification?.level  ?? 1;
 
   const tabs = [
     { id: "overview",      label: t("Overview",      "نظرة عامة",   "Guud-Mar") },
@@ -91,19 +100,10 @@ export default function Dashboard() {
   ];
 
   const stats = [
-    { icon: BookOpen,    label: t("Enrolled",      "مسجّل",       "Diiwaangashan"),    value: enrolledCourses.length,     color: "text-blue-400",   bg: "bg-blue-500/10",   gradient: "from-blue-500 to-blue-600" },
-    { icon: CheckCircle, label: t("Completed",     "مكتمل",       "La Dhamaystiray"), value: completedCourses.length,    color: "text-green-400",  bg: "bg-green-500/10",  gradient: "from-green-500 to-emerald-600" },
-    { icon: Flame,       label: t("Day Streak",    "يوم متتالٍ",  "Maalintii"),        value: `${streak}🔥`,              color: "text-orange-400", bg: "bg-orange-500/10", gradient: "from-orange-500 to-red-500" },
-    { icon: Zap,         label: t("XP Points",     "نقاط XP",     "Dhibcaha XP"),     value: totalXP,                    color: "text-purple-400", bg: "bg-purple-500/10", gradient: "from-purple-500 to-violet-600" },
-  ];
-
-  const badges = [
-    { icon: "🚀", label: t("Early Adopter",    "مبتكر مبكر",    "Hortagliyaha"),        earned: enrolledCourses.length > 0 },
-    { icon: "📚", label: t("First Lesson",     "أول درس",        "Casharka Hore"),       earned: totalLessonsCompleted > 0 },
-    { icon: "🎯", label: t("Course Finisher",  "مكمل الدورة",    "Koorso Dhamaystiray"), earned: completedCourses.length > 0 },
-    { icon: "🏆", label: t("Certified",        "معتمد",          "Shahaado haya"),       earned: completedCourses.length >= 1 },
-    { icon: "⚡", label: t("Quick Learner",    "متعلم سريع",     "Barasho Degdeg"),      earned: totalLessonsCompleted >= 5 },
-    { icon: "🌟", label: t("Multi-Course",     "متعدد الدورات",  "Koorso Badan"),        earned: completedCourses.length >= 2 },
+    { icon: BookOpen,    label: t("Enrolled",      "مسجّل",       "Diiwaangashan"),    value: enrolledCourses.length,  color: "text-blue-400",   bg: "bg-blue-500/10" },
+    { icon: CheckCircle, label: t("Completed",     "مكتمل",       "La Dhamaystiray"), value: completedCourses.length, color: "text-green-400",  bg: "bg-green-500/10" },
+    { icon: Flame,       label: t("Day Streak",    "يوم متتالٍ",  "Maalintii"),       value: `${streak}🔥`,           color: "text-orange-400", bg: "bg-orange-500/10" },
+    { icon: Zap,         label: t("XP Points",     "نقاط XP",     "Dhibcaha XP"),    value: totalXP.toLocaleString(),color: "text-purple-400", bg: "bg-purple-500/10" },
   ];
 
   return (
@@ -152,7 +152,7 @@ export default function Dashboard() {
 
         {/* Tabs */}
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.1}
-          className="flex gap-1 p-1 rounded-2xl bg-card border border-white/10 mb-8 w-fit">
+          className="flex gap-1 p-1 rounded-2xl bg-card border border-white/10 mb-8 w-full sm:w-fit overflow-x-auto scrollbar-hide">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
               className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
@@ -168,69 +168,41 @@ export default function Dashboard() {
         {/* Tab: Overview */}
         {activeTab === "overview" && (
           <div className="space-y-6">
+            {/* XP & Level */}
+            {gamification && (
+              <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.15}>
+                <LevelCard data={gamification} />
+              </motion.div>
+            )}
+
+            {/* Gamification stats */}
+            {gamification && (
+              <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.17}
+                className="grid grid-cols-3 gap-4">
+                {[
+                  { label: t("Exercises Done", "تمارين مكتملة", "Tababar La Dhamaystiray"), value: gamification.totalExercises, color: "text-blue-400", bg: "bg-blue-500/10", icon: Target },
+                  { label: t("Correct Answers", "إجابات صحيحة", "Jawaabo Saxan"), value: gamification.correctAnswers, color: "text-green-400", bg: "bg-green-500/10", icon: CheckCircle },
+                  { label: t("Accuracy", "الدقة", "Saxnaanta"), value: gamification.totalExercises > 0 ? `${Math.round(gamification.correctAnswers / gamification.totalExercises * 100)}%` : "—", color: "text-purple-400", bg: "bg-purple-500/10", icon: Star },
+                ].map((s, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-card border border-white/10 text-center">
+                    <div className={`w-8 h-8 ${s.bg} rounded-xl flex items-center justify-center mx-auto mb-2`}>
+                      <s.icon className={`w-4 h-4 ${s.color}`} />
+                    </div>
+                    <div className={`text-xl font-black ${s.color}`}>{s.value}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+
             {/* Badges */}
-            <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.15}
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.2}
               className="p-6 rounded-2xl bg-card border border-white/10">
               <h2 className="font-black text-foreground mb-4 flex items-center gap-2">
                 <Medal className="w-5 h-5 text-yellow-400" />
                 {t("Your Badges", "شاراتك", "Astaamahaga")}
               </h2>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
-                {badges.map((b, i) => (
-                  <div key={i} className={`text-center p-3 rounded-2xl border transition-all ${
-                    b.earned
-                      ? "bg-yellow-500/10 border-yellow-500/20"
-                      : "bg-white/3 border-white/5 opacity-40 grayscale"
-                  }`}>
-                    <div className="text-2xl mb-1">{b.icon}</div>
-                    <div className="text-[10px] text-muted-foreground leading-tight">{b.label}</div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* XP Progress bar */}
-            <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.2}
-              className="p-6 rounded-2xl bg-card border border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-black text-foreground flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-purple-400" />
-                  {t("XP & Level", "XP والمستوى", "XP & Heerka")}
-                </h2>
-                <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold">
-                  {t("Level", "المستوى", "Heerka")} {Math.floor(totalXP / 500) + 1}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
-                  {totalXP} XP
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  / {(Math.floor(totalXP / 500) + 1) * 500} XP {t("to next level", "للمستوى التالي", "heerka xiga")}
-                </span>
-              </div>
-              <div className="h-3 rounded-full bg-white/5 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(totalXP % 500) / 500 * 100}%` }}
-                  transition={{ duration: 1, delay: 0.3 }}
-                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
-                />
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-3 text-xs text-center text-muted-foreground">
-                <div className="p-2 rounded-xl bg-white/3">
-                  <div className="font-bold text-foreground">{completedCourses.length * 500}</div>
-                  <div>{t("from courses", "من الدورات", "koorsooyinka")}</div>
-                </div>
-                <div className="p-2 rounded-xl bg-white/3">
-                  <div className="font-bold text-foreground">{totalLessonsCompleted * 25}</div>
-                  <div>{t("from lessons", "من الدروس", "casharra")}</div>
-                </div>
-                <div className="p-2 rounded-xl bg-white/3">
-                  <div className="font-bold text-foreground">{streak * 10}</div>
-                  <div>{t("from streak", "من الاستمرارية", "socoshada")}</div>
-                </div>
-              </div>
+              <BadgesGrid badges={gamification?.badges ?? []} />
             </motion.div>
 
             {/* Quick actions */}
@@ -381,8 +353,8 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {completedCourses.map((course: any, i: number) => {
                     const certId = user
-                      ? generateCertId(user.email || String(user.id), String(course.id))
-                      : "ALBAYAAN-XXXX-XXXX-2026";
+                      ? generateCertId(String(user.id), String(course.id))
+                      : "ALBAYAAN-XXXX-XXXX";
                     const title = getTitle(course) || course.title;
                     const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 

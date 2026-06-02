@@ -2,6 +2,9 @@ import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const port = Number(process.env.PORT ?? 3000);
 const basePath = process.env.BASE_PATH ?? "/";
@@ -16,7 +19,7 @@ export default defineConfig(async () => {
           await import("@replit/vite-plugin-cartographer").then(
             (m) =>
               m.cartographer({
-                root: path.resolve(import.meta.dirname, ".."),
+                root: path.resolve(__dirname, ".."),
               }) as PluginOption,
           ),
           await import("@replit/vite-plugin-dev-banner").then(
@@ -30,13 +33,13 @@ export default defineConfig(async () => {
     plugins: [react(), tailwindcss(), ...replitPlugins],
     resolve: {
       alias: {
-        "@": path.resolve(import.meta.dirname, "src"),
+        "@": path.resolve(__dirname, "src"),
       },
       dedupe: ["react", "react-dom"],
     },
-    root: path.resolve(import.meta.dirname),
+    root: path.resolve(__dirname),
     build: {
-      outDir: path.resolve(import.meta.dirname, "dist"),
+      outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,
       rollupOptions: {
         output: {

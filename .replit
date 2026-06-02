@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "postgresql-16"]
+modules = ["nodejs-20", "web", "bash", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -9,9 +9,47 @@ args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "API Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "API Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
+waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=8081 pnpm --filter @workspace/learning-platform run dev"
+waitForPort = 8081
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
 [postMerge]
@@ -35,6 +73,10 @@ localPort = 8081
 externalPort = 80
 
 [[ports]]
+localPort = 8082
+externalPort = 4200
+
+[[ports]]
 localPort = 19688
 externalPort = 3000
 
@@ -44,5 +86,7 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-VITE_SUPABASE_URL = "https://xokrrmqzawztxlnwdruf.supabase.co"
+VITE_SUPABASE_URL = "https://xokrirmhuxhugofgheev.supabase.co"
 VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhva3Jpcm1odXhodWdvZmdoZWV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NDk2NzYsImV4cCI6MjA5NTEyNTY3Nn0.cfv4OW255lfpCLIjM6UmGA_Jwrg357vIfFyFXT_q0OE"
+ADMIN_ELEVATION_SECRET = "debe2be4a66208cfbc290e6c857a6f1ddbe14d2551c60fea3467a83f68455571"
+SUPABASE_URL = "https://xokrirmhuxhugofgheev.supabase.co"

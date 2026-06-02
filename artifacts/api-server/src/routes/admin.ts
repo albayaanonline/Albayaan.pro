@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, count, desc } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import {
   db, usersTable, paymentsTable, accessCodesTable, coursesTable,
   courseEnrollmentsTable, lessonsTable, certificatesTable,
@@ -170,6 +171,7 @@ router.post("/admin/courses", async (req, res): Promise<void> => {
     thumbnailUrl: created.thumbnailUrl,
     enrolledCount: created.enrolledCount,
     isPublished: created.isPublished,
+    lessonCount: 0,
     createdAt: created.createdAt.toISOString(),
   });
 });
@@ -487,6 +489,37 @@ router.post("/admin/payments/:paymentId/confirm", async (req, res): Promise<void
   });
 });
 
+router.patch("/admin/payments/:paymentId/reject", async (req, res): Promise<void> => {
+  if (!await requireAdmin(req, res)) return;
+
+  const paymentId = Number(req.params.paymentId);
+  if (isNaN(paymentId)) {
+    res.status(400).json({ error: "Invalid payment ID" });
+    return;
+  }
+
+  const [payment] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, paymentId));
+  if (!payment) { res.status(404).json({ error: "Payment not found" }); return; }
+
+  const [updated] = await db.update(paymentsTable).set({ status: "rejected" }).where(eq(paymentsTable.id, paymentId)).returning();
+  const [user]   = await db.select().from(usersTable).where(eq(usersTable.id, updated.userId));
+  const [course] = await db.select().from(coursesTable).where(eq(coursesTable.id, updated.courseId));
+
+  res.json({
+    id: updated.id,
+    userId: updated.userId,
+    userEmail: user?.email ?? "",
+    userName: user?.name ?? "",
+    courseId: updated.courseId,
+    courseName: course?.title ?? "",
+    status: updated.status,
+    whatsappNumber: updated.whatsappNumber,
+    notes: updated.notes ?? null,
+    accessCode: updated.accessCode ?? null,
+    createdAt: updated.createdAt.toISOString(),
+  });
+});
+
 // ── ACCESS CODES ──
 
 router.get("/admin/codes", async (req, res): Promise<void> => {
@@ -590,6 +623,61 @@ router.get("/admin/certificates", async (req, res): Promise<void> => {
   })));
 });
 
+router.post("/admin/certificates/issue", async (req, res): Promise<void> => {
+  if (!await requireAdmin(req, res)) return;
+
+  const { userId, courseId, studentName, courseName } = req.body;
+
+  if (!userId || !courseId || !studentName || !courseName) {
+    res.status(400).json({ error: "userId, courseId, studentName, and courseName are required" });
+    return;
+  }
+
+  const existing = await db.select().from(certificatesTable)
+    .where(eq(certificatesTable.userId, Number(userId)))
+    .then(rows => rows.find(r => r.courseId === Number(courseId)));
+
+  if (existing) {
+    res.status(409).json({ error: "Certificate already issued for this student and course", certId: existing.certId });
+    return;
+  }
+
+  const hash = Buffer.from(`${userId}-${courseId}-${studentName}`).toString("base64").replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(0, 8);
+  const certId = `ALBAYAAN-${hash.slice(0, 4)}-${hash.slice(4, 8)}`;
+
+  const [created] = await db.insert(certificatesTable).values({
+    certId,
+    userId: Number(userId),
+    courseId: Number(courseId),
+    studentName,
+    courseName,
+  }).returning();
+
+  res.status(201).json({
+    id: created.id,
+    certId: created.certId,
+    userId: created.userId,
+    courseId: created.courseId,
+    studentName: created.studentName,
+    courseName: created.courseName,
+    issuedAt: created.issuedAt.toISOString(),
+  });
+});
+
+router.delete("/admin/certificates/:certId", async (req, res): Promise<void> => {
+  if (!await requireAdmin(req, res)) return;
+
+  const { certId } = req.params;
+  const [deleted] = await db.delete(certificatesTable).where(eq(certificatesTable.certId, certId)).returning();
+
+  if (!deleted) {
+    res.status(404).json({ error: "Certificate not found" });
+    return;
+  }
+
+  res.json({ success: true, certId });
+});
+
 // ── ANALYTICS ──
 
 router.get("/admin/analytics", async (req, res): Promise<void> => {
@@ -619,6 +707,63 @@ router.get("/admin/analytics", async (req, res): Promise<void> => {
       id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.createdAt.toISOString(),
     })),
   });
+});
+
+router.post("/admin/change-password", async (req, res): Promise<void> => {
+  if (!await requireAdmin(req, res)) return;
+
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ error: "currentPassword and newPassword are required" });
+    return;
+  }
+
+  if (typeof newPassword !== "string" || newPassword.length < 8) {
+    res.status(400).json({ error: "New password must be at least 8 characters" });
+    return;
+  }
+
+  let userId: number | null = null;
+
+  const token = getBearerToken(req);
+  if (token) {
+    const supabaseUser = await verifySupabaseToken(token);
+    if (supabaseUser) {
+      const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.email, supabaseUser.email));
+      if (dbUser?.role === "admin") userId = dbUser.id;
+    }
+  }
+  if (!userId && req.session?.userId) {
+    userId = req.session.userId as number;
+  }
+
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (user.passwordHash === "supabase-auth") {
+    res.status(400).json({ error: "This account uses Supabase authentication. Change your password in your Supabase account settings." });
+    return;
+  }
+
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) {
+    res.status(401).json({ error: "Current password is incorrect" });
+    return;
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await db.update(usersTable).set({ passwordHash: newHash }).where(eq(usersTable.id, userId));
+
+  res.json({ success: true, message: "Password updated successfully" });
 });
 
 export default router;

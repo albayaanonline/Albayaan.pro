@@ -140,7 +140,7 @@ export function AIChat() {
         onClick={() => setIsOpen(v => !v)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-6 left-6 z-50 w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full shadow-[0_0_25px_rgba(59,130,246,0.5)] text-white flex items-center justify-center hover:shadow-[0_0_35px_rgba(59,130,246,0.7)] transition-shadow"
+        className="fixed bottom-20 right-4 sm:bottom-6 sm:left-6 sm:right-auto z-50 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full shadow-[0_0_25px_rgba(59,130,246,0.5)] text-white flex items-center justify-center hover:shadow-[0_0_35px_rgba(59,130,246,0.7)] transition-shadow"
         style={{ transform: "translateZ(0)" }}
         aria-label="Open AI chat"
       >
@@ -163,7 +163,7 @@ export function AIChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: [0.34, 1.2, 0.64, 1] }}
-            className="fixed bottom-24 left-6 z-50 w-[calc(100vw-3rem)] sm:w-96 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-36 right-4 sm:bottom-24 sm:left-6 sm:right-auto z-50 w-[calc(100vw-2rem)] sm:w-96 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
             style={{
               transform: "translateZ(0)",
               background: "rgba(8,15,32,0.97)",

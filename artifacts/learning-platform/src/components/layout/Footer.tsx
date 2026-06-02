@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   MessageCircle, Mail, Globe, BookOpen, LayoutDashboard,
-  Key, ShieldCheck, DollarSign, Info, Users, Trophy, Bot, GraduationCap, Lightbulb,
+  Key, DollarSign, Info, Users, Trophy, Bot, GraduationCap, Lightbulb,
 } from "lucide-react";
 
 const BRAND = "Albayaan.pro";
@@ -14,10 +14,10 @@ export function Footer() {
   return (
     <footer className="border-t border-border/50 bg-background mt-auto">
       <div className="max-w-7xl mx-auto px-4 py-14">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8">
 
           {/* Brand */}
-          <div className="col-span-2 space-y-4">
+          <div className="col-span-1 sm:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-3 inline-flex">
               <img src="/logo-48.png" alt={BRAND} className="h-10 w-10 object-contain"
                 style={{ filter: "drop-shadow(0 0 8px rgba(59,130,246,0.5))" }}
@@ -88,7 +88,6 @@ export function Footer() {
                 { href: "/contact",    icon: Mail,          label: t("Contact",     "تواصل معنا",      "Nala Xiriir") },
                 { href: "/access-code",icon: Key,           label: t("Redeem Code", "استرداد الرمز",   "Furo Koodhka") },
                 { href: "/dashboard",  icon: LayoutDashboard,label: t("Dashboard",  "لوحة التحكم",     "Dhaq-dhaqaaqa") },
-                { href: "/admin/login",icon: ShieldCheck,   label: "Admin Panel" },
               ].map((item, i) => (
                 <li key={i}>
                   <Link href={item.href}

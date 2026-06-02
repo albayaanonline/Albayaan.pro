@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
+import { setAuthTokenGetter } from "@/lib/api-client";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -54,8 +55,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase) {
       setIsLoading(false);
+      setAuthTokenGetter(null);
       return;
     }
+
+    setAuthTokenGetter(async () => {
+      try {
+        const { data } = await supabase!.auth.getSession();
+        return data.session?.access_token ?? null;
+      } catch {
+        return null;
+      }
+    });
 
     let mounted = true;
 
@@ -148,7 +159,7 @@ export function ProtectedRoute({ component: Component, adminOnly = false, ...res
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        setLocation(adminOnly ? "/admin/login" : "/auth/login");
+        setLocation(adminOnly ? "/management-portal/login" : "/auth/login");
       } else if (adminOnly && user.role !== "admin") {
         toast({
           title: "Access Denied",

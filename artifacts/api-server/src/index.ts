@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { ensureStorageBucket } from "./lib/supabaseAdmin";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,10 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Initialize Supabase Storage bucket in the background.
+  // Requires SUPABASE_SERVICE_ROLE_KEY in environment variables.
+  ensureStorageBucket().catch((e) =>
+    logger.warn({ err: e }, "[storage] Bucket initialization failed"),
+  );
 });

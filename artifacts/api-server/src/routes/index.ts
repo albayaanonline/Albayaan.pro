@@ -11,6 +11,10 @@ import statsRouter from "./stats";
 import adminRouter from "./admin";
 import chatRouter from "./chat";
 import certificatesRouter from "./certificates";
+import gamificationRouter from "./gamification";
+import exercisesRouter from "./exercises";
+import contactRouter from "./contact";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -26,5 +30,9 @@ router.use(statsRouter);
 router.use(adminRouter);
 router.use(chatRouter);
 router.use(certificatesRouter);
+router.use(gamificationRouter);
+router.use(exercisesRouter);
+router.use(contactRouter);
+router.use(storageRouter);
 
 export default router;
