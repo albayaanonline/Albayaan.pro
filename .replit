@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash", "postgresql-16"]
+modules = ["nodejs-20", "web", "bash"]
 
 [deployment]
 router = "application"
@@ -90,3 +90,4 @@ VITE_SUPABASE_URL = "https://xokrirmhuxhugofgheev.supabase.co"
 VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhva3Jpcm1odXhodWdvZmdoZWV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NDk2NzYsImV4cCI6MjA5NTEyNTY3Nn0.cfv4OW255lfpCLIjM6UmGA_Jwrg357vIfFyFXT_q0OE"
 ADMIN_ELEVATION_SECRET = "debe2be4a66208cfbc290e6c857a6f1ddbe14d2551c60fea3467a83f68455571"
 SUPABASE_URL = "https://xokrirmhuxhugofgheev.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhva3Jpcm1odXhodWdvZmdoZWV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NDk2NzYsImV4cCI6MjA5NTEyNTY3Nn0.cfv4OW255lfpCLIjM6UmGA_Jwrg357vIfFyFXT_q0OE"

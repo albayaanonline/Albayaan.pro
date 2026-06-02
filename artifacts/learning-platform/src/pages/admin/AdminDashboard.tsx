@@ -1,6 +1,5 @@
 
-import { useState, useMemo, useRef } from "react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
@@ -16,12 +15,9 @@ import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
   Plus, TrendingUp, Clock, Search, Edit2, Trash2, Eye, BarChart2,
   Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X, Award, Download, RefreshCw,
-  AlertTriangle, UserX, Radio, EyeOff, UserCog, FileVideo, FileText, Image as ImageIcon, Link
-  Plus, TrendingUp, Clock, Search, Edit2, Trash2, BarChart2,
-  Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X, Award, RefreshCw,
   AlertTriangle, UserX, Radio, EyeOff, UserCog, Video, FileText, Lock, Unlock,
   Image as ImageIcon, Link as LinkIcon, Play, Send, ChevronRight, Hash,
-  Download, Copy, CheckSquare
+  Copy, CheckSquare
 } from "lucide-react";
 import { uploadToStorage } from "@/lib/supabase";
 import {
