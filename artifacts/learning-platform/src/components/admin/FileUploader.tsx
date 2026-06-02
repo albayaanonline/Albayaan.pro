@@ -59,8 +59,10 @@ export function FileUploader({
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const abortedRef = useRef(false);
 
   const uploadFile = useCallback(async (file: File) => {
+    abortedRef.current = false;
     setState({ status: "uploading", progress: 0, name: file.name, size: file.size });
 
     try {
@@ -72,16 +74,43 @@ export function FileUploader({
         } catch { /* ignore */ }
       }
 
-      const result = await new Promise<{ objectPath: string; publicUrl: string }>((resolve, reject) => {
+      // Step 1: Get signed upload URL from our API (tiny JSON request — works on Vercel)
+      setState(prev => prev.status === "uploading" ? { ...prev, progress: 2 } : prev);
+
+      const urlRes = await fetch(getApiUrl("/storage/upload-url"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || "application/octet-stream",
+        }),
+      });
+
+      if (!urlRes.ok) {
+        const err = await urlRes.json().catch(() => ({}));
+        throw new Error(err?.error || `Failed to get upload URL (${urlRes.status})`);
+      }
+
+      const { signedUrl, publicUrl, objectPath } = await urlRes.json();
+
+      if (abortedRef.current) { setState({ status: "idle" }); return; }
+
+      setState(prev => prev.status === "uploading" ? { ...prev, progress: 5 } : prev);
+
+      // Step 2: Upload file directly to Supabase via signed URL (bypasses Vercel — any file size)
+      await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhrRef.current = xhr;
-        xhr.timeout = 0; // No timeout — large files need unlimited time
+        xhr.timeout = 0;
 
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
             setState(prev =>
               prev.status === "uploading"
-                ? { ...prev, progress: Math.round((e.loaded / e.total) * 95) }
+                ? { ...prev, progress: 5 + Math.round((e.loaded / e.total) * 90) }
                 : prev
             );
           }
@@ -91,12 +120,9 @@ export function FileUploader({
           xhrRef.current = null;
           if (xhr.status >= 200 && xhr.status < 300) {
             setState(prev => prev.status === "uploading" ? { ...prev, progress: 100 } : prev);
-            try { resolve(JSON.parse(xhr.responseText)); }
-            catch { reject(new Error("Invalid response from server")); }
+            resolve();
           } else {
-            let msg = `Upload failed (${xhr.status})`;
-            try { msg = JSON.parse(xhr.responseText)?.error || msg; } catch {}
-            reject(new Error(msg));
+            reject(new Error(`Upload to storage failed (${xhr.status})`));
           }
         });
 
@@ -110,18 +136,15 @@ export function FileUploader({
           reject(new Error("__CANCELLED__"));
         });
 
-        xhr.open("POST", getApiUrl("/storage/upload"));
-        xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
-        xhr.setRequestHeader("x-filename", encodeURIComponent(file.name));
-        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-        xhr.withCredentials = true;
+        xhr.open("PUT", signedUrl);
+        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
         xhr.send(file);
       });
 
       const uploaded: UploadedFile = {
         name: file.name,
-        objectPath: result.objectPath ?? result.publicUrl ?? "",
-        publicUrl: result.publicUrl ?? (result as any).url ?? "",
+        objectPath: objectPath ?? publicUrl ?? "",
+        publicUrl: publicUrl ?? "",
         contentType: file.type || "application/octet-stream",
         size: file.size,
       };
@@ -150,6 +173,7 @@ export function FileUploader({
   };
 
   const cancelUpload = () => {
+    abortedRef.current = true;
     xhrRef.current?.abort();
   };
 
@@ -204,7 +228,7 @@ export function FileUploader({
                 <div className="bg-gradient-to-r from-primary to-blue-400 rounded-full h-2 transition-all duration-300" style={{ width: `${state.progress}%` }} />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{state.progress < 95 ? "Uploading..." : "Saving to storage..."}</span>
+                <span>{state.progress < 5 ? "Preparing upload..." : state.progress < 95 ? "Uploading..." : "Saving..."}</span>
                 <span>{state.progress}%</span>
               </div>
             </div>

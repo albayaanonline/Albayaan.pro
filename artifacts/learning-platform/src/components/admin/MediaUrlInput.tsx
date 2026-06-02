@@ -54,6 +54,7 @@ export function MediaUrlInput({
   const [uploadedSize, setUploadedSize] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const abortedRef = useRef(false);
 
   const inp = `w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 text-sm transition-colors ${className}`;
   const acceptStr = accept || ACCEPTED[type];
@@ -61,6 +62,7 @@ export function MediaUrlInput({
   const TypeIcon = type === "image" ? ImageIcon : type === "video" ? Video : FileIcon;
 
   const uploadFile = async (file: File) => {
+    abortedRef.current = false;
     setUploadedFilename(file.name);
     setUploadedSize(file.size);
     setUploadStatus("uploading");
@@ -76,16 +78,40 @@ export function MediaUrlInput({
         } catch { /* ignore */ }
       }
 
-      const result = await new Promise<{ publicUrl: string }>((resolve, reject) => {
+      // Step 1: Get a signed upload URL from our API (tiny JSON — works on Vercel)
+      setUploadProgress(2);
+
+      const urlRes = await fetch(getApiUrl("/storage/upload-url"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || "application/octet-stream",
+        }),
+      });
+
+      if (!urlRes.ok) {
+        const err = await urlRes.json().catch(() => ({}));
+        throw new Error(err?.error || `Failed to get upload URL (${urlRes.status})`);
+      }
+
+      const { signedUrl, publicUrl } = await urlRes.json();
+
+      if (abortedRef.current) { setUploadStatus("idle"); return; }
+      setUploadProgress(5);
+
+      // Step 2: Upload file directly to Supabase via signed URL (bypasses Vercel — any file size)
+      await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhrRef.current = xhr;
-
-        // No timeout — large files need unlimited time
         xhr.timeout = 0;
 
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
-            setUploadProgress(Math.round((e.loaded / e.total) * 95)); // cap at 95 while server processes
+            setUploadProgress(5 + Math.round((e.loaded / e.total) * 90));
           }
         });
 
@@ -93,15 +119,9 @@ export function MediaUrlInput({
           xhrRef.current = null;
           if (xhr.status >= 200 && xhr.status < 300) {
             setUploadProgress(100);
-            try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch {
-              reject(new Error("Invalid response from server"));
-            }
+            resolve();
           } else {
-            let msg = `Upload failed (${xhr.status})`;
-            try { msg = JSON.parse(xhr.responseText)?.error || msg; } catch {}
-            reject(new Error(msg));
+            reject(new Error(`Upload to storage failed (${xhr.status})`));
           }
         });
 
@@ -115,16 +135,12 @@ export function MediaUrlInput({
           reject(new Error("Upload cancelled"));
         });
 
-        xhr.open("POST", getApiUrl("/storage/upload"));
-        // Send file type via custom header; browser sets Content-Type automatically
-        xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
-        xhr.setRequestHeader("x-filename", encodeURIComponent(file.name));
-        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-        xhr.withCredentials = true;
+        xhr.open("PUT", signedUrl);
+        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
         xhr.send(file);
       });
 
-      onChange(result.publicUrl);
+      onChange(publicUrl);
       setUploadStatus("done");
     } catch (err: any) {
       if (err.message !== "Upload cancelled") {
@@ -137,6 +153,7 @@ export function MediaUrlInput({
   };
 
   const cancelUpload = () => {
+    abortedRef.current = true;
     xhrRef.current?.abort();
   };
 
@@ -229,7 +246,7 @@ export function MediaUrlInput({
                   <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm text-white font-medium truncate">{uploadedFilename}</p>
-                    <p className="text-xs text-muted-foreground">{formatBytes(uploadedSize)} · Uploading...</p>
+                    <p className="text-xs text-muted-foreground">{formatBytes(uploadedSize)} · {uploadProgress < 5 ? "Preparing..." : "Uploading..."}</p>
                   </div>
                 </div>
                 <button
@@ -249,7 +266,7 @@ export function MediaUrlInput({
                   />
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{uploadProgress < 95 ? "Uploading to server..." : "Saving to storage..."}</span>
+                  <span>{uploadProgress < 5 ? "Preparing upload..." : uploadProgress < 95 ? "Uploading to storage..." : "Saving..."}</span>
                   <span>{uploadProgress}%</span>
                 </div>
               </div>

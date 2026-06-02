@@ -44,6 +44,44 @@ export async function ensureStorageBucket(): Promise<void> {
   }
 }
 
+export async function createSignedUploadUrl(
+  filename: string,
+  contentType: string,
+): Promise<{ signedUrl: string; token: string; path: string; publicUrl: string; objectPath: string }> {
+  if (!supabaseAdmin) {
+    throw new Error(
+      "Supabase admin not configured. Add SUPABASE_SERVICE_ROLE_KEY to the API server environment.",
+    );
+  }
+
+  await ensureStorageBucket();
+
+  const folder = contentType.startsWith("video/")
+    ? "videos"
+    : contentType.startsWith("image/")
+      ? "images"
+      : "documents";
+
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "bin";
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  const { data, error } = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path);
+
+  if (error || !data) {
+    throw new Error(`Failed to create signed upload URL: ${error?.message ?? "unknown error"}`);
+  }
+
+  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+
+  return {
+    signedUrl: data.signedUrl,
+    token: data.token,
+    path,
+    publicUrl,
+    objectPath: path,
+  };
+}
+
 export async function uploadToSupabase(
   buffer: Buffer,
   contentType: string,

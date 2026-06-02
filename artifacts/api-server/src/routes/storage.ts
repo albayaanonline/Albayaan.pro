@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { verifySupabaseToken, getBearerToken } from "../middleware/auth";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { uploadToSupabase } from "../lib/supabaseAdmin";
+import { uploadToSupabase, createSignedUploadUrl } from "../lib/supabaseAdmin";
 
 const router: IRouter = Router();
 
@@ -29,9 +29,35 @@ async function isAdmin(req: Request): Promise<boolean> {
   return false;
 }
 
+// ── POST /storage/upload-url ───────────────────────────────────────────────
+// Generates a Supabase signed upload URL so the client can upload directly.
+// The file never passes through this server — works for any file size.
+
+router.post("/storage/upload-url", async (req: Request, res: Response): Promise<void> => {
+  const admin = await isAdmin(req);
+  if (!admin) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { filename, contentType } = req.body ?? {};
+  if (!filename || !contentType) {
+    res.status(400).json({ error: "filename and contentType are required" });
+    return;
+  }
+
+  try {
+    const result = await createSignedUploadUrl(filename as string, contentType as string);
+    res.json(result);
+  } catch (error: any) {
+    console.error("[storage] Failed to create signed URL:", error?.message ?? error);
+    res.status(500).json({ error: error?.message ?? "Failed to create signed URL" });
+  }
+});
+
 // ── POST /storage/upload ───────────────────────────────────────────────────
-// Buffers the request body and uploads it to Supabase Storage via the service
-// role key. Returns a real Supabase public URL.
+// Legacy: buffers the request body and uploads it to Supabase Storage.
+// For large files use /storage/upload-url (signed URL + direct upload) instead.
 
 router.post("/storage/upload", async (req: Request, res: Response): Promise<void> => {
   const admin = await isAdmin(req);
