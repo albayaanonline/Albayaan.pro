@@ -69,4 +69,24 @@ app.use(
 
 app.use("/api", router);
 
+// Global JSON error handler — must be last. Catches any unhandled errors thrown in
+// route handlers (including async throws from isAdmin DB queries, etc.) and returns
+// a machine-readable JSON body instead of Express's default HTML page.
+app.use(
+  (
+    err: any,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    const status = err?.status ?? err?.statusCode ?? 500;
+    const message =
+      err?.message ?? "An unexpected error occurred";
+    logger.error({ err }, `[error-handler] ${message}`);
+    if (!res.headersSent) {
+      res.status(status).json({ error: message });
+    }
+  },
+);
+
 export default app;

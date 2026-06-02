@@ -34,9 +34,17 @@ async function isAdmin(req: Request): Promise<boolean> {
 // The file never passes through this server — works for any file size.
 
 router.post("/storage/upload-url", async (req: Request, res: Response): Promise<void> => {
-  const admin = await isAdmin(req);
+  let admin = false;
+  try {
+    admin = await isAdmin(req);
+  } catch (err: any) {
+    console.error("[storage] isAdmin check failed:", err?.message ?? err);
+    res.status(500).json({ error: `Auth check failed: ${err?.message ?? "internal error"}` });
+    return;
+  }
+
   if (!admin) {
-    res.status(401).json({ error: "Unauthorized" });
+    res.status(401).json({ error: "Unauthorized — admin login required" });
     return;
   }
 
@@ -60,9 +68,17 @@ router.post("/storage/upload-url", async (req: Request, res: Response): Promise<
 // For large files use /storage/upload-url (signed URL + direct upload) instead.
 
 router.post("/storage/upload", async (req: Request, res: Response): Promise<void> => {
-  const admin = await isAdmin(req);
+  let admin = false;
+  try {
+    admin = await isAdmin(req);
+  } catch (err: any) {
+    console.error("[storage] isAdmin check failed:", err?.message ?? err);
+    res.status(500).json({ error: `Auth check failed: ${err?.message ?? "internal error"}` });
+    return;
+  }
+
   if (!admin) {
-    res.status(401).json({ error: "Unauthorized" });
+    res.status(401).json({ error: "Unauthorized — admin login required" });
     return;
   }
 
