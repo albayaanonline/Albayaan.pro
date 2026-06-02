@@ -72,3 +72,20 @@ export async function signInWithGoogle(): Promise<void> {
 export async function signOutFromSupabase(): Promise<void> {
   await signOut();
 }
+
+export type UploadBucket = "thumbnails" | "videos" | "pdfs";
+
+export async function uploadToStorage(
+  bucket: UploadBucket,
+  file: File,
+): Promise<string> {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const ext = file.name.split(".").pop() ?? "bin";
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file, { upsert: true, cacheControl: "3600" });
+  if (error) throw error;
+  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
+  return urlData.publicUrl;
+}

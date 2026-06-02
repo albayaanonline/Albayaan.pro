@@ -293,6 +293,7 @@ router.get("/admin/courses/:courseId/lessons", async (req, res): Promise<void> =
     contentAr: l.contentAr,
     contentSo: l.contentSo,
     videoUrl: l.videoUrl ?? null,
+    pdfUrl: l.pdfUrl ?? null,
   })));
 });
 
@@ -300,7 +301,7 @@ router.post("/admin/courses/:courseId/lessons", async (req, res): Promise<void> 
   if (!await requireAdmin(req, res)) return;
 
   const courseId = Number(req.params.courseId);
-  const { title, titleAr, titleSo, content, contentAr, contentSo, duration, isLocked, hasQuiz, videoUrl } = req.body;
+  const { title, titleAr, titleSo, content, contentAr, contentSo, duration, isLocked, hasQuiz, videoUrl, pdfUrl } = req.body;
 
   if (!title) {
     res.status(400).json({ error: "title is required" });
@@ -323,6 +324,7 @@ router.post("/admin/courses/:courseId/lessons", async (req, res): Promise<void> 
     isLocked: isLocked ?? true,
     hasQuiz: hasQuiz ?? false,
     videoUrl: videoUrl || null,
+    pdfUrl: pdfUrl || null,
   }).returning();
 
   res.status(201).json(created);
@@ -332,7 +334,7 @@ router.put("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
   if (!await requireAdmin(req, res)) return;
 
   const lessonId = Number(req.params.lessonId);
-  const { title, titleAr, titleSo, content, contentAr, contentSo, duration, isLocked, hasQuiz, videoUrl } = req.body;
+  const { title, titleAr, titleSo, content, contentAr, contentSo, duration, isLocked, hasQuiz, videoUrl, pdfUrl } = req.body;
 
   const updateData: Record<string, any> = {};
   if (title !== undefined) updateData.title = title;
@@ -345,6 +347,7 @@ router.put("/admin/lessons/:lessonId", async (req, res): Promise<void> => {
   if (isLocked !== undefined) updateData.isLocked = isLocked;
   if (hasQuiz !== undefined) updateData.hasQuiz = hasQuiz;
   if (videoUrl !== undefined) updateData.videoUrl = videoUrl || null;
+  if (pdfUrl !== undefined) updateData.pdfUrl = pdfUrl || null;
 
   const [updated] = await db.update(lessonsTable).set(updateData).where(eq(lessonsTable.id, lessonId)).returning();
 

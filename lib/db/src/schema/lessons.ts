@@ -17,6 +17,7 @@ export const lessonsTable = pgTable("lessons", {
   contentAr: text("content_ar").notNull().default(""),
   contentSo: text("content_so").notNull().default(""),
   videoUrl: text("video_url"),
+  pdfUrl: text("pdf_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
