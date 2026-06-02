@@ -1,117 +1,110 @@
-import express, { Router, type IRouter, type Request, type Response } from "express";
-import { z } from "zod";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { verifySupabaseToken, getBearerToken } from "../middleware/auth";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { Readable } from "stream";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+// ── Admin auth helper ──────────────────────────────────────────────────────
 
 async function isAdmin(req: Request): Promise<boolean> {
   const token = getBearerToken(req);
   if (token) {
     const supabaseUser = await verifySupabaseToken(token);
     if (supabaseUser) {
-      const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.email, supabaseUser.email));
+      const [dbUser] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, supabaseUser.email));
       if (dbUser?.role === "admin") return true;
     }
   }
   const sessionUserId = (req as any).session?.userId;
   if (sessionUserId) {
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, sessionUserId));
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, sessionUserId));
     if (user?.role === "admin") return true;
   }
   return false;
 }
 
-const RequestUploadUrlBody = z.object({
-  name: z.string(),
-  size: z.number().optional(),
-  contentType: z.string().optional(),
-});
+// ── POST /storage/upload ───────────────────────────────────────────────────
+// Streams the raw request body directly to GCS — no in-memory buffering.
+// Supports files of any size (images, videos, PDFs, etc.).
 
-router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
+router.post("/storage/upload", async (req: Request, res: Response): Promise<void> => {
   const admin = await isAdmin(req);
   if (!admin) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const parsed = RequestUploadUrlBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Missing or invalid required fields" });
-    return;
-  }
+  const contentType =
+    (req.headers["x-file-type"] as string) ||
+    (req.headers["content-type"] ?? "").split(";")[0].trim() ||
+    "application/octet-stream";
+
+  const filename = req.headers["x-filename"] as string | undefined;
+
+  const rawLength = req.headers["content-length"];
+  const contentLength = rawLength ? parseInt(rawLength, 10) : undefined;
 
   try {
-    const { name, size, contentType } = parsed.data;
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+    let objectPath: string;
 
-    res.json({
-      uploadURL,
-      objectPath,
-      metadata: { name, size, contentType },
-    });
-  } catch (error) {
-    console.error("Upload URL generation failed:", error);
-    res.status(500).json({ error: "Failed to generate upload URL" });
-  }
-});
-
-router.post(
-  "/storage/upload",
-  (req: Request, res: Response, next: Function) => {
-    express.raw({ type: "*/*", limit: "524288000" })(req as any, res as any, next as any);
-  },
-  async (req: Request, res: Response) => {
-    const admin = await isAdmin(req);
-    if (!admin) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
+    // If the body was already buffered by express.json/urlencoded for some reason
+    if (req.body && Buffer.isBuffer(req.body)) {
+      objectPath = await objectStorageService.uploadObject(req.body, contentType, filename);
+    } else {
+      // Stream directly — no memory buffering for large files
+      objectPath = await objectStorageService.uploadObjectStream(
+        req as unknown as Readable,
+        contentType,
+        filename,
+        contentLength,
+      );
     }
 
-    const buffer: Buffer = req.body;
-    if (!buffer || buffer.length === 0) {
-      res.status(400).json({ error: "No file data received" });
-      return;
-    }
-
-    const contentType =
-      (req.headers["x-file-type"] as string) ||
-      req.headers["content-type"]?.split(";")[0] ||
-      "application/octet-stream";
-
-    const filename = req.headers["x-filename"] as string | undefined;
-
-    try {
-      const objectPath = await objectStorageService.uploadObject(buffer, contentType, filename);
-      const objectId = objectPath.replace("/objects/", "");
-      const host = `${req.protocol}://${req.get("host")}`;
-      const publicUrl = `${host}/api/storage/objects/${objectId}`;
-      res.json({ objectPath, publicUrl, objectId });
-    } catch (error: any) {
-      console.error("Upload failed:", error);
+    const objectId = objectPath.replace("/objects/", "");
+    const host = `${req.protocol}://${req.get("host")}`;
+    const publicUrl = `${host}/api/storage/objects/${objectId}`;
+    res.json({ objectPath, publicUrl, objectId });
+  } catch (error: any) {
+    console.error("Upload failed:", error);
+    if (!res.headersSent) {
       res.status(500).json({ error: error?.message || "Upload failed" });
     }
   }
-);
+});
 
-router.get("/storage/objects/:objectId", async (req: Request, res: Response) => {
+// ── GET /storage/objects/:objectId ─────────────────────────────────────────
+// Serves a stored object by its ID, streaming it back to the client.
+
+router.get("/storage/objects/:objectId", async (req: Request, res: Response): Promise<void> => {
   try {
     const objectPath = `/objects/${req.params.objectId}`;
     const file = await objectStorageService.getObjectEntityFile(objectPath);
     const response = await objectStorageService.downloadObject(file);
 
     const contentType = response.headers.get("content-type");
+    const contentLength = response.headers.get("content-length");
     if (contentType) res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=31536000");
+    if (contentLength) res.setHeader("Content-Length", contentLength);
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Accept-Ranges", "bytes");
 
     if (response.body) {
-      const { Readable } = await import("stream");
       const readable = Readable.fromWeb(response.body as any);
       readable.pipe(res);
+      readable.on("error", (err) => {
+        console.error("Stream error:", err);
+        if (!res.headersSent) res.status(500).end();
+      });
     } else {
       res.status(204).end();
     }
@@ -125,7 +118,9 @@ router.get("/storage/objects/:objectId", async (req: Request, res: Response) => 
   }
 });
 
-router.get("/storage/public-objects/:filePath", async (req: Request, res: Response) => {
+// ── GET /storage/public-objects/:filePath ──────────────────────────────────
+
+router.get("/storage/public-objects/:filePath", async (req: Request, res: Response): Promise<void> => {
   try {
     const filePath = req.params.filePath;
     const file = await objectStorageService.searchPublicObject(filePath);
@@ -139,7 +134,6 @@ router.get("/storage/public-objects/:filePath", async (req: Request, res: Respon
     res.setHeader("Cache-Control", "public, max-age=86400");
 
     if (response.body) {
-      const { Readable } = await import("stream");
       const readable = Readable.fromWeb(response.body as any);
       readable.pipe(res);
     } else {

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
-import { Upload, X, CheckCircle, Loader2, FileText, Video, Image as ImageIcon, File as FileIcon, Copy } from "lucide-react";
-import { adminFetch } from "@/lib/adminFetch";
+import { Upload, X, CheckCircle, Loader2, FileText, Video, Image as ImageIcon, File as FileIcon, Copy, AlertCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export interface UploadedFile {
   name: string;
@@ -14,14 +14,12 @@ interface FileUploaderProps {
   accept?: string;
   label?: string;
   onUploaded?: (file: UploadedFile) => void;
-  multiple?: boolean;
-  maxSizeMb?: number;
 }
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1_048_576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1_048_576).toFixed(1)} MB`;
 }
 
 function getFileIcon(contentType: string) {
@@ -33,7 +31,7 @@ function getFileIcon(contentType: string) {
 
 type UploadState =
   | { status: "idle" }
-  | { status: "uploading"; progress: number; name: string }
+  | { status: "uploading"; progress: number; name: string; size: number }
   | { status: "done"; file: UploadedFile }
   | { status: "error"; message: string };
 
@@ -43,7 +41,7 @@ function copyText(text: string) {
 
 function showToast(msg: string, type: "ok" | "err" = "ok") {
   const el = document.createElement("div");
-  el.className = `fixed bottom-6 right-6 z-[9999] px-4 py-3 rounded-xl text-sm font-medium shadow-2xl transition-all ${
+  el.className = `fixed bottom-6 right-6 z-[9999] px-4 py-3 rounded-xl text-sm font-medium shadow-2xl transition-opacity duration-300 ${
     type === "ok" ? "bg-green-600 text-white" : "bg-red-600 text-white"
   }`;
   el.textContent = msg;
@@ -55,61 +53,69 @@ export function FileUploader({
   accept = "*/*",
   label = "Upload File",
   onUploaded,
-  maxSizeMb = 500,
 }: FileUploaderProps) {
   const [state, setState] = useState<UploadState>({ status: "idle" });
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const uploadFile = useCallback(async (file: File) => {
-    const maxBytes = maxSizeMb * 1024 * 1024;
-    if (file.size > maxBytes) {
-      setState({ status: "error", message: `File too large. Maximum size is ${maxSizeMb} MB.` });
-      return;
-    }
-
-    setState({ status: "uploading", progress: 0, name: file.name });
+    setState({ status: "uploading", progress: 0, name: file.name, size: file.size });
 
     try {
-      const xhr = new XMLHttpRequest();
+      let token: string | null = null;
+      if (supabase) {
+        try {
+          const { data } = await supabase.auth.getSession();
+          token = data.session?.access_token ?? null;
+        } catch { /* ignore */ }
+      }
+
       const result = await new Promise<{ objectPath: string; publicUrl: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhrRef.current = xhr;
+        xhr.timeout = 0; // No timeout — large files need unlimited time
+
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
-            setState({ status: "uploading", progress: Math.round((e.loaded / e.total) * 100), name: file.name });
+            setState(prev =>
+              prev.status === "uploading"
+                ? { ...prev, progress: Math.round((e.loaded / e.total) * 95) }
+                : prev
+            );
           }
         });
+
         xhr.addEventListener("load", () => {
+          xhrRef.current = null;
           if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch {
-              reject(new Error("Invalid response from server"));
-            }
+            setState(prev => prev.status === "uploading" ? { ...prev, progress: 100 } : prev);
+            try { resolve(JSON.parse(xhr.responseText)); }
+            catch { reject(new Error("Invalid response from server")); }
           } else {
             let msg = `Upload failed (${xhr.status})`;
             try { msg = JSON.parse(xhr.responseText)?.error || msg; } catch {}
             reject(new Error(msg));
           }
         });
-        xhr.addEventListener("error", () => reject(new Error("Network error")));
+
+        xhr.addEventListener("error", () => {
+          xhrRef.current = null;
+          reject(new Error("Network error — check your connection and try again"));
+        });
+
+        xhr.addEventListener("abort", () => {
+          xhrRef.current = null;
+          reject(new Error("__CANCELLED__"));
+        });
 
         xhr.open("POST", "/api/storage/upload");
         xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
-        xhr.setRequestHeader("x-filename", file.name);
-
-        import("@/lib/supabase").then(({ supabase }) => {
-          if (supabase) {
-            supabase.auth.getSession().then(({ data }) => {
-              const token = data.session?.access_token;
-              if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-              xhr.withCredentials = true;
-              xhr.send(file);
-            }).catch(() => { xhr.withCredentials = true; xhr.send(file); });
-          } else {
-            xhr.withCredentials = true;
-            xhr.send(file);
-          }
-        }).catch(() => { xhr.withCredentials = true; xhr.send(file); });
+        xhr.setRequestHeader("x-filename", encodeURIComponent(file.name));
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.withCredentials = true;
+        // Send raw file — browser sets Content-Type automatically; server streams to GCS
+        xhr.send(file);
       });
 
       const uploaded: UploadedFile = {
@@ -123,9 +129,13 @@ export function FileUploader({
       setState({ status: "done", file: uploaded });
       onUploaded?.(uploaded);
     } catch (err: any) {
-      setState({ status: "error", message: err.message || "Upload failed" });
+      if (err.message === "__CANCELLED__") {
+        setState({ status: "idle" });
+      } else {
+        setState({ status: "error", message: err.message || "Upload failed" });
+      }
     }
-  }, [maxSizeMb, onUploaded]);
+  }, [onUploaded]);
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -135,32 +145,43 @@ export function FileUploader({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
+    if (state.status === "uploading") return;
     handleFiles(e.dataTransfer.files);
+  };
+
+  const cancelUpload = () => {
+    xhrRef.current?.abort();
   };
 
   return (
     <div className="space-y-3">
       <div
-        className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-          dragging
-            ? "border-primary/60 bg-primary/5"
+        className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+          state.status === "uploading"
+            ? "border-primary/30 bg-primary/3 cursor-not-allowed"
+            : dragging
+            ? "border-primary/60 bg-primary/5 cursor-copy"
             : state.status === "done"
             ? "border-green-500/40 bg-green-500/5"
             : state.status === "error"
-            ? "border-red-500/40 bg-red-500/5"
-            : "border-white/10 hover:border-white/20 hover:bg-white/3"
+            ? "border-red-500/40 bg-red-500/5 cursor-pointer"
+            : "border-white/10 hover:border-white/20 hover:bg-white/3 cursor-pointer"
         }`}
-        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragOver={e => { e.preventDefault(); if (state.status !== "uploading") setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
-        onClick={() => state.status !== "uploading" && inputRef.current?.click()}
+        onClick={() => {
+          if (state.status === "uploading") return;
+          if (state.status === "done") return;
+          inputRef.current?.click();
+        }}
       >
         <input
           ref={inputRef}
           type="file"
           accept={accept}
           className="hidden"
-          onChange={e => handleFiles(e.target.files)}
+          onChange={e => { handleFiles(e.target.files); e.target.value = ""; }}
         />
 
         {state.status === "idle" && (
@@ -169,35 +190,62 @@ export function FileUploader({
               <Upload className="w-5 h-5 text-primary" />
             </div>
             <p className="text-sm font-medium text-white">{label}</p>
-            <p className="text-xs text-muted-foreground">Drag & drop or click to browse — max {maxSizeMb} MB</p>
+            <p className="text-xs text-muted-foreground">Drag & drop or click to browse</p>
           </div>
         )}
 
         {state.status === "uploading" && (
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm font-medium text-white">{state.name}</p>
-            <div className="w-full max-w-xs bg-white/10 rounded-full h-2">
-              <div className="bg-primary rounded-full h-2 transition-all duration-300" style={{ width: `${state.progress}%` }} />
+            <div className="w-full max-w-xs space-y-1">
+              <p className="text-sm font-medium text-white truncate">{state.name}</p>
+              <p className="text-xs text-muted-foreground">{formatBytes(state.size)}</p>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <div className="bg-gradient-to-r from-primary to-blue-400 rounded-full h-2 transition-all duration-300" style={{ width: `${state.progress}%` }} />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{state.progress < 95 ? "Uploading..." : "Saving to storage..."}</span>
+                <span>{state.progress}%</span>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">{state.progress}%</p>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); cancelUpload(); }}
+              className="mt-1 text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+            >
+              <X className="w-3 h-3" /> Cancel
+            </button>
           </div>
         )}
 
-        {state.status === "done" && (
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-400" />
+        {state.status === "done" && (() => {
+          const Icon = getFileIcon(state.file.contentType);
+          return (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              </div>
+              <p className="text-sm font-medium text-green-400">Uploaded successfully!</p>
+              <div className="flex items-center gap-2">
+                <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">{state.file.name} · {formatBytes(state.file.size)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setState({ status: "idle" }); }}
+                className="text-xs text-muted-foreground hover:text-white transition-colors mt-1"
+              >
+                Upload another file
+              </button>
             </div>
-            <p className="text-sm font-medium text-green-400">Uploaded successfully!</p>
-            <p className="text-xs text-muted-foreground">{state.file.name} · {formatBytes(state.file.size)}</p>
-          </div>
-        )}
+          );
+        })()}
 
         {state.status === "error" && (
           <div className="flex flex-col items-center gap-2">
-            <X className="w-8 h-8 text-red-400" />
-            <p className="text-sm font-medium text-red-400">{state.message}</p>
+            <AlertCircle className="w-8 h-8 text-red-400" />
+            <p className="text-sm font-medium text-red-400">Upload failed</p>
+            <p className="text-xs text-red-300/70">{state.message}</p>
             <p className="text-xs text-muted-foreground">Click to try again</p>
           </div>
         )}
@@ -205,12 +253,13 @@ export function FileUploader({
 
       {state.status === "done" && (
         <div className="p-3 rounded-xl bg-white/3 border border-green-500/20">
-          <p className="text-xs text-muted-foreground mb-1.5">File URL (copy to use in lessons/courses):</p>
+          <p className="text-xs text-muted-foreground mb-1.5">File URL — paste into lesson or course fields:</p>
           <div className="flex items-center gap-2">
             <code className="flex-1 text-xs font-mono text-green-400 bg-black/20 px-2 py-1.5 rounded-lg overflow-x-auto whitespace-nowrap">
               {state.file.publicUrl}
             </code>
             <button
+              type="button"
               onClick={() => { copyText(state.file.publicUrl); showToast("URL copied!"); }}
               className="p-1.5 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors shrink-0"
               title="Copy URL"
@@ -218,12 +267,6 @@ export function FileUploader({
               <Copy className="w-3.5 h-3.5" />
             </button>
           </div>
-          <button
-            onClick={() => setState({ status: "idle" })}
-            className="mt-2 text-xs text-muted-foreground hover:text-white transition-colors"
-          >
-            Upload another file
-          </button>
         </div>
       )}
     </div>

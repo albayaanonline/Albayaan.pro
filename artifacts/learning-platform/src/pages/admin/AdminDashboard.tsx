@@ -159,7 +159,6 @@ function CourseForm({ initial, onSave, onCancel, saving }: {
           value={form.thumbnailUrl}
           onChange={v => set("thumbnailUrl", v)}
           type="image"
-          maxSizeMb={20}
           placeholder="https://example.com/thumbnail.jpg"
         />
       </Field>
@@ -223,7 +222,6 @@ function LessonForm({ initial, onSave, onCancel, saving }: {
             value={form.videoUrl}
             onChange={v => set("videoUrl", v)}
             type="video"
-            maxSizeMb={500}
             placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
           />
         </Field>
@@ -1043,13 +1041,12 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white text-sm">Upload Video</h3>
-                    <p className="text-xs text-muted-foreground">MP4, WebM, MOV — up to 500 MB</p>
+                    <p className="text-xs text-muted-foreground">MP4, MOV, WEBM, AVI — no size limit</p>
                   </div>
                 </div>
                 <FileUploader
-                  accept="video/*"
+                  accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi"
                   label="Click or drag a video file here"
-                  maxSizeMb={500}
                   onUploaded={(f) => toast(`Video uploaded: ${f.name}`)}
                 />
                 <p className="text-xs text-muted-foreground mt-3">Or paste a YouTube / Vimeo URL directly into the lesson's Video URL field.</p>
@@ -1063,13 +1060,12 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white text-sm">Upload PDF / Document</h3>
-                    <p className="text-xs text-muted-foreground">PDF, DOCX, PPTX — up to 100 MB</p>
+                    <p className="text-xs text-muted-foreground">PDF, DOCX, PPTX — no size limit</p>
                   </div>
                 </div>
                 <FileUploader
                   accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   label="Click or drag a document here"
-                  maxSizeMb={100}
                   onUploaded={(f) => toast(`Document uploaded: ${f.name}`)}
                 />
               </div>
@@ -1082,13 +1078,12 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white text-sm">Upload Image / Thumbnail</h3>
-                    <p className="text-xs text-muted-foreground">JPG, PNG, WebP, GIF — up to 20 MB</p>
+                    <p className="text-xs text-muted-foreground">JPG, PNG, WebP, GIF — no size limit</p>
                   </div>
                 </div>
                 <FileUploader
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
                   label="Click or drag an image here"
-                  maxSizeMb={20}
                   onUploaded={(f) => toast(`Image uploaded: ${f.name}`)}
                 />
               </div>
@@ -1101,13 +1096,12 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white text-sm">Upload Any File</h3>
-                    <p className="text-xs text-muted-foreground">ZIP, audio, spreadsheets — up to 200 MB</p>
+                    <p className="text-xs text-muted-foreground">ZIP, audio, spreadsheets — no size limit</p>
                   </div>
                 </div>
                 <FileUploader
                   accept="*/*"
                   label="Click or drag any file here"
-                  maxSizeMb={200}
                   onUploaded={(f) => toast(`File uploaded: ${f.name}`)}
                 />
               </div>

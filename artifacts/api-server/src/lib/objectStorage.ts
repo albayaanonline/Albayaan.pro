@@ -1,6 +1,9 @@
 import { Storage, File } from "@google-cloud/storage";
-import { Readable } from "stream";
+import { Readable, pipeline as streamPipeline } from "stream";
+import { promisify } from "util";
 import { randomUUID } from "crypto";
+
+const pipeline = promisify(streamPipeline);
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -214,8 +217,37 @@ export class ObjectStorageService {
     const file = bucket.file(objectName);
     await file.save(buffer, {
       contentType,
+      resumable: false,
       metadata: filename ? { contentDisposition: `inline; filename="${filename}"` } : undefined,
     });
+    return `/objects/${objectId}`;
+  }
+
+  async uploadObjectStream(
+    incomingStream: Readable,
+    contentType: string,
+    filename?: string,
+    contentLength?: number,
+  ): Promise<string> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    const objectId = randomUUID();
+    const fullPath = `${privateObjectDir}/${objectId}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+
+    // Use resumable uploads for files >= 5 MB (better reliability for large files)
+    const useResumable = contentLength === undefined || contentLength >= 5 * 1024 * 1024;
+
+    const writeStream = file.createWriteStream({
+      contentType,
+      resumable: useResumable,
+      metadata: filename
+        ? { contentDisposition: `inline; filename="${filename}"` }
+        : undefined,
+    });
+
+    await pipeline(incomingStream, writeStream);
     return `/objects/${objectId}`;
   }
 }
