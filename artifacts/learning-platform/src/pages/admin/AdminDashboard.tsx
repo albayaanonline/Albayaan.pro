@@ -371,7 +371,7 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium text-white truncate">{lesson.title}</span>
-                    {lesson.videoUrl && <Video className="w-3.5 h-3.5 text-blue-400 shrink-0" title="Has video" />}
+                    {lesson.videoUrl && <Video className="w-3.5 h-3.5 text-blue-400 shrink-0" aria-label="Has video" />}
                     <span className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full ${
                       lesson.isLocked ? "bg-yellow-500/10 text-yellow-400" : "bg-green-500/10 text-green-400"
                     }`}>
