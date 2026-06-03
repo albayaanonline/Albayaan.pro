@@ -1,23 +1,17 @@
 {
   "installCommand": "npm install -g pnpm && pnpm install --no-frozen-lockfile",
-  "buildCommand":   "node build-api.mjs && pnpm run build",
+  "buildCommand":   "pnpm run build",
   "outputDirectory": "dist",
   "framework": "vite",
 
   "functions": {
-    "api/backend.mjs": {
-      "maxDuration": 300,
-      "memory": 1024
-    },
     "api/storage/upload-url.ts": {
       "maxDuration": 30
     }
   },
 
   "rewrites": [
-    { "source": "/api/storage/upload-url", "destination": "/api/storage/upload-url" },
-    { "source": "/api/:path*",             "destination": "/api/backend.mjs" },
-    { "source": "/(.*)",                   "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
 
   "headers": [
