@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload, Link, CheckCircle, X, Loader2, Image as ImageIcon, Video, File as FileIcon, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { getApiUrl } from "@/lib/env";
 
 interface MediaUrlInputProps {
   value: string;

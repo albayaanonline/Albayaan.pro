@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, X, CheckCircle, Loader2, FileText, Video, Image as ImageIcon, File as FileIcon, Copy, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { getApiUrl } from "@/lib/env";
 
 export interface UploadedFile {
   name: string;
