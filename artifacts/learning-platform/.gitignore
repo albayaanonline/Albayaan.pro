@@ -37,3 +37,6 @@ yarn-error.log*
 
 # Vite temp files
 .vite-temp/
+
+# Generated at Vercel build-time — do not commit
+api/backend.mjs
