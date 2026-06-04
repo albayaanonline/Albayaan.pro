@@ -76,7 +76,7 @@ export function FileUploader({
       // Step 1: Get signed upload URL from our API (tiny JSON request — works on Vercel)
       setState(prev => prev.status === "uploading" ? { ...prev, progress: 2 } : prev);
 
-      const urlRes = await fetch(getApiUrl("/storage/upload-url"), {
+      const urlRes = await fetch("/api/storage/upload-url", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

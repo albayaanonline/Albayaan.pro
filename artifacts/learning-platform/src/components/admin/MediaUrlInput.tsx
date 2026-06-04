@@ -80,7 +80,7 @@ export function MediaUrlInput({
       // Step 1: Get a signed upload URL from our API (tiny JSON — works on Vercel)
       setUploadProgress(2);
 
-      const urlRes = await fetch(getApiUrl("/storage/upload-url"), {
+      const urlRes = await fetch("/api/storage/upload-url", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
