@@ -22,22 +22,6 @@ import router from "./routes/index.js";
 
 const app: Express = express();
 
-<<<<<<< HEAD
-const corsOptions = {
-  origin: true,
-  credentials: true,
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "x-file-type",
-    "x-filename",
-  ],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-};
-
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-=======
 // ── CORS ──────────────────────────────────────────────────────────────────
 app.use(
   cors({
@@ -52,32 +36,11 @@ app.use(
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }),
 );
->>>>>>> 7a4fb55 (Fix upload errors by improving server stability and error handling)
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-<<<<<<< HEAD
-app.use(
-  session({
-    store: new PgSession({
-      pool,
-      tableName: "user_sessions",
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET ?? "albayaan-secret-fallback",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: true,
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "none",
-    },
-  }),
-);
-=======
 // ── Session store ──────────────────────────────────────────────────────────
 // Use PostgreSQL-backed sessions when DATABASE_URL is available.
 // Fall back to in-memory sessions otherwise so the server still starts.
@@ -86,7 +49,6 @@ if (process.env.DATABASE_URL) {
     const { pool } = await import("@workspace/db");
     const ConnectPgSimple = (await import("connect-pg-simple")).default;
     const PgSession = ConnectPgSimple(session);
->>>>>>> 7a4fb55 (Fix upload errors by improving server stability and error handling)
 
     app.use(
       session({
