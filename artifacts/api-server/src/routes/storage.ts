@@ -36,20 +36,35 @@ router.get("/storage/health", (_req: Request, res: Response): void => {
 // Never throws — returns false on any error (DB down, token invalid, etc.).
 
 async function isAdminRequest(req: Request): Promise<{ ok: boolean; reason?: string }> {
-  const token = getBearerToken(req);
-  if (!token) return { ok: false, reason: "No bearer token" };
+  // ── Path 1: Express session cookie (app's own login system) ──────────────
+  const sessionUserId = (req as any).session?.userId as number | undefined;
+  if (sessionUserId) {
+    try {
+      const { db, usersTable } = await import("@workspace/db");
+      const { eq } = await import("drizzle-orm");
+      const [user] = await db
+        .select({ role: usersTable.role })
+        .from(usersTable)
+        .where(eq(usersTable.id, sessionUserId));
+      if (user?.role === "admin") return { ok: true };
+    } catch (err: any) {
+      console.warn("[storage] session DB check failed:", err?.message);
+    }
+  }
 
-  // Step 1: verify the Supabase token
+  // ── Path 2: Supabase Bearer token ─────────────────────────────────────────
+  const token = getBearerToken(req);
+  if (!token) return { ok: false, reason: "No session or bearer token" };
+
   const supabaseUser = await verifySupabaseToken(token);
   if (!supabaseUser) return { ok: false, reason: "Invalid or expired token" };
 
-  // Step 2: check role from app_metadata (set by Supabase admin)
-  // This avoids a DB query and works even if DATABASE_URL is not set.
+  // Check app_metadata first (avoids DB round-trip)
   const metaRole =
     supabaseUser.app_metadata?.role ?? supabaseUser.user_metadata?.role;
   if (metaRole === "admin") return { ok: true };
 
-  // Step 3: fallback — check role in the DB users table
+  // Fallback: check role in DB by email
   try {
     const { db, usersTable } = await import("@workspace/db");
     const { eq } = await import("drizzle-orm");

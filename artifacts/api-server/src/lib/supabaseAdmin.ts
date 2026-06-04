@@ -144,18 +144,27 @@ export async function createSignedUploadUrl(
     );
   }
 
+  // Supabase returns { url: "/object/upload/sign/bucket/path?token=xxx" }
+  // The token is embedded in the URL — there is no separate "token" field.
   const data = (await signRes.json()) as { url?: string; token?: string };
 
-  if (!data.url || !data.token) {
+  if (!data.url) {
     throw new Error(
-      `Unexpected Supabase response (missing url/token): ${JSON.stringify(data)}`,
+      `Unexpected Supabase response (missing url): ${JSON.stringify(data)}`,
     );
   }
 
-  const signedUrl = `${SUPABASE_URL}/storage/v1${data.url}`;
+  // Build the full signed URL — Supabase returns a relative path
+  const signedUrl = data.url.startsWith("http")
+    ? data.url
+    : `${SUPABASE_URL}/storage/v1${data.url}`;
+
+  // Extract token from the signed URL's query string if present
+  const urlToken = new URL(signedUrl).searchParams.get("token") ?? data.token ?? "";
+
   const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
 
-  return { signedUrl, token: data.token, path: objectPath, publicUrl, objectPath, bucket };
+  return { signedUrl, token: urlToken, path: objectPath, publicUrl, objectPath, bucket };
 }
 
 // ── Legacy server-side upload (buffers file in RAM) ───────────────────────
