@@ -149,19 +149,20 @@ export default async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
-  if (!data.url || !data.token) {
+  if (!data.url) {
     res.status(500).json({
-      error: `Unexpected Supabase response: ${JSON.stringify(data)}`,
+      error: `Unexpected Supabase response — missing url field: ${JSON.stringify(data)}`,
     });
     return;
   }
 
+  // Supabase returns { url: "/object/upload/sign/<bucket>/<path>?token=xxx" }
+  // The token is embedded in the query string — no separate token field.
   const signedUrl = `${SUPABASE_URL}/storage/v1${data.url}`;
   const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 
   res.json({
     signedUrl,
-    token: data.token,
     path,
     publicUrl,
     objectPath: path,
