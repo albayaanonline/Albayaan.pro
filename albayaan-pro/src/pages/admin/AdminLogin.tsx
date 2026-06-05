@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
-import { resolveApiUrl } from "@/lib/adminFetch";
+import { resolveApiUrl, storeAdminToken } from "@/lib/adminFetch";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -39,6 +39,10 @@ export default function AdminLogin() {
         setError("Access denied. This account does not have admin privileges.");
         setLoading(false);
         return;
+      }
+
+      if (data.token) {
+        storeAdminToken(data.token);
       }
 
       login(data);

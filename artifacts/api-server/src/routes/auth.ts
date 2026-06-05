@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
-import { verifySupabaseToken } from "../middleware/auth";
+import { verifySupabaseToken, getBearerToken } from "../middleware/auth";
+import { createAdminToken, verifyAdminToken } from "../lib/adminToken.js";
 
 const router: IRouter = Router();
 
@@ -67,11 +68,13 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   req.session.userId = user.id;
+  const token = createAdminToken(user.id, user.role);
   res.json({
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
+    token,
     createdAt: user.createdAt,
   });
 });
@@ -140,12 +143,32 @@ router.post("/auth/logout", (req, res): void => {
 });
 
 router.get("/auth/me", async (req, res): Promise<void> => {
-  if (!req.session.userId) {
+  let userId: number | undefined = req.session.userId;
+
+  // Accept Bearer token when no session cookie (cross-origin or serverless)
+  if (!userId) {
+    const token = getBearerToken(req);
+    if (token) {
+      const claims = verifyAdminToken(token);
+      if (claims) {
+        userId = claims.userId;
+      } else {
+        // Try Supabase token fallback
+        const sbUser = await verifySupabaseToken(token);
+        if (sbUser?.email) {
+          const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.email, sbUser.email));
+          if (dbUser) userId = dbUser.id;
+        }
+      }
+    }
+  }
+
+  if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user) {
     res.status(401).json({ error: "User not found" });
     return;

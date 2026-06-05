@@ -23861,13 +23861,13 @@ var require_lib3 = __commonJS({
             if (err) {
               next(err);
             } else {
-              var corsOptions2 = assign({}, defaults2, options);
+              var corsOptions = assign({}, defaults2, options);
               var originCallback = null;
-              if (corsOptions2.origin && typeof corsOptions2.origin === "function") {
-                originCallback = corsOptions2.origin;
-              } else if (corsOptions2.origin) {
+              if (corsOptions.origin && typeof corsOptions.origin === "function") {
+                originCallback = corsOptions.origin;
+              } else if (corsOptions.origin) {
                 originCallback = function(origin, cb) {
-                  cb(null, corsOptions2.origin);
+                  cb(null, corsOptions.origin);
                 };
               }
               if (originCallback) {
@@ -23875,8 +23875,8 @@ var require_lib3 = __commonJS({
                   if (err2 || !origin) {
                     next(err2);
                   } else {
-                    corsOptions2.origin = origin;
-                    cors2(corsOptions2, req, res, next);
+                    corsOptions.origin = origin;
+                    cors2(corsOptions, req, res, next);
                   }
                 });
               } else {
@@ -51378,13 +51378,8 @@ var init_src = __esm({
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
     if (!process.env.DATABASE_URL) {
-<<<<<<< HEAD
-      console.error(
-        "[db] \u26A0\uFE0F  DATABASE_URL is not set \u2014 all database queries will fail at runtime. Add DATABASE_URL to your deployment environment variables."
-=======
       console.warn(
         "[db] DATABASE_URL is not set \u2014 database queries will fail. Add DATABASE_URL to your environment variables."
->>>>>>> 7a4fb55 (Fix upload errors by improving server stability and error handling)
       );
     }
     pool = new Pool3({ connectionString: process.env.DATABASE_URL ?? "" });
@@ -70251,9 +70246,9 @@ var require_extension = __commonJS({
   "../../node_modules/.pnpm/ws@8.21.0/node_modules/ws/lib/extension.js"(exports, module) {
     "use strict";
     var { tokenChars } = require_validation();
-    function push(dest, name, elem) {
-      if (dest[name] === void 0) dest[name] = [elem];
-      else dest[name].push(elem);
+    function push(dest, name2, elem) {
+      if (dest[name2] === void 0) dest[name2] = [elem];
+      else dest[name2].push(elem);
     }
     function parse3(header) {
       const offers = /* @__PURE__ */ Object.create(null);
@@ -70279,12 +70274,12 @@ var require_extension = __commonJS({
               throw new SyntaxError(`Unexpected character at index ${i}`);
             }
             if (end === -1) end = i;
-            const name = header.slice(start, end);
+            const name2 = header.slice(start, end);
             if (code === 44) {
-              push(offers, name, params);
+              push(offers, name2, params);
               params = /* @__PURE__ */ Object.create(null);
             } else {
-              extensionName = name;
+              extensionName = name2;
             }
             start = end = -1;
           } else {
@@ -78134,6 +78129,39 @@ function getBearerToken(req) {
   return null;
 }
 
+// src/lib/adminToken.ts
+import { createHmac } from "crypto";
+var getSecret = () => process.env.SESSION_SECRET ?? "albayaan-secret-fallback";
+var TTL_MS = 7 * 24 * 60 * 60 * 1e3;
+function createAdminToken(userId, role) {
+  const expires = Date.now() + TTL_MS;
+  const payload = `${userId}:${role}:${expires}`;
+  const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
+  return Buffer.from(`${payload}:${sig}`).toString("base64url");
+}
+function verifyAdminToken(token) {
+  try {
+    const decoded = Buffer.from(token, "base64url").toString("utf8");
+    const lastColon = decoded.lastIndexOf(":");
+    if (lastColon === -1) return null;
+    const payload = decoded.slice(0, lastColon);
+    const sig = decoded.slice(lastColon + 1);
+    const expected = createHmac("sha256", getSecret()).update(payload).digest("hex");
+    if (sig !== expected) return null;
+    const parts = payload.split(":");
+    if (parts.length < 3) return null;
+    const userIdStr = parts[0];
+    const expiresStr = parts[parts.length - 1];
+    const role = parts.slice(1, -1).join(":");
+    if (Date.now() > parseInt(expiresStr, 10)) return null;
+    const userId = parseInt(userIdStr, 10);
+    if (isNaN(userId)) return null;
+    return { userId, role };
+  } catch {
+    return null;
+  }
+}
+
 // src/routes/auth.ts
 var router2 = (0, import_express2.Router)();
 router2.post("/auth/register", async (req, res) => {
@@ -78181,11 +78209,13 @@ router2.post("/auth/login", async (req, res) => {
     return;
   }
   req.session.userId = user.id;
+  const token = createAdminToken(user.id, user.role);
   res.json({
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
+    token,
     createdAt: user.createdAt
   });
 });
@@ -78234,17 +78264,35 @@ router2.post("/auth/forgot-password", async (req, res) => {
   }
   res.json({ success: true, message: "If an account exists, a reset link will be sent." });
 });
-router2.post("/auth/logout", async (req, res) => {
-  req.session.destroy(() => {
+router2.post("/auth/logout", (req, res) => {
+  res.clearCookie("connect.sid", { path: "/" });
+  req.session.destroy((err) => {
+    if (err) console.error("[auth] session destroy error:", err);
+    res.json({ message: "Logged out" });
   });
-  res.json({ message: "Logged out" });
 });
 router2.get("/auth/me", async (req, res) => {
-  if (!req.session.userId) {
+  let userId = req.session.userId;
+  if (!userId) {
+    const token = getBearerToken(req);
+    if (token) {
+      const claims = verifyAdminToken(token);
+      if (claims) {
+        userId = claims.userId;
+      } else {
+        const sbUser = await verifySupabaseToken(token);
+        if (sbUser?.email) {
+          const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.email, sbUser.email));
+          if (dbUser) userId = dbUser.id;
+        }
+      }
+    }
+  }
+  if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user) {
     res.status(401).json({ error: "User not found" });
     return;
@@ -88789,14 +88837,15 @@ async function createSignedUploadUrl(filename, contentType) {
     );
   }
   const data = await signRes.json();
-  if (!data.url || !data.token) {
+  if (!data.url) {
     throw new Error(
-      `Unexpected Supabase response (missing url/token): ${JSON.stringify(data)}`
+      `Unexpected Supabase response (missing url): ${JSON.stringify(data)}`
     );
   }
-  const signedUrl = `${SUPABASE_URL2}/storage/v1${data.url}`;
+  const signedUrl = data.url.startsWith("http") ? data.url : `${SUPABASE_URL2}/storage/v1${data.url}`;
+  const urlToken = new URL(signedUrl).searchParams.get("token") ?? data.token ?? "";
   const publicUrl = `${SUPABASE_URL2}/storage/v1/object/public/${bucket}/${objectPath}`;
-  return { signedUrl, token: data.token, path: objectPath, publicUrl, objectPath, bucket };
+  return { signedUrl, token: urlToken, path: objectPath, publicUrl, objectPath, bucket };
 }
 async function uploadToSupabase(buffer, contentType, filename) {
   if (!SUPABASE_URL2) {
@@ -88830,79 +88879,6 @@ async function uploadToSupabase(buffer, contentType, filename) {
 
 // src/routes/storage.ts
 var router16 = (0, import_express16.Router)();
-<<<<<<< HEAD
-async function isAdmin(req) {
-  const token = getBearerToken(req);
-  if (token) {
-    const supabaseUser = await verifySupabaseToken(token);
-    if (supabaseUser) {
-      const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.email, supabaseUser.email));
-      if (dbUser?.role === "admin") {
-        console.log("[storage] isAdmin: granted via Supabase token for", supabaseUser.email);
-        return true;
-      }
-      console.warn("[storage] isAdmin: token valid but user is not admin, email=", supabaseUser.email, "role=", dbUser?.role ?? "not found");
-    } else {
-      console.warn("[storage] isAdmin: Bearer token present but Supabase verification failed");
-    }
-  } else {
-    console.log("[storage] isAdmin: no Bearer token");
-  }
-  const sessionUserId = req.session?.userId;
-  if (sessionUserId) {
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, sessionUserId));
-    if (user?.role === "admin") {
-      console.log("[storage] isAdmin: granted via session for userId=", sessionUserId);
-      return true;
-    }
-    console.warn("[storage] isAdmin: session userId=", sessionUserId, "but role=", user?.role ?? "not found");
-  } else {
-    console.log("[storage] isAdmin: no session userId (cookie may be missing \u2014 credentials:include required)");
-  }
-  return false;
-}
-router16.post("/storage/upload-url", async (req, res) => {
-  let admin = false;
-  try {
-    admin = await isAdmin(req);
-  } catch (err) {
-    console.error("[storage] isAdmin check failed:", err?.message ?? err);
-    res.status(500).json({ error: `Auth check failed: ${err?.message ?? "internal error"}` });
-    return;
-  }
-  if (!admin) {
-    res.status(401).json({ error: "Unauthorized \u2014 admin login required" });
-    return;
-  }
-  const { filename, contentType } = req.body ?? {};
-  if (!filename || !contentType) {
-    res.status(400).json({ error: "filename and contentType are required" });
-    return;
-  }
-  try {
-    const result = await createSignedUploadUrl(filename, contentType);
-    res.json(result);
-  } catch (error40) {
-    console.error("[storage] Failed to create signed URL:", error40?.message ?? error40);
-    res.status(500).json({ error: error40?.message ?? "Failed to create signed URL" });
-  }
-});
-router16.post("/storage/upload", async (req, res) => {
-  let admin = false;
-  try {
-    admin = await isAdmin(req);
-  } catch (err) {
-    console.error("[storage] isAdmin check failed:", err?.message ?? err);
-    res.status(500).json({ error: `Auth check failed: ${err?.message ?? "internal error"}` });
-    return;
-  }
-  if (!admin) {
-    res.status(401).json({ error: "Unauthorized \u2014 admin login required" });
-    return;
-  }
-  const contentType = req.headers["x-file-type"] || (req.headers["content-type"] ?? "").split(";")[0].trim() || "application/octet-stream";
-  const filename = req.headers["x-filename"] ? decodeURIComponent(req.headers["x-filename"]) : void 0;
-=======
 router16.get("/storage/health", (_req, res) => {
   const checks = {
     SUPABASE_URL: Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
@@ -88916,17 +88892,32 @@ router16.get("/storage/health", (_req, res) => {
     ok: missing.length === 0,
     env: checks,
     missing,
-    note: missing.length > 0 ? `Add missing env vars to Vercel \u2192 Settings \u2192 Environment Variables` : "All required environment variables are set"
+    note: missing.length > 0 ? `Add missing env vars to your environment variables` : "All required environment variables are set"
   });
 });
 async function isAdminRequest(req) {
+  const sessionUserId = req.session?.userId;
+  if (sessionUserId) {
+    try {
+      const { db: db2, usersTable: usersTable2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+      const { eq: eq2 } = await Promise.resolve().then(() => (init_drizzle_orm(), drizzle_orm_exports));
+      const [user] = await db2.select({ role: usersTable2.role }).from(usersTable2).where(eq2(usersTable2.id, sessionUserId));
+      if (user?.role === "admin") return { ok: true };
+    } catch (err) {
+      console.warn("[storage] session DB check failed:", err?.message);
+    }
+  }
   const token = getBearerToken(req);
-  if (!token) return { ok: false, reason: "No bearer token" };
+  if (!token) return { ok: false, reason: "No session or bearer token" };
+  const customClaims = verifyAdminToken(token);
+  if (customClaims) {
+    if (customClaims.role === "admin") return { ok: true };
+    return { ok: false, reason: `Role is '${customClaims.role}' (not admin)` };
+  }
   const supabaseUser = await verifySupabaseToken(token);
   if (!supabaseUser) return { ok: false, reason: "Invalid or expired token" };
   const metaRole = supabaseUser.app_metadata?.role ?? supabaseUser.user_metadata?.role;
   if (metaRole === "admin") return { ok: true };
->>>>>>> 7a4fb55 (Fix upload errors by improving server stability and error handling)
   try {
     const { db: db2, usersTable: usersTable2 } = await Promise.resolve().then(() => (init_src(), src_exports));
     const { eq: eq2 } = await Promise.resolve().then(() => (init_drizzle_orm(), drizzle_orm_exports));
@@ -89031,42 +89022,22 @@ var routes_default = router17;
 
 // src/vercel-entry.ts
 var app = (0, import_express18.default)();
-var corsOptions = {
-  origin: true,
-  credentials: true,
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "x-file-type",
-    "x-filename"
-  ],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-};
-app.use((0, import_cors.default)(corsOptions));
-app.options("*", (0, import_cors.default)(corsOptions));
+app.use(
+  (0, import_cors.default)({
+    origin: true,
+    credentials: true,
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-file-type",
+      "x-filename"
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+  })
+);
 app.use(import_express18.default.json());
 app.use(import_express18.default.urlencoded({ extended: true }));
 app.use((0, import_cookie_parser.default)());
-<<<<<<< HEAD
-app.use(
-  (0, import_express_session.default)({
-    store: new PgSession2({
-      pool,
-      tableName: "user_sessions",
-      createTableIfMissing: true
-    }),
-    secret: process.env.SESSION_SECRET ?? "albayaan-secret-fallback",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: true,
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1e3,
-      sameSite: "none"
-    }
-  })
-);
-=======
 if (process.env.DATABASE_URL) {
   try {
     const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
@@ -89085,6 +89056,7 @@ if (process.env.DATABASE_URL) {
         cookie: {
           secure: true,
           httpOnly: true,
+          sameSite: "none",
           maxAge: 7 * 24 * 60 * 60 * 1e3
         }
       })
@@ -89096,7 +89068,7 @@ if (process.env.DATABASE_URL) {
         secret: process.env.SESSION_SECRET ?? "albayaan-secret-fallback",
         resave: false,
         saveUninitialized: false,
-        cookie: { secure: true, httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1e3 }
+        cookie: { secure: true, httpOnly: true, sameSite: "none", maxAge: 7 * 24 * 60 * 60 * 1e3 }
       })
     );
   }
@@ -89107,11 +89079,10 @@ if (process.env.DATABASE_URL) {
       secret: process.env.SESSION_SECRET ?? "albayaan-secret-fallback",
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: true, httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1e3 }
+      cookie: { secure: true, httpOnly: true, sameSite: "none", maxAge: 7 * 24 * 60 * 60 * 1e3 }
     })
   );
 }
->>>>>>> 7a4fb55 (Fix upload errors by improving server stability and error handling)
 app.use("/api", routes_default);
 app.use((err, _req, res, _next) => {
   const status = typeof err?.status === "number" ? err.status : 500;

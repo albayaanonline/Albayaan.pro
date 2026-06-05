@@ -63,6 +63,7 @@ if (process.env.DATABASE_URL) {
         cookie: {
           secure: true,
           httpOnly: true,
+          sameSite: "none",
           maxAge: 7 * 24 * 60 * 60 * 1000,
         },
       }),
@@ -74,7 +75,7 @@ if (process.env.DATABASE_URL) {
         secret: process.env.SESSION_SECRET ?? "albayaan-secret-fallback",
         resave: false,
         saveUninitialized: false,
-        cookie: { secure: true, httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
+        cookie: { secure: true, httpOnly: true, sameSite: "none", maxAge: 7 * 24 * 60 * 60 * 1000 },
       }),
     );
   }
@@ -85,7 +86,7 @@ if (process.env.DATABASE_URL) {
       secret: process.env.SESSION_SECRET ?? "albayaan-secret-fallback",
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: true, httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
+      cookie: { secure: true, httpOnly: true, sameSite: "none", maxAge: 7 * 24 * 60 * 60 * 1000 },
     }),
   );
 }

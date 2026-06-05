@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { verifySupabaseToken, getBearerToken } from "../middleware/auth";
+import { verifyAdminToken } from "../lib/adminToken.js";
 import { createSignedUploadUrl, uploadToSupabase } from "../lib/supabaseAdmin";
 
 const router: IRouter = Router();
@@ -52,10 +53,17 @@ async function isAdminRequest(req: Request): Promise<{ ok: boolean; reason?: str
     }
   }
 
-  // ── Path 2: Supabase Bearer token ─────────────────────────────────────────
+  // ── Path 2: Custom HMAC Bearer token (set by password login) ──────────────
   const token = getBearerToken(req);
   if (!token) return { ok: false, reason: "No session or bearer token" };
 
+  const customClaims = verifyAdminToken(token);
+  if (customClaims) {
+    if (customClaims.role === "admin") return { ok: true };
+    return { ok: false, reason: `Role is '${customClaims.role}' (not admin)` };
+  }
+
+  // ── Path 3: Supabase Bearer token ─────────────────────────────────────────
   const supabaseUser = await verifySupabaseToken(token);
   if (!supabaseUser) return { ok: false, reason: "Invalid or expired token" };
 

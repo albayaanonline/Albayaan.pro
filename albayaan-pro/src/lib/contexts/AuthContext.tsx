@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signOutFromSupabase } from "@/lib/supabase";
-import { resolveApiUrl } from "@/lib/adminFetch";
+import { resolveApiUrl, clearAdminToken } from "@/lib/adminFetch";
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +16,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 setAuthTokenGetter(async () => {
+  try {
+    const stored = localStorage.getItem("albayaan_admin_token");
+    if (stored) return stored;
+  } catch {}
   if (!supabase) return null;
   try {
     const { data } = await supabase.auth.getSession();
@@ -82,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     setLocalUser(null);
+    clearAdminToken();
     await signOutFromSupabase();
     try {
       await fetch(resolveApiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
