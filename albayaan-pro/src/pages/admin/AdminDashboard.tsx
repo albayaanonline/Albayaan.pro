@@ -16,7 +16,7 @@ import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
   Plus, TrendingUp, Clock, Search, Edit2, Trash2, Eye, BarChart2,
   Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X, Award, RefreshCw,
-  AlertCircle, UserCog
+  AlertCircle, Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -647,7 +647,7 @@ export default function AdminDashboard() {
                                 className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors"
                                 title={u.role === "admin" ? "Demote to user" : "Promote to admin"}
                               >
-                                <UserCog className="w-3.5 h-3.5" />
+                                <Settings className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => deleteUser(u.id)}

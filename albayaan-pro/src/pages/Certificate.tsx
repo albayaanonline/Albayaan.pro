@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useGetCourses, useGetUserProgress } from "@/lib/api-client";
 import { useStoreCertificate } from "@/lib/api-client/admin-hooks";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { Download, Shield, CheckCircle, ArrowLeft, Loader2, Share2, QrCode } from "lucide-react";
+import { Download, Shield, CheckCircle, ArrowLeft, Loader2, Share2, ScanQrCode } from "lucide-react";
 
 function generateCertId(userId: string, courseId: string): string {
   let hash = 0;
@@ -319,7 +319,7 @@ export default function Certificate() {
           className="mt-5 p-4 rounded-2xl bg-card border border-border flex items-center justify-between flex-wrap gap-2"
         >
           <div className="flex items-center gap-3">
-            <QrCode className="w-4 h-4 text-primary shrink-0" />
+            <ScanQrCode className="w-4 h-4 text-primary shrink-0" />
             <p className="text-sm text-muted-foreground">
               Verify at{" "}
               <Link href={`/verify/${certId}`} className="text-primary font-mono text-xs hover:underline">
