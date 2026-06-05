@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useGetCourses, useGetUserProgress } from "@/lib/api-client";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { Download, Shield, CheckCircle, ArrowLeft, Loader2, Share2, QrCode } from "lucide-react";
+import { Download, Shield, CheckCircle, ArrowLeft, Loader2, Share2, ScanQrCode } from "lucide-react";
 
 function generateCertId(userId: string, courseId: string): string {
   let hash = 0;
@@ -360,7 +360,7 @@ export default function Certificate() {
           className="mt-5 p-4 rounded-2xl bg-card border border-border flex items-center justify-between flex-wrap gap-2"
         >
           <div className="flex items-center gap-2">
-            <QrCode className="w-4 h-4 text-primary shrink-0" />
+            <ScanQrCode className="w-4 h-4 text-primary shrink-0" />
             <p className="text-sm text-muted-foreground">
               Verify at{" "}
               <span className="text-primary font-mono text-xs">{verifyUrl}</span>

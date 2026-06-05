@@ -15,7 +15,7 @@ import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
   Plus, TrendingUp, Clock, Search, Edit2, Trash2, Eye, BarChart2,
   Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X, Award, Download, RefreshCw,
-  AlertTriangle, UserX, Radio, EyeOff, UserCog, Video, FileText, Lock, Unlock,
+  AlertTriangle, UserX, Radio, EyeOff, Settings, Video, FileText, Lock, Unlock,
   Image as ImageIcon, Link as LinkIcon, Play, Send, ChevronRight, Hash,
   Copy, CheckSquare
 } from "lucide-react";
@@ -1276,7 +1276,7 @@ export default function AdminDashboard() {
                                 <button onClick={() => handleToggleUserRole(u)}
                                   className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors"
                                   title={u.role === "admin" ? "Demote to user" : "Promote to admin"}>
-                                  <UserCog className="w-3.5 h-3.5" />
+                                  <Settings className="w-3.5 h-3.5" />
                                 </button>
                                 <button onClick={() => setDeletingUser(deletingUser === u.id ? null : u.id)}
                                   className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
