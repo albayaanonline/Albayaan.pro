@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { resolveApiUrl } from "@/lib/adminFetch";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -19,7 +20,7 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(resolveApiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -18,3 +18,12 @@ All fetch calls to the Express API server must use `resolveApiUrl()` (exported f
 **Session destroy:** `req.session.destroy()` callback must contain the `res.json()` call, not be fire-and-forget. Also call `res.clearCookie("connect.sid")` before destroy.
 
 **lucide-react icon safety:** lucide-react 0.545.0 has no `exports` field. With `"moduleResolution": "NodeNext"` TypeScript can't resolve named exports. Use `"moduleResolution": "bundler"` (same as main app tsconfig) for the `api/tsconfig.json` to avoid this. Stable icon replacements: `QrCode` → `ScanQrCode`, `UserCog` → `Settings`.
+
+**albayaan-pro upload infrastructure:** albayaan-pro needs its own copies (parallel to artifacts/learning-platform) of:
+- `src/lib/adminFetch.ts` — `resolveApiUrl`, `adminFetch`, `adminJson`
+- `src/components/admin/FileUploader.tsx` — drag-drop file uploader
+- `src/components/admin/MediaUrlInput.tsx` — URL/Upload toggle for media fields (used in CourseForm thumbnailUrl field)
+
+**objectStorage.ts TS fix:** `response.json()` returns `unknown` in TS strict mode — cast as `{ signed_url: string }` after the call (not via destructuring).
+
+**session sameSite:** Session cookie in `artifacts/api-server/src/app.ts` needs `sameSite: "none"` (+ `secure: true`) in production for cross-origin requests to carry the cookie to the API.

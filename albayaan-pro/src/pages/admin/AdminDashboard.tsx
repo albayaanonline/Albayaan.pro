@@ -11,6 +11,7 @@ import {
   useAdminDeleteUser, useAdminUpdateUserRole,
   type AdminCourseInput,
 } from "@/lib/api-client/admin-hooks";
+import { MediaUrlInput } from "@/components/admin/MediaUrlInput";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import {
   Users, BookOpen, CreditCard, Key, CheckCircle, XCircle, Loader2,
@@ -31,11 +32,12 @@ interface CourseFormData {
   duration: string;
   description: string;
   descriptionAr: string;
+  thumbnailUrl: string;
 }
 
 const DEFAULT_FORM: CourseFormData = {
   title: "", titleAr: "", language: "english", level: "beginner",
-  price: 15, duration: "8 weeks", description: "", descriptionAr: "",
+  price: 15, duration: "8 weeks", description: "", descriptionAr: "", thumbnailUrl: "",
 };
 
 function StatCard({ icon: Icon, label, value, color, bg }: { icon: any; label: string; value: any; color: string; bg: string }) {
@@ -111,6 +113,16 @@ function CourseForm({
         <textarea value={form.descriptionAr} onChange={e => set("descriptionAr", e.target.value)} rows={3} dir="rtl"
           className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 text-sm resize-none"
           placeholder="وصف الدورة..." />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-1">Thumbnail Image</label>
+        <MediaUrlInput
+          value={form.thumbnailUrl}
+          onChange={v => set("thumbnailUrl", v)}
+          type="image"
+          placeholder="https://example.com/thumbnail.jpg"
+        />
       </div>
 
       <div className="flex gap-3 pt-2">
@@ -294,6 +306,7 @@ export default function AdminDashboard() {
       level: data.level,
       price: data.price,
       duration: data.duration,
+      thumbnailUrl: data.thumbnailUrl || undefined,
     };
 
     if (editingCourseId !== null) {
@@ -565,6 +578,7 @@ export default function AdminDashboard() {
                             price: course.price, duration: course.duration,
                             description: course.description ?? "",
                             descriptionAr: course.descriptionAr ?? "",
+                            thumbnailUrl: course.thumbnailUrl ?? "",
                           }}
                           onSave={handleSaveCourse}
                           onCancel={() => { setShowAddForm(false); setEditingCourseId(null); }}

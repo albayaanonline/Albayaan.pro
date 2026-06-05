@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useGetMe, getGetMeQueryKey, User } from "@/lib/api-client";
+import { useGetMe, getGetMeQueryKey, User, setAuthTokenGetter } from "@/lib/api-client";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signOutFromSupabase } from "@/lib/supabase";
+import { resolveApiUrl } from "@/lib/adminFetch";
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +14,16 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+setAuthTokenGetter(async () => {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: apiUser, isLoading: isQueryLoading } = useGetMe({
@@ -73,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLocalUser(null);
     await signOutFromSupabase();
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      await fetch(resolveApiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
     } catch {}
   };
 
