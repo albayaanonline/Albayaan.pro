@@ -131,9 +131,12 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
   res.json({ success: true, message: "If an account exists, a reset link will be sent." });
 });
 
-router.post("/auth/logout", async (req, res): Promise<void> => {
-  req.session.destroy(() => {});
-  res.json({ message: "Logged out" });
+router.post("/auth/logout", (req, res): void => {
+  res.clearCookie("connect.sid", { path: "/" });
+  req.session.destroy((err) => {
+    if (err) console.error("[auth] session destroy error:", err);
+    res.json({ message: "Logged out" });
+  });
 });
 
 router.get("/auth/me", async (req, res): Promise<void> => {

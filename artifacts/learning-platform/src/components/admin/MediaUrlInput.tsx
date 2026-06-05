@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload, Link, CheckCircle, X, Loader2, Image as ImageIcon, Video, File as FileIcon, AlertCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminFetch";
 
 interface MediaUrlInputProps {
   value: string;
@@ -69,24 +69,12 @@ export function MediaUrlInput({
     setUploadError("");
 
     try {
-      let token: string | null = null;
-      if (supabase) {
-        try {
-          const { data } = await supabase.auth.getSession();
-          token = data.session?.access_token ?? null;
-        } catch { /* ignore */ }
-      }
-
       // Step 1: Get a signed upload URL from our API (tiny JSON — works on Vercel)
       setUploadProgress(2);
 
-      const urlRes = await fetch("/api/storage/upload-url", {
+      const urlRes = await adminFetch("/api/storage/upload-url", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           filename: file.name,
           contentType: file.type || "application/octet-stream",

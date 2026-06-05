@@ -25,7 +25,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
   const [location] = useLocation();
   const { logout, user } = useAuth();
 
-  const handleLogout = () => { logout(); };
+  const handleLogout = async () => { await logout(); };
 
   return (
     <div className="flex flex-col h-full">

@@ -22,7 +22,7 @@ async function getAdminToken(): Promise<string | null> {
  * getApiUrl() takes paths like "/storage/upload" (no /api prefix) — the base
  * URL's /api already provides the prefix.
  */
-function resolveApiUrl(url: string): string {
+export function resolveApiUrl(url: string): string {
   if (!env.apiBaseUrl) return url; // dev: relative URL, Vite proxy handles it
   const base = env.apiBaseUrl.replace(/\/$/, "");
   // Strip leading /api from the path so it isn't doubled when using

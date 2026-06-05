@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { resolveApiUrl } from "@/lib/adminFetch";
 import { Eye, EyeOff, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export default function AdminLogin() {
@@ -40,7 +41,7 @@ export default function AdminLogin() {
         return;
       }
 
-      const res = await fetch("/api/auth/session-from-supabase", {
+      const res = await fetch(resolveApiUrl("/api/auth/session-from-supabase"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { setAuthTokenGetter } from "@/lib/api-client";
+import { resolveApiUrl } from "@/lib/adminFetch";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function syncWithBackend(accessToken: string): Promise<AuthUser | null> {
   try {
-    const res = await fetch("/api/auth/session-from-supabase", {
+    const res = await fetch(resolveApiUrl("/api/auth/session-from-supabase"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -36,6 +37,7 @@ async function syncWithBackend(accessToken: string): Promise<AuthUser | null> {
     });
     if (!res.ok) return null;
     const data = await res.json();
+    if (!data?.id) return null;
     return {
       id: data.id,
       name: data.name || data.email?.split("@")[0] || "User",
@@ -101,11 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    setUser(null); // optimistic — clears UI immediately
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      await fetch(resolveApiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
     } catch {}
-    if (supabase) await supabase.auth.signOut();
-    setUser(null);
+    try {
+      if (supabase) await supabase.auth.signOut();
+    } catch {}
   };
 
   const refreshUser = async () => {
