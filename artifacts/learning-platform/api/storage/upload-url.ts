@@ -1,12 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { createHmac } from "crypto";
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? "";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
 // ── Auth: Upload Secret ─────────────────────────────────────────────────────
 // Frontend sends X-Upload-Secret header when VITE_UPLOAD_SECRET is set at
 // Vercel build time. Optional — Bearer token path works without it.
@@ -50,32 +44,31 @@ function verifyHmacToken(token: string): boolean {
 // admin@ilmai.so has app_metadata.role="admin" set in Supabase Auth.
 
 async function verifySupabaseJwt(token: string): Promise<boolean> {
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return false;
-  const apiKey = SUPABASE_ANON_KEY || SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? "";
+  if (!supabaseUrl || !serviceRoleKey) return false;
+  const apiKey = anonKey || serviceRoleKey;
 
   try {
-    // 1. Verify token is valid and get user's public profile
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: { Authorization: `Bearer ${token}`, apikey: apiKey },
     });
     if (!res.ok) return false;
     const user = (await res.json()) as Record<string, any>;
 
-    // 2. Fast path: role already in /auth/v1/user response app_metadata
     const metaRole = user?.app_metadata?.role ?? user?.user_metadata?.role;
     if (metaRole === "admin") return true;
 
-    // 3. Fallback: /auth/v1/user may omit app_metadata for anon-key calls.
-    //    Re-fetch via Admin API (service role) which always returns full metadata.
     const userId: string | undefined = user?.id;
     if (!userId) return false;
 
     const adminRes = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users/${userId}`,
+      `${supabaseUrl}/auth/v1/admin/users/${userId}`,
       {
         headers: {
-          apikey: SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
         },
       },
     );
@@ -138,7 +131,10 @@ export default async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
-  if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
+  if (!serviceRoleKey || !supabaseUrl) {
     res.status(503).json({
       error: "Storage not configured: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set",
     });
@@ -156,7 +152,7 @@ export default async function handler(req: any, res: any): Promise<void> {
   const objectPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   try {
-    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
@@ -173,9 +169,9 @@ export default async function handler(req: any, res: any): Promise<void> {
 
     const fullSignedUrl = data.signedUrl.startsWith("http")
       ? data.signedUrl
-      : `${SUPABASE_URL}/storage/v1${data.signedUrl}`;
+      : `${supabaseUrl}/storage/v1${data.signedUrl}`;
 
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
 
     res.status(200).json({
       signedUrl: fullSignedUrl,
