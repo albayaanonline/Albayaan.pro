@@ -138,18 +138,6 @@ export default async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
-  // Accept upload secret OR admin Bearer token (HMAC or Supabase JWT)
-  const authed =
-    checkUploadSecret(req) ||
-    (await verifyAdminBearer(req.headers.authorization));
-
-  if (!authed) {
-    res.status(401).json({
-      error: "Unauthorized — provide X-Upload-Secret header or an admin Bearer token",
-    });
-    return;
-  }
-
   if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
     res.status(503).json({
       error: "Storage not configured: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set",
