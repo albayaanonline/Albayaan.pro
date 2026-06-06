@@ -2,9 +2,8 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { resolveApiUrl } from "@/lib/adminFetch";
-import { Eye, EyeOff, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
+import { resolveApiUrl, storeAdminToken } from "@/lib/adminFetch";
+import { Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -21,60 +20,39 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      if (!supabase) throw new Error("Auth service not configured.");
-
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (authError) {
-        setError(authError.message.includes("Invalid login credentials")
-          ? "Invalid email or password."
-          : authError.message);
-        return;
-      }
-
-      const token = authData.session?.access_token;
-      if (!token) {
-        setError("Failed to get session token.");
-        return;
-      }
-
-      const res = await fetch(resolveApiUrl("/api/auth/session-from-supabase"), {
+      const res = await fetch(resolveApiUrl("/api/auth/login"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ email: email.trim(), password }),
       });
+
+      const data = await res.json();
 
       if (!res.ok) {
-        await supabase.auth.signOut();
-        setError("Failed to authenticate with server.");
+        setError(data.error || "Login failed. Please check your credentials.");
         return;
       }
 
-      const userData = await res.json();
-
-      if (userData.role !== "admin") {
-        await supabase.auth.signOut();
+      if (data.role !== "admin") {
         setError("Access denied. This account does not have admin privileges.");
         return;
       }
 
+      if (data.token) {
+        storeAdminToken(data.token);
+      }
+
       loginAsAdmin({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
+        id: data.id,
+        name: data.name,
+        email: data.email,
         role: "admin",
-        supabaseId: userData.supabaseId,
       });
 
       setLocation("/management-portal");
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -101,19 +79,18 @@ export default function AdminLogin() {
             />
             <h1 className="text-2xl font-black text-white">Admin Login</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Albayaan.pro</span>
-              {" "}Admin Panel
+              <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                Albayaan.pro
+              </span>{" "}
+              Admin Panel
             </p>
-          </div>
-
-          <div className="mb-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-start gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>Admin access only. To get admin access, register an account and contact your system administrator.</span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Email
+              </label>
               <input
                 type="email"
                 value={email}
@@ -126,7 +103,9 @@ export default function AdminLogin() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPw ? "text" : "password"}
@@ -139,7 +118,7 @@ export default function AdminLogin() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPw(!showPw)}
+                  onClick={() => setShowPw(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                 >
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -148,8 +127,8 @@ export default function AdminLogin() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl">
-                <span className="shrink-0 mt-0.5">⚠</span>
+              <div className="flex items-start gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
             )}
@@ -159,13 +138,18 @@ export default function AdminLogin() {
               disabled={loading}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              {loading ? "Verifying…" : "Sign In to Admin Panel"}
+              {loading
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <ShieldCheck className="w-4 h-4" />}
+              {loading ? "Signing in…" : "Sign In to Admin Panel"}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <a href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="/"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               ← Back to site
             </a>
           </div>

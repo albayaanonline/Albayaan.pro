@@ -1,9 +1,9 @@
-import { useState, ReactNode } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import {
   LayoutDashboard, Users, CreditCard, Key, LogOut, Menu, X,
-  ExternalLink, BookOpen, BarChart2, Shield, ChevronRight, Settings, Upload, Award
+  ExternalLink, BookOpen, BarChart2, Shield, ChevronRight, Settings, Upload, Award, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -101,6 +101,37 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== "admin")) {
+      setLocation("/management-portal/login");
+    }
+  }, [user, isLoading, setLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-blue-500/20 rounded-2xl blur-xl animate-pulse" />
+            <div className="relative w-14 h-14 rounded-2xl bg-card border border-white/10 flex items-center justify-center">
+              <img src="/logo-96.png" alt="Albayaan.pro" className="w-8 h-8 object-contain" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <p className="text-sm">Loading…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== "admin") {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">

@@ -1,7 +1,21 @@
 import { supabase } from "@/lib/supabase";
 import { env } from "@/lib/env";
 
+export const ADMIN_TOKEN_KEY = "albayaan_admin_token";
+
+export function storeAdminToken(token: string) {
+  try { localStorage.setItem(ADMIN_TOKEN_KEY, token); } catch {}
+}
+
+export function clearAdminToken() {
+  try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
+}
+
 async function getAdminToken(): Promise<string | null> {
+  try {
+    const stored = localStorage.getItem(ADMIN_TOKEN_KEY);
+    if (stored) return stored;
+  } catch {}
   if (!supabase) return null;
   try {
     const { data } = await supabase.auth.getSession();

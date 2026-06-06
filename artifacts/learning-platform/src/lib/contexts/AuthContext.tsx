@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { setAuthTokenGetter } from "@/lib/api-client";
-import { resolveApiUrl } from "@/lib/adminFetch";
+import { resolveApiUrl, clearAdminToken, ADMIN_TOKEN_KEY } from "@/lib/adminFetch";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -55,13 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) {
-      setIsLoading(false);
-      setAuthTokenGetter(null);
-      return;
-    }
-
+    // Always set token getter: localStorage HMAC token takes priority over Supabase
     setAuthTokenGetter(async () => {
+      try {
+        const stored = localStorage.getItem(ADMIN_TOKEN_KEY);
+        if (stored) return stored;
+      } catch {}
+      if (!supabase) return null;
       try {
         const { data } = await supabase!.auth.getSession();
         return data.session?.access_token ?? null;
@@ -69,6 +69,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     });
+
+    // Restore admin session from HMAC token in localStorage (survives page refresh)
+    const storedToken = (() => { try { return localStorage.getItem(ADMIN_TOKEN_KEY); } catch { return null; } })();
+    if (storedToken) {
+      fetch(resolveApiUrl("/api/auth/me"), {
+        headers: { "Authorization": `Bearer ${storedToken}` },
+        credentials: "include",
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.id && data.role === "admin") {
+            setUser({ id: data.id, name: data.name, email: data.email, role: "admin" });
+          } else {
+            clearAdminToken(); // invalid / expired token
+          }
+        })
+        .catch(() => clearAdminToken())
+        .finally(() => setIsLoading(false));
+      return; // Don't wait for Supabase if we have an HMAC token
+    }
+
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
 
     let mounted = true;
 
@@ -104,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     setUser(null); // optimistic — clears UI immediately
+    clearAdminToken();
     try {
       await fetch(resolveApiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
     } catch {}
