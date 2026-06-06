@@ -21,7 +21,8 @@ router.post("/chat", async (req, res): Promise<void> => {
   const { message, history } = body.data;
 
   // Use OpenAI-compatible API if available, otherwise return helpful fallback
-  const apiKey = process.env.OPENAI_API_KEY || process.env.AI_API_KEY;
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY || process.env.AI_API_KEY;
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
 
   if (!apiKey) {
     // Intelligent fallback responses
@@ -53,7 +54,8 @@ router.post("/chat", async (req, res): Promise<void> => {
       { role: "user", content: message },
     ];
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const endpoint = `${baseURL ?? "https://api.openai.com"}/v1/chat/completions`;
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
