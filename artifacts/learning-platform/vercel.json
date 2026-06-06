@@ -7,6 +7,12 @@
   "functions": {
     "api/storage/upload-url.ts": {
       "maxDuration": 30
+    },
+    "api/auth/session-from-supabase.ts": {
+      "maxDuration": 10
+    },
+    "api/health.ts": {
+      "maxDuration": 5
     }
   },
 

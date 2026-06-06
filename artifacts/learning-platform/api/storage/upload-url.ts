@@ -8,7 +8,8 @@ const SUPABASE_ANON_KEY =
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
 // ── Auth: Upload Secret ─────────────────────────────────────────────────────
-// Frontend sends X-Upload-Secret header (when VITE_UPLOAD_SECRET is set).
+// Frontend sends X-Upload-Secret header when VITE_UPLOAD_SECRET is set at
+// Vercel build time. Optional — Bearer token path works without it.
 
 function checkUploadSecret(req: any): boolean {
   const secret = process.env.UPLOAD_SECRET;
@@ -18,9 +19,8 @@ function checkUploadSecret(req: any): boolean {
 }
 
 // ── Auth: HMAC Bearer token ─────────────────────────────────────────────────
-// Stateless HMAC-SHA256 token created by createAdminToken() on the API server.
-// Format (base64url): userId:role:expiresMs:hmacHex
-// Signed with SESSION_SECRET — must be set as env var on this deployment.
+// Stateless token from createAdminToken(). Requires SESSION_SECRET env var.
+// Optional — Supabase JWT path works when SESSION_SECRET is not set.
 
 function verifyHmacToken(token: string): boolean {
   const secret = process.env.SESSION_SECRET;
@@ -45,38 +45,46 @@ function verifyHmacToken(token: string): boolean {
 }
 
 // ── Auth: Supabase JWT Bearer token ─────────────────────────────────────────
-// Accepts a Supabase access token and checks role via metadata or local DB.
+// Verifies a Supabase access_token and confirms role="admin" via app_metadata.
+// No DATABASE_URL or pg connection needed — uses SUPABASE_URL + SERVICE_ROLE_KEY.
+// admin@ilmai.so has app_metadata.role="admin" set in Supabase Auth.
 
 async function verifySupabaseJwt(token: string): Promise<boolean> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return false;
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return false;
+  const apiKey = SUPABASE_ANON_KEY || SERVICE_ROLE_KEY;
+
   try {
+    // 1. Verify token is valid and get user's public profile
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: SUPABASE_ANON_KEY,
-      },
+      headers: { Authorization: `Bearer ${token}`, apikey: apiKey },
     });
     if (!res.ok) return false;
     const user = (await res.json()) as Record<string, any>;
 
+    // 2. Fast path: role already in /auth/v1/user response app_metadata
     const metaRole = user?.app_metadata?.role ?? user?.user_metadata?.role;
     if (metaRole === "admin") return true;
 
-    const DATABASE_URL = process.env.DATABASE_URL ?? "";
-    const email: string | undefined = user?.email;
-    if (!email || !DATABASE_URL) return false;
+    // 3. Fallback: /auth/v1/user may omit app_metadata for anon-key calls.
+    //    Re-fetch via Admin API (service role) which always returns full metadata.
+    const userId: string | undefined = user?.id;
+    if (!userId) return false;
 
-    const { Pool } = await import("pg");
-    const pg = new Pool({ connectionString: DATABASE_URL, max: 1 });
-    try {
-      const result = await pg.query<{ role: string }>(
-        "SELECT role FROM users WHERE email = $1 LIMIT 1",
-        [email],
-      );
-      return result.rows[0]?.role === "admin";
-    } finally {
-      await pg.end();
-    }
+    const adminRes = await fetch(
+      `${SUPABASE_URL}/auth/v1/admin/users/${userId}`,
+      {
+        headers: {
+          apikey: SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+      },
+    );
+    if (!adminRes.ok) return false;
+    const adminUser = (await adminRes.json()) as Record<string, any>;
+    return (
+      adminUser?.app_metadata?.role === "admin" ||
+      adminUser?.user_metadata?.role === "admin"
+    );
   } catch {
     return false;
   }
@@ -87,9 +95,9 @@ async function verifySupabaseJwt(token: string): Promise<boolean> {
 async function verifyAdminBearer(authHeader: string | undefined): Promise<boolean> {
   if (!authHeader?.startsWith("Bearer ")) return false;
   const token = authHeader.slice(7);
-  // Fast path: HMAC token (no network call)
+  // Fast path: HMAC token (stateless, no network call)
   if (verifyHmacToken(token)) return true;
-  // Fallback: Supabase JWT
+  // Supabase JWT path (requires SUPABASE_URL + SERVICE_ROLE_KEY)
   return verifySupabaseJwt(token);
 }
 
