@@ -59,7 +59,7 @@ export function Footer() {
                 { href: "/pricing",    icon: DollarSign,    label: t("Pricing",    "الأسعار",         "Qiimaha") },
                 { href: "/access-code",icon: Key,           label: t("Redeem Code","استرداد الرمز",   "Furo Koodhka") },
                 { href: "/dashboard",  icon: LayoutDashboard,label: t("Dashboard", "لوحة التحكم",     "Dhaq-dhaqaaqa") },
-                { href: "/admin/login",icon: ShieldCheck,   label: "Admin Panel" },
+                { href: "/management", icon: ShieldCheck,   label: "Admin Panel" },
               ].map((item, i) => (
                 <li key={i}>
                   <Link

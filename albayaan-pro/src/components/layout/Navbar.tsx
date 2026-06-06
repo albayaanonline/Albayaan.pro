@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { LanguageToggle } from "../shared/LanguageToggle";
 import { ThemeToggle } from "../shared/ThemeToggle";
-import { Menu, X, BookOpen, LayoutDashboard, ShieldCheck, LogOut, User, DollarSign } from "lucide-react";
+import { Menu, X, BookOpen, LayoutDashboard, LogOut, User, DollarSign } from "lucide-react";
 
 const BRAND = "Albayaan.pro";
 
@@ -29,7 +29,6 @@ export function Navbar() {
     { href: "/courses", label: t("Courses", "الدورات", "Koorsooyinka"), icon: BookOpen },
     { href: "/pricing", label: t("Pricing", "الأسعار", "Qiimaha"), icon: DollarSign },
     ...(user ? [{ href: "/dashboard", label: t("Dashboard", "لوحة التحكم", "Dhaq-dhaqaaqa"), icon: LayoutDashboard }] : []),
-    ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : []),
   ];
 
   return (
@@ -60,7 +59,7 @@ export function Navbar() {
                   isActive(link.href)
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                } ${link.href === "/admin" ? "text-purple-400 hover:text-purple-300 hover:bg-purple-500/10" : ""}`}
+                }`}
               >
                 <link.icon className="w-4 h-4" />
                 {link.label}
@@ -89,10 +88,6 @@ export function Navbar() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link href="/admin/login" className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Admin
-                </Link>
                 <Link href="/auth/login" className="px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   {t("Login", "دخول", "Gal")}
                 </Link>
@@ -161,9 +156,6 @@ export function Navbar() {
                 </>
               ) : (
                 <div className="space-y-2">
-                  <Link href="/admin/login" className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-purple-400 hover:bg-purple-500/10 transition-colors">
-                    <ShieldCheck className="w-4 h-4" /> Admin Login
-                  </Link>
                   <div className="grid grid-cols-2 gap-2">
                     <Link href="/auth/login" className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/5 transition-colors">
                       <User className="w-4 h-4" />

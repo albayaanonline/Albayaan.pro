@@ -21,7 +21,7 @@ export default function Login() {
     mutation: {
       onSuccess: (data: any) => {
         login(data);
-        setLocation(data.role === "admin" ? "/admin" : "/dashboard");
+        setLocation("/dashboard");
       },
       onError: () => {
         setError(t("Invalid email or password", "البريد الإلكتروني أو كلمة المرور غير صحيحة", "Emailka ama furaha sir ah ma sax"));
