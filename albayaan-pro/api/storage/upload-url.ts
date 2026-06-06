@@ -1,42 +1,43 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
-import { createHmac } from "crypto";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-function getSecret(): string {
-  return process.env.SESSION_SECRET ?? "albayaan-secret-fallback";
+// ── Upload Secret auth ─────────────────────────────────────────────────────
+// Validates X-Upload-Secret header against UPLOAD_SECRET env var.
+// Fully independent of admin session, HMAC tokens, and Supabase JWT.
+
+function checkUploadSecret(req: VercelRequest): { ok: boolean; reason?: string } {
+  const secret = process.env.UPLOAD_SECRET;
+  if (!secret) {
+    return { ok: false, reason: "UPLOAD_SECRET is not configured on the server." };
+  }
+  const provided = req.headers["x-upload-secret"] as string | undefined;
+  if (!provided) {
+    return { ok: false, reason: "Missing X-Upload-Secret header." };
+  }
+  if (provided !== secret) {
+    return { ok: false, reason: "Invalid upload secret." };
+  }
+  return { ok: true };
 }
 
-function verifyToken(token: string): { userId: number; role: string } | null {
-  try {
-    const decoded = Buffer.from(token, "base64url").toString("utf8");
-    const lastColon = decoded.lastIndexOf(":");
-    if (lastColon === -1) return null;
-    const payload = decoded.slice(0, lastColon);
-    const sig = decoded.slice(lastColon + 1);
-    const expected = createHmac("sha256", getSecret()).update(payload).digest("hex");
-    if (sig !== expected) return null;
-    const parts = payload.split(":");
-    if (parts.length < 3) return null;
-    const expiresStr = parts[parts.length - 1];
-    const role = parts.slice(1, -1).join(":");
-    if (Date.now() > parseInt(expiresStr, 10)) return null;
-    const userId = parseInt(parts[0], 10);
-    if (isNaN(userId)) return null;
-    return { userId, role };
-  } catch {
-    return null;
-  }
+// ── Bucket routing ─────────────────────────────────────────────────────────
+// Routes to the appropriate Supabase Storage bucket based on content type.
+
+function bucketForContentType(contentType: string): string {
+  if (contentType.startsWith("video/")) return "videos";
+  if (contentType.startsWith("image/")) return "thumbnails";
+  return "documents"; // PDFs, text, everything else
 }
 
 function setCors(req: VercelRequest, res: VercelResponse): void {
   const origin = (req.headers.origin as string | undefined) || "*";
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Upload-Secret");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
 }
 
@@ -51,21 +52,16 @@ export default async function handler(
     return;
   }
 
-  const auth = req.headers.authorization as string | undefined;
-  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized — admin login required" });
-    return;
-  }
-  const claims = verifyToken(token);
-  if (!claims || claims.role !== "admin") {
-    res.status(401).json({ error: "Unauthorized — admin login required" });
+  // Auth: upload secret (independent of admin login)
+  const auth = checkUploadSecret(req);
+  if (!auth.ok) {
+    res.status(401).json({ error: auth.reason ?? "Unauthorized" });
     return;
   }
 
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     res.status(503).json({
-      error: "Storage not configured: SUPABASE_SERVICE_ROLE_KEY is not set in environment variables.",
+      error: "Storage not configured: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.",
     });
     return;
   }
@@ -73,12 +69,13 @@ export default async function handler(
   const body = req.body as Record<string, string> | undefined;
   const filename = body?.filename;
   const contentType = body?.contentType;
-  const bucket = body?.bucket ?? "course-thumbnails";
 
   if (!filename || !contentType) {
     res.status(400).json({ error: "filename and contentType are required" });
     return;
   }
+
+  const bucket = bucketForContentType(contentType);
 
   try {
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -94,14 +91,21 @@ export default async function handler(
       return;
     }
 
+    // Extract token from signed URL query string (Supabase returns relative path)
+    const fullSignedUrl = data.signedUrl.startsWith("http")
+      ? data.signedUrl
+      : `${SUPABASE_URL}/storage/v1${data.signedUrl}`;
+
+    const urlToken = new URL(fullSignedUrl).searchParams.get("token") ?? "";
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
 
     res.status(200).json({
-      signedUrl: data.signedUrl,
-      token: data.token,
+      signedUrl: fullSignedUrl,
+      token: urlToken,
       path: objectPath,
       objectPath,
       publicUrl,
+      bucket,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

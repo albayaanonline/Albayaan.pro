@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, X, CheckCircle, Loader2, FileText, Video, Image as ImageIcon, File as FileIcon, Copy, AlertCircle } from "lucide-react";
-import { adminFetch } from "@/lib/adminFetch";
+import { requestUploadUrl } from "@/lib/uploadClient";
 
 export interface UploadedFile {
   name: string;
@@ -65,30 +65,16 @@ export function FileUploader({
     setState({ status: "uploading", progress: 0, name: file.name, size: file.size });
 
     try {
-      // Step 1: Get signed upload URL from our API (tiny JSON request — works on Vercel)
       setState(prev => prev.status === "uploading" ? { ...prev, progress: 2 } : prev);
 
-      const urlRes = await adminFetch("/api/storage/upload-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type || "application/octet-stream",
-        }),
-      });
-
-      if (!urlRes.ok) {
-        const err = await urlRes.json().catch(() => ({}));
-        throw new Error(err?.error || `Failed to get upload URL (${urlRes.status})`);
-      }
-
-      const { signedUrl, publicUrl, objectPath } = await urlRes.json();
+      const { signedUrl, publicUrl, objectPath } = await requestUploadUrl(
+        file.name,
+        file.type || "application/octet-stream",
+      );
 
       if (abortedRef.current) { setState({ status: "idle" }); return; }
-
       setState(prev => prev.status === "uploading" ? { ...prev, progress: 5 } : prev);
 
-      // Step 2: Upload file directly to Supabase via signed URL (bypasses Vercel — any file size)
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhrRef.current = xhr;

@@ -1,19 +1,37 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { verifySupabaseToken, getBearerToken } from "../middleware/auth";
-import { verifyAdminToken } from "../lib/adminToken.js";
 import { createSignedUploadUrl, uploadToSupabase } from "../lib/supabaseAdmin";
 
 const router: IRouter = Router();
 
+// ── Upload Secret check ────────────────────────────────────────────────────
+// Validates the X-Upload-Secret header against the UPLOAD_SECRET env var.
+// This is completely independent of admin session, HMAC token, or Supabase JWT.
+// If UPLOAD_SECRET is not set, uploads are rejected with a configuration error.
+
+function checkUploadSecret(req: Request): { ok: boolean; reason?: string } {
+  const secret = process.env.UPLOAD_SECRET;
+  if (!secret) {
+    return { ok: false, reason: "UPLOAD_SECRET environment variable is not set on the server." };
+  }
+  const provided = req.headers["x-upload-secret"] as string | undefined;
+  if (!provided) {
+    return { ok: false, reason: "Missing X-Upload-Secret header." };
+  }
+  if (provided !== secret) {
+    return { ok: false, reason: "Invalid upload secret." };
+  }
+  return { ok: true };
+}
+
 // ── GET /storage/health ────────────────────────────────────────────────────
-// Diagnostic endpoint — no auth required. Returns which env vars are present.
-// Use this to verify configuration on any deployment without exposing values.
+// Diagnostic endpoint — no auth required.
 
 router.get("/storage/health", (_req: Request, res: Response): void => {
   const checks = {
     SUPABASE_URL: Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
     SUPABASE_ANON_KEY: Boolean(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY),
     SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    UPLOAD_SECRET: Boolean(process.env.UPLOAD_SECRET),
     DATABASE_URL: Boolean(process.env.DATABASE_URL),
     SESSION_SECRET: Boolean(process.env.SESSION_SECRET),
   };
@@ -32,82 +50,19 @@ router.get("/storage/health", (_req: Request, res: Response): void => {
   });
 });
 
-// ── Admin check ────────────────────────────────────────────────────────────
-// Verifies the bearer token via Supabase, then checks the DB for admin role.
-// Never throws — returns false on any error (DB down, token invalid, etc.).
-
-async function isAdminRequest(req: Request): Promise<{ ok: boolean; reason?: string }> {
-  // ── Path 1: Express session cookie (app's own login system) ──────────────
-  const sessionUserId = (req as any).session?.userId as number | undefined;
-  if (sessionUserId) {
-    try {
-      const { db, usersTable } = await import("@workspace/db");
-      const { eq } = await import("drizzle-orm");
-      const [user] = await db
-        .select({ role: usersTable.role })
-        .from(usersTable)
-        .where(eq(usersTable.id, sessionUserId));
-      if (user?.role === "admin") return { ok: true };
-    } catch (err: any) {
-      console.warn("[storage] session DB check failed:", err?.message);
-    }
-  }
-
-  // ── Path 2: Custom HMAC Bearer token (set by password login) ──────────────
-  const token = getBearerToken(req);
-  if (!token) return { ok: false, reason: "No session or bearer token" };
-
-  const customClaims = verifyAdminToken(token);
-  if (customClaims) {
-    if (customClaims.role === "admin") return { ok: true };
-    return { ok: false, reason: `Role is '${customClaims.role}' (not admin)` };
-  }
-
-  // ── Path 3: Supabase Bearer token ─────────────────────────────────────────
-  const supabaseUser = await verifySupabaseToken(token);
-  if (!supabaseUser) return { ok: false, reason: "Invalid or expired token" };
-
-  // Check app_metadata first (avoids DB round-trip)
-  const metaRole =
-    supabaseUser.app_metadata?.role ?? supabaseUser.user_metadata?.role;
-  if (metaRole === "admin") return { ok: true };
-
-  // Fallback: check role in DB by email
-  try {
-    const { db, usersTable } = await import("@workspace/db");
-    const { eq } = await import("drizzle-orm");
-    const [dbUser] = await db
-      .select({ role: usersTable.role })
-      .from(usersTable)
-      .where(eq(usersTable.email, supabaseUser.email));
-    if (dbUser?.role === "admin") return { ok: true };
-    return { ok: false, reason: `User role is '${dbUser?.role ?? "unknown"}' (not admin)` };
-  } catch (err: any) {
-    console.warn("[storage] DB role check failed:", err?.message);
-    return { ok: false, reason: `DB unavailable: ${err?.message}` };
-  }
-}
-
 // ── POST /storage/upload-url ───────────────────────────────────────────────
 // Generates a Supabase signed upload URL so the client can PUT the file
 // directly to Supabase Storage (bypasses the server — any file size).
+//
+// Auth: X-Upload-Secret header (independent of admin session).
+// Supported content types: video/*, image/*, application/pdf, text/*
 
 router.post(
   "/storage/upload-url",
   async (req: Request, res: Response): Promise<void> => {
-    // Auth check — always returns JSON on failure
-    let authResult: { ok: boolean; reason?: string };
-    try {
-      authResult = await isAdminRequest(req);
-    } catch (err: any) {
-      res.status(500).json({ error: `Auth check failed: ${err?.message}` });
-      return;
-    }
-
-    if (!authResult.ok) {
-      res
-        .status(401)
-        .json({ error: `Unauthorized: ${authResult.reason ?? "not admin"}` });
+    const auth = checkUploadSecret(req);
+    if (!auth.ok) {
+      res.status(401).json({ error: auth.reason ?? "Unauthorized" });
       return;
     }
 
@@ -134,22 +89,15 @@ router.post(
 // ── POST /storage/upload ───────────────────────────────────────────────────
 // Legacy direct-upload route. Buffers the full body and streams to Supabase.
 // For large files, prefer /storage/upload-url (signed URL + direct client PUT).
+//
+// Auth: X-Upload-Secret header (independent of admin session).
 
 router.post(
   "/storage/upload",
   async (req: Request, res: Response): Promise<void> => {
-    let authResult: { ok: boolean; reason?: string };
-    try {
-      authResult = await isAdminRequest(req);
-    } catch (err: any) {
-      res.status(500).json({ error: `Auth check failed: ${err?.message}` });
-      return;
-    }
-
-    if (!authResult.ok) {
-      res
-        .status(401)
-        .json({ error: `Unauthorized: ${authResult.reason ?? "not admin"}` });
+    const auth = checkUploadSecret(req);
+    if (!auth.ok) {
+      res.status(401).json({ error: auth.reason ?? "Unauthorized" });
       return;
     }
 

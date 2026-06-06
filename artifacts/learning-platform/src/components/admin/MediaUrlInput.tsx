@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload, Link, CheckCircle, X, Loader2, Image as ImageIcon, Video, File as FileIcon, AlertCircle } from "lucide-react";
-import { adminFetch } from "@/lib/adminFetch";
+import { requestUploadUrl } from "@/lib/uploadClient";
 
 interface MediaUrlInputProps {
   value: string;
@@ -69,29 +69,16 @@ export function MediaUrlInput({
     setUploadError("");
 
     try {
-      // Step 1: Get a signed upload URL from our API (tiny JSON — works on Vercel)
       setUploadProgress(2);
 
-      const urlRes = await adminFetch("/api/storage/upload-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type || "application/octet-stream",
-        }),
-      });
-
-      if (!urlRes.ok) {
-        const err = await urlRes.json().catch(() => ({}));
-        throw new Error(err?.error || `Failed to get upload URL (${urlRes.status})`);
-      }
-
-      const { signedUrl, publicUrl } = await urlRes.json();
+      const { signedUrl, publicUrl } = await requestUploadUrl(
+        file.name,
+        file.type || "application/octet-stream",
+      );
 
       if (abortedRef.current) { setUploadStatus("idle"); return; }
       setUploadProgress(5);
 
-      // Step 2: Upload file directly to Supabase via signed URL (bypasses Vercel — any file size)
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhrRef.current = xhr;
