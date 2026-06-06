@@ -1,25 +1,30 @@
 import { createClient } from "@supabase/supabase-js";
-import { Pool } from "pg";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? "";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-const DATABASE_URL = process.env.DATABASE_URL ?? "";
-const BUCKET = "course-media";
 
-/**
- * Verify the Bearer token belongs to an admin user.
- * Fast path: check Supabase app_metadata.role.
- * Fallback: query the local PostgreSQL users table by email — this handles
- * admins whose role lives only in the local DB (not in Supabase metadata).
- */
-async function verifyAdmin(authHeader: string | undefined): Promise<boolean> {
+// ── Auth: Upload Secret (primary) ───────────────────────────────────────────
+// Independent of admin session. Frontend sends X-Upload-Secret header.
+// Set UPLOAD_SECRET env var on the Vercel deployment.
+
+function checkUploadSecret(req: any): boolean {
+  const secret = process.env.UPLOAD_SECRET;
+  if (!secret) return false;
+  const provided = req.headers["x-upload-secret"] as string | undefined;
+  return provided === secret;
+}
+
+// ── Auth: Bearer admin token (fallback) ────────────────────────────────────
+// Accepts a Supabase JWT or HMAC admin token in the Authorization header.
+// Used when the caller is logged in as admin and passes a Bearer token.
+
+async function verifyAdminBearer(authHeader: string | undefined): Promise<boolean> {
   if (!authHeader?.startsWith("Bearer ")) return false;
   const token = authHeader.slice(7);
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return false;
-
   try {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: {
@@ -29,15 +34,14 @@ async function verifyAdmin(authHeader: string | undefined): Promise<boolean> {
     });
     if (!res.ok) return false;
     const user = (await res.json()) as Record<string, any>;
-
-    // Fast path: Supabase metadata has the role
     const metaRole = user?.app_metadata?.role ?? user?.user_metadata?.role;
     if (metaRole === "admin") return true;
 
-    // Fallback: look up in local PostgreSQL users table by email
+    // Fallback: check local DB role via pg if DATABASE_URL is set
+    const DATABASE_URL = process.env.DATABASE_URL ?? "";
     const email: string | undefined = user?.email;
     if (!email || !DATABASE_URL) return false;
-
+    const { Pool } = await import("pg");
     const pg = new Pool({ connectionString: DATABASE_URL, max: 1 });
     try {
       const result = await pg.query<{ role: string }>(
@@ -53,18 +57,33 @@ async function verifyAdmin(authHeader: string | undefined): Promise<boolean> {
   }
 }
 
-export default async function handler(req: any, res: any): Promise<void> {
-  // Reflect the exact request origin — required for credentials: "include" mode.
-  // Never use "*" here: wildcard + credentials is rejected by all browsers.
-  const origin = req.headers.origin ?? "";
+// ── Bucket routing ──────────────────────────────────────────────────────────
+// Routes to the existing Supabase Storage buckets by content type.
+
+function bucketForContentType(contentType: string): string {
+  if (contentType.startsWith("video/")) return "videos";
+  if (contentType.startsWith("image/")) return "thumbnails";
+  return "documents";
+}
+
+// ── CORS ────────────────────────────────────────────────────────────────────
+
+function setCors(req: any, res: any): void {
+  const origin = (req.headers.origin as string | undefined) ?? "";
   if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Authorization, Content-Type",
+    "Authorization, Content-Type, X-Upload-Secret",
   );
+}
+
+// ── Handler ─────────────────────────────────────────────────────────────────
+
+export default async function handler(req: any, res: any): Promise<void> {
+  setCors(req, res);
 
   if (req.method === "OPTIONS") {
     res.status(204).end();
@@ -76,95 +95,70 @@ export default async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
-  const isAdmin = await verifyAdmin(req.headers.authorization);
-  if (!isAdmin) {
-    res.status(401).json({ error: "Unauthorized — admin login required" });
-    return;
-  }
+  // Auth: accept upload secret OR admin Bearer token
+  const uploadSecretOk = checkUploadSecret(req);
+  const bearerOk = uploadSecretOk
+    ? true
+    : await verifyAdminBearer(req.headers.authorization);
 
-  if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
-    res.status(500).json({
+  if (!uploadSecretOk && !bearerOk) {
+    res.status(401).json({
       error:
-        "Server misconfigured: SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL is not set on this deployment",
+        "Unauthorized — provide X-Upload-Secret header or an admin Bearer token",
     });
     return;
   }
 
-  const { filename, contentType } = req.body ?? {};
+  if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
+    res.status(503).json({
+      error:
+        "Storage not configured: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set on this deployment",
+    });
+    return;
+  }
+
+  const { filename, contentType } = (req.body as Record<string, string>) ?? {};
   if (!filename || !contentType) {
     res.status(400).json({ error: "filename and contentType are required" });
     return;
   }
 
-  // Ensure bucket exists (non-fatal if it already exists)
+  const bucket = bucketForContentType(contentType);
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "bin";
+  const objectPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
   try {
-    const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-    if (!buckets?.some((b: any) => b.name === BUCKET)) {
-      await supabaseAdmin.storage.createBucket(BUCKET, {
-        public: true,
-        fileSizeLimit: null,
-        allowedMimeTypes: null,
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUploadUrl(objectPath);
+
+    if (error || !data) {
+      res.status(500).json({
+        error: error?.message ?? "Failed to create signed upload URL",
       });
+      return;
     }
-  } catch {
-    /* non-fatal: bucket may already exist */
-  }
 
-  const folder = (contentType as string).startsWith("video/")
-    ? "videos"
-    : (contentType as string).startsWith("image/")
-      ? "images"
-      : "documents";
-  const ext = (filename as string).split(".").pop()?.toLowerCase() ?? "bin";
-  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const fullSignedUrl = data.signedUrl.startsWith("http")
+      ? data.signedUrl
+      : `${SUPABASE_URL}/storage/v1${data.signedUrl}`;
 
-  // Request a signed upload URL from Supabase Storage
-  const signRes = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/upload/sign/${BUCKET}/${path}`,
-    {
-      method: "POST",
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      },
-    },
-  );
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
 
-  if (!signRes.ok) {
-    const body = await signRes.text().catch(() => "");
-    res.status(500).json({
-      error: `Failed to create signed upload URL (${signRes.status}): ${body}`,
+    res.status(200).json({
+      signedUrl: fullSignedUrl,
+      path: objectPath,
+      objectPath,
+      publicUrl,
+      bucket,
     });
-    return;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[storage/upload-url]", msg);
+    res.status(500).json({ error: msg });
   }
-
-  let data: any;
-  try {
-    data = await signRes.json();
-  } catch {
-    res.status(500).json({ error: "Supabase returned an unexpected response" });
-    return;
-  }
-
-  if (!data.url) {
-    res.status(500).json({
-      error: `Unexpected Supabase response — missing url field: ${JSON.stringify(data)}`,
-    });
-    return;
-  }
-
-  // Supabase returns { url: "/object/upload/sign/<bucket>/<path>?token=xxx" }
-  // The token is embedded in the query string — no separate token field.
-  const signedUrl = `${SUPABASE_URL}/storage/v1${data.url}`;
-  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
-
-  res.json({
-    signedUrl,
-    path,
-    publicUrl,
-    objectPath: path,
-  });
 }
