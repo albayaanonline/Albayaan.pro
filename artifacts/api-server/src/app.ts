@@ -41,6 +41,7 @@ app.use(
       "Authorization",
       "x-file-type",
       "x-filename",
+      "x-upload-secret",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }),
