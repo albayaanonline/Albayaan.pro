@@ -119,12 +119,8 @@ export function ProtectedRoute({ component: Component, adminOnly = false, ...res
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!user) {
-        setLocation(adminOnly ? "/admin/login" : "/auth/login");
-      } else if (adminOnly && user.role !== "admin") {
-        setLocation("/admin/login");
-      }
+    if (!isLoading && !adminOnly && !user) {
+      setLocation("/auth/login");
     }
   }, [user, isLoading, setLocation, adminOnly]);
 
@@ -141,7 +137,7 @@ export function ProtectedRoute({ component: Component, adminOnly = false, ...res
     );
   }
 
-  if (!user || (adminOnly && user.role !== "admin")) {
+  if (!adminOnly && !user) {
     return null;
   }
 

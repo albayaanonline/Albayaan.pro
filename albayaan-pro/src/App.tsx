@@ -20,11 +20,10 @@ import Payment        from "@/pages/Payment";
 import Pricing        from "@/pages/Pricing";
 import Login          from "@/pages/auth/Login";
 import Register       from "@/pages/auth/Register";
-import AuthCallback        from "@/pages/auth/AuthCallback";
-import AdminLogin          from "@/pages/admin/AdminLogin";
-import AdminDashboard      from "@/pages/admin/AdminDashboard";
-import Certificate         from "@/pages/Certificate";
-import VerifyCertificate   from "@/pages/VerifyCertificate";
+import AuthCallback   from "@/pages/auth/AuthCallback";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import Certificate    from "@/pages/Certificate";
+import VerifyCertificate from "@/pages/VerifyCertificate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,28 +45,15 @@ function App() {
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <Switch>
 
-                {/* Admin login — standalone, no AdminLayout */}
-                <Route path="/admin/login" component={AdminLogin} />
-
-                {/* All other /admin/* routes — wrapped in AdminLayout */}
-                <Route path="/admin">
+                {/* Admin routes — no login required, open directly */}
+                <Route path="/management">
                   <AdminLayout>
-                    <Switch>
-                      <ProtectedRoute path="/admin" component={AdminDashboard} adminOnly />
-                      <Route component={NotFound} />
-                    </Switch>
+                    <AdminDashboard />
                   </AdminLayout>
                 </Route>
-                <Route path="/admin/:rest*">
+                <Route path="/management/:rest*">
                   <AdminLayout>
-                    <Switch>
-                      <ProtectedRoute path="/admin/courses"   component={AdminDashboard} adminOnly />
-                      <ProtectedRoute path="/admin/users"     component={AdminDashboard} adminOnly />
-                      <ProtectedRoute path="/admin/payments"  component={AdminDashboard} adminOnly />
-                      <ProtectedRoute path="/admin/codes"     component={AdminDashboard} adminOnly />
-                      <ProtectedRoute path="/admin/analytics" component={AdminDashboard} adminOnly />
-                      <Route component={NotFound} />
-                    </Switch>
+                    <AdminDashboard />
                   </AdminLayout>
                 </Route>
 
@@ -75,20 +61,20 @@ function App() {
                 <Route>
                   <MainLayout>
                     <Switch>
-                      <Route path="/"                         component={Home} />
-                      <Route path="/courses"                  component={Courses} />
-                      <Route path="/courses/:courseId"        component={CourseDetail} />
-                      <Route path="/learn/:courseId/:lessonId" component={Learn} />
-                      <Route path="/auth/login"               component={Login} />
-                      <Route path="/auth/register"            component={Register} />
-                      <Route path="/auth/callback"            component={AuthCallback} />
-                      <Route path="/access-code"              component={AccessCode} />
-                      <Route path="/payment/:courseId"        component={Payment} />
-                      <Route path="/pricing"                  component={Pricing} />
-                      <Route path="/verify/:certId"           component={VerifyCertificate} />
-                      <Route path="/verify"                   component={VerifyCertificate} />
+                      <Route path="/"                              component={Home} />
+                      <Route path="/courses"                       component={Courses} />
+                      <Route path="/courses/:courseId"             component={CourseDetail} />
+                      <Route path="/learn/:courseId/:lessonId"     component={Learn} />
+                      <Route path="/auth/login"                    component={Login} />
+                      <Route path="/auth/register"                 component={Register} />
+                      <Route path="/auth/callback"                 component={AuthCallback} />
+                      <Route path="/access-code"                   component={AccessCode} />
+                      <Route path="/payment/:courseId"             component={Payment} />
+                      <Route path="/pricing"                       component={Pricing} />
+                      <Route path="/verify/:certId"                component={VerifyCertificate} />
+                      <Route path="/verify"                        component={VerifyCertificate} />
                       <ProtectedRoute path="/certificate/:courseId" component={Certificate} />
-                      <ProtectedRoute path="/dashboard"       component={Dashboard} />
+                      <ProtectedRoute path="/dashboard"            component={Dashboard} />
                       <Route component={NotFound} />
                     </Switch>
                   </MainLayout>

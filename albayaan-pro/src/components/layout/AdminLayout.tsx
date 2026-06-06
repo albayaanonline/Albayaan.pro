@@ -1,8 +1,7 @@
 import { useState, ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/lib/contexts/AuthContext";
 import {
-  LayoutDashboard, Users, CreditCard, Key, LogOut, Menu, X,
+  LayoutDashboard, Users, CreditCard, Key, Menu, X,
   ExternalLink, BookOpen, BarChart2, Shield, ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,19 +9,16 @@ import { motion, AnimatePresence } from "framer-motion";
 const BRAND = "Albayaan.pro";
 
 const NAV_ITEMS = [
-  { href: "/admin",           icon: LayoutDashboard, label: "Overview",      color: "text-blue-400" },
-  { href: "/admin/courses",   icon: BookOpen,        label: "Courses",       color: "text-purple-400" },
-  { href: "/admin/users",     icon: Users,           label: "Users",         color: "text-green-400" },
-  { href: "/admin/payments",  icon: CreditCard,      label: "Payments",      color: "text-yellow-400" },
-  { href: "/admin/codes",     icon: Key,             label: "Access Codes",  color: "text-cyan-400" },
-  { href: "/admin/analytics", icon: BarChart2,       label: "Analytics",     color: "text-pink-400" },
+  { href: "/management",           icon: LayoutDashboard, label: "Overview",      color: "text-blue-400" },
+  { href: "/management/courses",   icon: BookOpen,        label: "Courses",       color: "text-purple-400" },
+  { href: "/management/users",     icon: Users,           label: "Users",         color: "text-green-400" },
+  { href: "/management/payments",  icon: CreditCard,      label: "Payments",      color: "text-yellow-400" },
+  { href: "/management/codes",     icon: Key,             label: "Access Codes",  color: "text-cyan-400" },
+  { href: "/management/analytics", icon: BarChart2,       label: "Analytics",     color: "text-pink-400" },
 ];
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const [location] = useLocation();
-  const { logout, user } = useAuth();
-
-  const handleLogout = () => { logout(); };
 
   return (
     <div className="flex flex-col h-full">
@@ -43,26 +39,11 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
-      {/* User info */}
-      {user && (
-        <div className="px-5 py-3 border-b border-border/50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
-              {user.name?.[0]?.toUpperCase() ?? "A"}
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-foreground truncate">{user.name || "Admin"}</div>
-              <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Nav Items */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = location === item.href;
+          const isActive = location === item.href || location.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
@@ -81,17 +62,6 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           );
         })}
       </nav>
-
-      {/* Logout */}
-      <div className="px-3 py-4 border-t border-border/50">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
-        >
-          <LogOut className="w-4 h-4 shrink-0" />
-          Logout
-        </button>
-      </div>
     </div>
   );
 }
