@@ -20,5 +20,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "capacitor.config.ts"]
+  "include": ["src"],
+  "exclude": ["capacitor.config.ts", "node_modules", "dist"]
 }
