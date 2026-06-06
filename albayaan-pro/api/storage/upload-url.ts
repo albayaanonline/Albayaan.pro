@@ -1,10 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
 // ── Upload Secret auth ─────────────────────────────────────────────────────
 // Validates X-Upload-Secret header against UPLOAD_SECRET env var.
 // Fully independent of admin session, HMAC tokens, and Supabase JWT.
@@ -59,7 +55,10 @@ export default async function handler(
     return;
   }
 
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
+  if (!supabaseUrl || !serviceRoleKey) {
     res.status(503).json({
       error: "Storage not configured: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.",
     });
@@ -78,7 +77,7 @@ export default async function handler(
   const bucket = bucketForContentType(contentType);
 
   try {
-    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const ext = String(filename).split(".").pop() ?? "bin";
     const objectPath = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
@@ -94,10 +93,10 @@ export default async function handler(
     // Extract token from signed URL query string (Supabase returns relative path)
     const fullSignedUrl = data.signedUrl.startsWith("http")
       ? data.signedUrl
-      : `${SUPABASE_URL}/storage/v1${data.signedUrl}`;
+      : `${supabaseUrl}/storage/v1${data.signedUrl}`;
 
     const urlToken = new URL(fullSignedUrl).searchParams.get("token") ?? "";
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
 
     res.status(200).json({
       signedUrl: fullSignedUrl,
