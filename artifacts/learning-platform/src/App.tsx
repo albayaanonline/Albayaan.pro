@@ -29,7 +29,6 @@ import Login            from "@/pages/auth/Login";
 import Register         from "@/pages/auth/Register";
 import ForgotPassword   from "@/pages/auth/ForgotPassword";
 import AuthCallback     from "@/pages/auth/AuthCallback";
-import AdminLogin       from "@/pages/admin/AdminLogin";
 import AdminDashboard   from "@/pages/admin/AdminDashboard";
 import AdminSettings    from "@/pages/admin/AdminSettings";
 import Certificate      from "@/pages/Certificate";
@@ -58,10 +57,7 @@ function App() {
                   {/* Auth callback — standalone, no layout */}
                   <Route path="/auth/callback" component={AuthCallback} />
 
-                  {/* Admin login — hidden, standalone */}
-                  <Route path="/management-portal/login" component={AdminLogin} />
-
-                  {/* Admin routes — hidden URL, no auth restriction during development */}
+                  {/* Admin routes — open, no login required */}
                   <Route path="/management-portal">
                     <AdminLayout>
                       <Switch>
