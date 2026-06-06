@@ -1,4 +1,4 @@
-import { resolveApiUrl } from "@/lib/adminFetch";
+import { adminFetch } from "@/lib/adminFetch";
 
 const UPLOAD_SECRET = (import.meta as any).env?.VITE_UPLOAD_SECRET ?? "";
 
@@ -11,24 +11,29 @@ export interface SignedUploadUrl {
 }
 
 /**
- * Upload Manager — fully independent of admin session auth.
+ * Upload Manager — requests a Supabase signed upload URL from the API.
  *
- * Uses a dedicated VITE_UPLOAD_SECRET header to authorize signed URL
- * generation. Works regardless of whether admin login is available.
+ * Auth priority:
+ *  1. X-Upload-Secret header (when VITE_UPLOAD_SECRET is set at build time)
+ *  2. Authorization: Bearer <token> (HMAC admin token or Supabase JWT, via adminFetch)
  *
- * Supports: videos, PDFs, images, thumbnails (bucket routing is server-side
- * based on contentType).
+ * Both headers are sent simultaneously when available so either auth path
+ * on the server can succeed.
  */
 export async function requestUploadUrl(
   filename: string,
   contentType: string,
 ): Promise<SignedUploadUrl> {
-  const res = await fetch(resolveApiUrl("/api/storage/upload-url"), {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (UPLOAD_SECRET) {
+    headers["X-Upload-Secret"] = UPLOAD_SECRET;
+  }
+
+  const res = await adminFetch("/api/storage/upload-url", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Upload-Secret": UPLOAD_SECRET,
-    },
+    headers,
     body: JSON.stringify({ filename, contentType }),
   });
 
