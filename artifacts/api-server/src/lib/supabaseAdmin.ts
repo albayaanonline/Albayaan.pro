@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 
 // ── Bucket names requested by the platform ────────────────────────────────
-const BUCKETS = ["videos", "thumbnails", "documents", "certificates"] as const;
+const BUCKETS = ["videos", "thumbnails", "documents", "certificates", "course-media"] as const;
 type BucketName = (typeof BUCKETS)[number];
 
 // Map content-type → bucket
