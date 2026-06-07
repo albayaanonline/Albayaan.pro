@@ -1,10 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
 // ── Bucket names requested by the platform ────────────────────────────────
 const BUCKETS = ["videos", "thumbnails", "documents", "certificates"] as const;
 type BucketName = (typeof BUCKETS)[number];
@@ -25,26 +21,37 @@ function bucketForContentType(contentType: string): BucketName {
   return "documents";
 }
 
-// ── Singleton admin client ─────────────────────────────────────────────────
-// Node 20 lacks native WebSocket; pass the "ws" package as transport so
-// @supabase/realtime-js does not throw at startup.
-export const supabaseAdmin =
-  SUPABASE_URL && SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-        auth: { autoRefreshToken: false, persistSession: false },
-        realtime: { transport: ws as any },
-      })
-    : null;
+// ── Runtime env readers (called at request time, never at module load) ────
+function getSupabaseUrl(): string {
+  return process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
+}
+
+function getServiceRoleKey(): string {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+}
+
+// ── On-demand admin client (reads env vars at call time) ──────────────────
+function getSupabaseAdmin() {
+  const url = getSupabaseUrl();
+  const key = getServiceRoleKey();
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    realtime: { transport: ws as any },
+  });
+}
 
 // ── Startup diagnostics ───────────────────────────────────────────────────
 export function logStorageConfig(): void {
-  const urlOk = Boolean(SUPABASE_URL);
-  const keyOk = Boolean(SERVICE_ROLE_KEY);
+  const url = getSupabaseUrl();
+  const key = getServiceRoleKey();
+  const urlOk = Boolean(url);
+  const keyOk = Boolean(key);
   console.log(
-    `[storage] SUPABASE_URL          : ${urlOk ? SUPABASE_URL : "❌ NOT SET"}`,
+    `[storage] SUPABASE_URL          : ${urlOk ? url : "❌ NOT SET"}`,
   );
   console.log(
-    `[storage] SUPABASE_SERVICE_ROLE_KEY : ${keyOk ? "✅ set (" + SERVICE_ROLE_KEY.slice(0, 8) + "...)" : "❌ NOT SET — uploads will fail"}`,
+    `[storage] SUPABASE_SERVICE_ROLE_KEY : ${keyOk ? "✅ set (" + key.slice(0, 8) + "...)" : "❌ NOT SET — uploads will fail"}`,
   );
   if (!urlOk || !keyOk) {
     console.error(
@@ -55,10 +62,11 @@ export function logStorageConfig(): void {
 
 // ── Auto-create all required buckets ─────────────────────────────────────
 async function ensureAllBuckets(): Promise<void> {
-  if (!supabaseAdmin) return;
+  const client = getSupabaseAdmin();
+  if (!client) return;
 
   const { data: existing, error: listErr } =
-    await supabaseAdmin.storage.listBuckets();
+    await client.storage.listBuckets();
 
   if (listErr) {
     console.error("[storage] Failed to list buckets:", listErr.message);
@@ -69,7 +77,7 @@ async function ensureAllBuckets(): Promise<void> {
 
   for (const bucket of BUCKETS) {
     if (!existingNames.has(bucket)) {
-      const { error } = await supabaseAdmin.storage.createBucket(bucket, {
+      const { error } = await client.storage.createBucket(bucket, {
         public: true,
         fileSizeLimit: null,
         allowedMimeTypes: null,
@@ -88,7 +96,8 @@ async function ensureAllBuckets(): Promise<void> {
 export async function ensureStorageBucket(): Promise<void> {
   logStorageConfig();
 
-  if (!supabaseAdmin) {
+  const client = getSupabaseAdmin();
+  if (!client) {
     console.warn(
       "[storage] Skipping bucket setup — Supabase admin client not initialised.",
     );
@@ -111,12 +120,15 @@ export async function createSignedUploadUrl(
   objectPath: string;
   bucket: string;
 }> {
-  if (!SUPABASE_URL) {
+  const supabaseUrl = getSupabaseUrl();
+  const serviceRoleKey = getServiceRoleKey();
+
+  if (!supabaseUrl) {
     throw new Error(
       "Supabase not configured: SUPABASE_URL (or VITE_SUPABASE_URL) is not set in environment variables.",
     );
   }
-  if (!SERVICE_ROLE_KEY) {
+  if (!serviceRoleKey) {
     throw new Error(
       "Supabase not configured: SUPABASE_SERVICE_ROLE_KEY is not set in environment variables. Add it as a Replit secret.",
     );
@@ -127,12 +139,12 @@ export async function createSignedUploadUrl(
   const objectPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const signRes = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/upload/sign/${bucket}/${objectPath}`,
+    `${supabaseUrl}/storage/v1/object/upload/sign/${bucket}/${objectPath}`,
     {
       method: "POST",
       headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
       },
     },
   );
@@ -144,8 +156,6 @@ export async function createSignedUploadUrl(
     );
   }
 
-  // Supabase returns { url: "/object/upload/sign/bucket/path?token=xxx" }
-  // The token is embedded in the URL — there is no separate "token" field.
   const data = (await signRes.json()) as { url?: string; token?: string };
 
   if (!data.url) {
@@ -154,15 +164,13 @@ export async function createSignedUploadUrl(
     );
   }
 
-  // Build the full signed URL — Supabase returns a relative path
   const signedUrl = data.url.startsWith("http")
     ? data.url
-    : `${SUPABASE_URL}/storage/v1${data.url}`;
+    : `${supabaseUrl}/storage/v1${data.url}`;
 
-  // Extract token from the signed URL's query string if present
   const urlToken = new URL(signedUrl).searchParams.get("token") ?? data.token ?? "";
 
-  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
+  const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
 
   return { signedUrl, token: urlToken, path: objectPath, publicUrl, objectPath, bucket };
 }
@@ -173,12 +181,15 @@ export async function uploadToSupabase(
   contentType: string,
   filename?: string,
 ): Promise<string> {
-  if (!SUPABASE_URL) {
+  const supabaseUrl = getSupabaseUrl();
+  const client = getSupabaseAdmin();
+
+  if (!supabaseUrl) {
     throw new Error(
       "Supabase not configured: SUPABASE_URL (or VITE_SUPABASE_URL) is not set.",
     );
   }
-  if (!supabaseAdmin) {
+  if (!client) {
     throw new Error(
       "Supabase not configured: SUPABASE_SERVICE_ROLE_KEY is not set. Add it as a Replit secret.",
     );
@@ -188,7 +199,7 @@ export async function uploadToSupabase(
   const ext = filename?.split(".").pop()?.toLowerCase() ?? "bin";
   const objectPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-  const { data, error } = await supabaseAdmin.storage
+  const { data, error } = await client.storage
     .from(bucket)
     .upload(objectPath, buffer, {
       contentType,
@@ -204,7 +215,7 @@ export async function uploadToSupabase(
 
   const {
     data: { publicUrl },
-  } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
+  } = client.storage.from(bucket).getPublicUrl(data.path);
 
   return publicUrl;
 }
