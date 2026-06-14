@@ -376,6 +376,139 @@ function AILessonModal({ onClose, onGenerated }: {
   );
 }
 
+// ─── AILessonGlobalModal ────────────────────────────────────────────────────
+
+function AILessonGlobalModal({ courses, onClose, onSuccess }: {
+  courses: any[];
+  onClose: () => void;
+  onSuccess: (courseId: number) => void;
+}) {
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(courses[0]?.id?.toString() ?? "");
+  const [topic, setTopic] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleGenerate = async () => {
+    const trimmed = topic.trim();
+    if (!trimmed) { toast("Please enter a topic first", "err"); return; }
+    if (!selectedCourseId) { toast("Please select a course first", "err"); return; }
+    setLoading(true);
+    try {
+      const aiRes = await adminFetch("/api/admin/ai/generate-lesson", {
+        method: "POST",
+        body: JSON.stringify({ topic: trimmed }),
+      });
+      const data = await aiRes.json();
+      if (!aiRes.ok) { toast(data.error || "AI generation failed", "err"); return; }
+
+      const saveRes = await adminFetch(`/api/admin/courses/${selectedCourseId}/lessons`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: data.title ?? trimmed,
+          content: data.content ?? "",
+          videoUrl: data.videoUrl ?? "",
+          duration: data.duration ?? "15 min",
+          orderIndex: 999,
+          isFree: false,
+        }),
+      });
+      if (!saveRes.ok) { const e = await saveRes.json(); toast(e.error || "Failed to save lesson", "err"); return; }
+
+      toast("✅ Lesson created with AI — expand the course to see it!");
+      onSuccess(Number(selectedCourseId));
+      onClose();
+    } catch { toast("Network error — try again", "err"); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-md rounded-2xl bg-[#0d1526] border border-blue-500/30 shadow-2xl shadow-blue-900/30 p-6 space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Add Lesson With AI</h3>
+              <p className="text-xs text-muted-foreground">Choose a course and describe the topic</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-white/10 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide">Course</label>
+          {courses.length === 0 ? (
+            <p className="text-sm text-yellow-400/80 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2.5">
+              No courses yet — create a course first, then use AI to add lessons.
+            </p>
+          ) : (
+            <select
+              value={selectedCourseId}
+              onChange={e => setSelectedCourseId(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500/50 text-sm transition-colors"
+            >
+              {courses.map((c: any) => (
+                <option key={c.id} value={c.id} className="bg-[#0d1526]">
+                  {c.title} {c.isPublished ? "✅" : "(draft)"}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide">Topic / Idea</label>
+          <textarea
+            value={topic}
+            onChange={e => setTopic(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleGenerate(); }}
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 text-sm transition-colors resize-none"
+            placeholder="e.g. English grammar — present tense, Arabic greetings, Quran lesson about patience..."
+            autoFocus
+          />
+          <p className="text-xs text-muted-foreground">Tip: Be specific. Press Ctrl+Enter to generate.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {["English grammar — present tense", "Arabic greetings", "English vocabulary — jobs", "Past tense with examples"].map(s => (
+            <button key={s} onClick={() => setTopic(s)}
+              className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-muted-foreground hover:text-white hover:border-blue-500/30 hover:bg-blue-500/10 transition-all">
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={handleGenerate}
+            disabled={loading || !topic.trim() || courses.length === 0}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating &amp; Saving…</>
+              : <><Sparkles className="w-4 h-4" /> Generate &amp; Add Lesson</>
+            }
+          </button>
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground text-sm font-medium hover:bg-white/10 transition-all">
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── LessonManagerSection ──────────────────────────────────────────────────
 
 function LessonManagerSection({ courseId, courseName }: { courseId: number; courseName: string }) {
@@ -733,6 +866,7 @@ export default function AdminDashboard() {
   const [editingCourse, setEditingCourse] = useState<number | null>(null);
   const [deletingCourse, setDeletingCourse] = useState<number | null>(null);
   const [expandedCourse, setExpandedCourse] = useState<number | null>(null);
+  const [showGlobalAiModal, setShowGlobalAiModal] = useState(false);
   const [togglingPublish, setTogglingPublish] = useState<number | null>(null);
   const [savingCourse, setSavingCourse] = useState(false);
 
@@ -1010,6 +1144,18 @@ export default function AdminDashboard() {
         {/* ── COURSES ── */}
         {tab === "courses" && (
           <motion.div key="courses" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
+            <AnimatePresence>
+              {showGlobalAiModal && (
+                <AILessonGlobalModal
+                  courses={apiCourses}
+                  onClose={() => setShowGlobalAiModal(false)}
+                  onSuccess={(courseId) => {
+                    setExpandedCourse(courseId);
+                    queryClient.invalidateQueries({ queryKey: ["admin-lessons", courseId] });
+                  }}
+                />
+              )}
+            </AnimatePresence>
             <div className="flex items-center justify-between gap-4">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1017,6 +1163,11 @@ export default function AdminDashboard() {
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-card border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/40 text-sm"
                   placeholder="Search courses..." />
               </div>
+              <button
+                onClick={() => setShowGlobalAiModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all whitespace-nowrap border border-purple-500/30">
+                <Bot className="w-4 h-4" /> <span className="hidden sm:inline">Add Lesson With AI</span><span className="sm:hidden">AI</span>
+              </button>
               <button
                 onClick={() => { setShowAddCourseForm(v => !v); setEditingCourse(null); }}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all whitespace-nowrap">
