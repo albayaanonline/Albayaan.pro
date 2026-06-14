@@ -766,4 +766,77 @@ router.post("/admin/change-password", async (req, res): Promise<void> => {
   res.json({ success: true, message: "Password updated successfully" });
 });
 
+// ─── AI Lesson Generator ────────────────────────────────────────────────────
+
+router.post("/admin/ai/generate-lesson", async (req, res): Promise<void> => {
+  if (!await requireAdmin(req, res)) return;
+
+  const { topic } = req.body;
+  if (!topic || typeof topic !== "string" || !topic.trim()) {
+    res.status(400).json({ error: "topic is required" });
+    return;
+  }
+
+  const cleanTopic = topic.trim();
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+
+  const fallback = () => {
+    res.json({
+      title: `Introduction to ${cleanTopic}`,
+      content: `# Introduction to ${cleanTopic}\n\n## Overview\nIn this lesson, we will explore the fundamentals of **${cleanTopic}**.\n\n## Key Concepts\n- Core principles of ${cleanTopic}\n- Practical applications and real-world examples\n- Step-by-step learning approach\n- Exercises and self-assessment\n\n## Detailed Explanation\nUnderstanding ${cleanTopic} is essential for building a solid foundation. We'll start from the basics and gradually move to more advanced topics.\n\n## Examples\nHere are some practical examples to help you understand:\n\n1. **Example 1** — A basic scenario demonstrating the concept\n2. **Example 2** — A more advanced application\n3. **Example 3** — A real-world use case\n\n## Summary\nBy the end of this lesson, you will have a solid understanding of ${cleanTopic} and be ready to apply what you've learned.`,
+      videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanTopic + " tutorial")}`,
+      duration: "15 min",
+    });
+  };
+
+  if (!apiKey) {
+    fallback();
+    return;
+  }
+
+  const prompt = `You are an expert educational content creator. Generate a complete, high-quality lesson for the topic: "${cleanTopic}".
+
+Return ONLY valid JSON with these exact fields (no markdown code blocks, just raw JSON):
+{
+  "title": "A clear, engaging lesson title in English",
+  "content": "Full lesson content in Markdown format. Must include these sections:\\n## Overview\\n## Key Concepts\\n## Detailed Explanation\\n## Examples\\n## Practice Exercise\\n## Summary\\n\\nMake it educational, well-structured, and thorough (minimum 400 words). Use bullet points, numbered lists, and bold text to improve readability.",
+  "videoUrl": "https://www.youtube.com/results?search_query=<url-encoded-topic>+tutorial",
+  "duration": "estimated duration like '15 min' or '20 min'"
+}`;
+
+  try {
+    const endpoint = `${baseURL ?? "https://api.openai.com"}/v1/chat/completions`;
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 1800,
+        temperature: 0.7,
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!response.ok) throw new Error(`OpenAI error: ${response.status}`);
+
+    const data = (await response.json()) as any;
+    const text = data.choices?.[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(text);
+
+    res.json({
+      title: parsed.title || `Introduction to ${cleanTopic}`,
+      content: parsed.content || "",
+      videoUrl: parsed.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanTopic + " tutorial")}`,
+      duration: parsed.duration || "15 min",
+    });
+  } catch {
+    fallback();
+  }
+});
+
 export default router;

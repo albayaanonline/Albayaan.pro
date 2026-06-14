@@ -17,7 +17,7 @@ import {
   Upload, Globe, Shield, Star, ChevronDown, ChevronUp, Save, X, Award, Download, RefreshCw,
   AlertTriangle, UserX, Radio, EyeOff, Settings, Video, FileText, Lock, Unlock,
   Image as ImageIcon, Link as LinkIcon, Play, Send, ChevronRight, Hash,
-  Copy, CheckSquare
+  Copy, CheckSquare, Bot, Sparkles
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -269,6 +269,113 @@ function LessonForm({ initial, onSave, onCancel, saving }: {
   );
 }
 
+// ─── AILessonModal ─────────────────────────────────────────────────────────
+
+function AILessonModal({ onClose, onGenerated }: {
+  onClose: () => void;
+  onGenerated: (data: Partial<LessonFormData>) => void;
+}) {
+  const [topic, setTopic] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleGenerate = async () => {
+    const trimmed = topic.trim();
+    if (!trimmed) { toast("Please enter a topic first", "err"); return; }
+    setLoading(true);
+    try {
+      const res = await adminFetch("/api/admin/ai/generate-lesson", {
+        method: "POST",
+        body: JSON.stringify({ topic: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || "AI generation failed", "err"); return; }
+      onGenerated({
+        title: data.title ?? "",
+        content: data.content ?? "",
+        videoUrl: data.videoUrl ?? "",
+        duration: data.duration ?? "15 min",
+      });
+      onClose();
+      toast("✅ Lesson generated — review and save!");
+    } catch { toast("Network error — try again", "err"); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-md rounded-2xl bg-[#0d1526] border border-blue-500/30 shadow-2xl shadow-blue-900/30 p-6 space-y-4"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Add Lesson With AI</h3>
+              <p className="text-xs text-muted-foreground">Describe the topic and AI will generate the full lesson</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-white/10 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Input */}
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide">Topic / Idea</label>
+          <textarea
+            value={topic}
+            onChange={e => setTopic(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleGenerate(); }}
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 text-sm transition-colors resize-none"
+            placeholder="e.g. JavaScript basics, React hooks, Quran lesson about patience, English grammar — present tense..."
+            autoFocus
+          />
+          <p className="text-xs text-muted-foreground">Tip: Be specific for better results. Press Ctrl+Enter to generate.</p>
+        </div>
+
+        {/* Suggestions */}
+        <div className="flex flex-wrap gap-1.5">
+          {["JavaScript basics", "React hooks", "English grammar", "Quran lesson about patience"].map(s => (
+            <button
+              key={s}
+              onClick={() => setTopic(s)}
+              className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-muted-foreground hover:text-white hover:border-blue-500/30 hover:bg-blue-500/10 transition-all"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={handleGenerate}
+            disabled={loading || !topic.trim()}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+              : <><Sparkles className="w-4 h-4" /> Generate Lesson</>
+            }
+          </button>
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground text-sm font-medium hover:bg-white/10 transition-all">
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── LessonManagerSection ──────────────────────────────────────────────────
 
 function LessonManagerSection({ courseId, courseName }: { courseId: number; courseName: string }) {
@@ -276,6 +383,8 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [savingLesson, setSavingLesson] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiPrefill, setAiPrefill] = useState<Partial<LessonFormData> | null>(null);
 
   const { data: lessonsData, refetch } = useQuery({
     queryKey: ["admin-lessons", courseId],
@@ -326,6 +435,20 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
   };
 
   return (
+    <>
+      <AnimatePresence>
+        {showAiModal && (
+          <AILessonModal
+            onClose={() => setShowAiModal(false)}
+            onGenerated={(data) => {
+              setAiPrefill(data);
+              setShowAddForm(true);
+              setEditingId(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
       className="overflow-hidden">
       <div className="mt-4 border-t border-white/5 pt-4">
@@ -335,20 +458,29 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
             Lessons
             <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold">{lessons.length}</span>
           </h5>
-          <button
-            onClick={() => { setShowAddForm(v => !v); setEditingId(null); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/20 transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add Lesson
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowAiModal(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-medium hover:bg-purple-500/20 transition-colors"
+              title="Generate a lesson using AI"
+            >
+              <Bot className="w-3.5 h-3.5" /> Add Lesson With AI
+            </button>
+            <button
+              onClick={() => { setShowAddForm(v => !v); setEditingId(null); setAiPrefill(null); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/20 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Lesson
+            </button>
+          </div>
         </div>
 
         <AnimatePresence>
           {showAddForm && (
             <LessonForm
-              initial={{ order: lessons.length + 1 }}
-              onSave={handleAddLesson}
-              onCancel={() => setShowAddForm(false)}
+              initial={{ order: lessons.length + 1, ...aiPrefill }}
+              onSave={(data) => { handleAddLesson(data); setAiPrefill(null); }}
+              onCancel={() => { setShowAddForm(false); setAiPrefill(null); }}
               saving={savingLesson}
             />
           )}
@@ -427,6 +559,7 @@ function LessonManagerSection({ courseId, courseName }: { courseId: number; cour
         </div>
       </div>
     </motion.div>
+    </>
   );
 }
 
