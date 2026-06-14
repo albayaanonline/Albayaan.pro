@@ -443,6 +443,20 @@ export default function Learn() {
             <AnimatePresence mode="wait">
               {tab === "lesson" && (
                 <motion.div key="lesson" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-6">
+                  {(lesson as any).videoUrl && (
+                    <div className="rounded-2xl overflow-hidden bg-black border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                      <video
+                        src={(lesson as any).videoUrl}
+                        controls
+                        controlsList="nodownload"
+                        className="w-full max-h-[480px] outline-none"
+                        preload="metadata"
+                        playsInline
+                      >
+                        {t("Your browser does not support the video tag.", "متصفحك لا يدعم تشغيل الفيديو.", "Browserkaagu kuma taageero fiidiyowga.")}
+                      </video>
+                    </div>
+                  )}
                   <div className="p-6 rounded-2xl bg-card border border-white/10 prose prose-invert max-w-none">
                     {getContent(lesson).split('\n').map((para: string, i: number) => (
                       para.trim() ? <p key={i} className="text-gray-300 leading-relaxed mb-4">{para}</p> : null
