@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { ensureStorageBucket } from "./lib/supabaseAdmin";
+import { ensureSchema, seedIfEmpty } from "./lib/seed";
 import { pool } from "@workspace/db";
 
 const rawPort = process.env["PORT"];
@@ -46,4 +47,8 @@ app.listen(port, (err) => {
   ensureStorageBucket().catch((e) =>
     logger.warn({ err: e }, "[storage] Bucket initialization failed"),
   );
+
+  ensureSchema()
+    .then(() => seedIfEmpty())
+    .catch((e) => logger.warn({ err: e }, "[seed] Seed failed"));
 });
