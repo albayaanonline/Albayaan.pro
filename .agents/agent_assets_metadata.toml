@@ -1,8 +1,19 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "in8e2Ha_k6RIUB1qePYwX"
+uri = "file://attached_assets/generated_images/premium_english_language_learning_b402.png"
+type = "image"
+title = "generated_image"
 
 [[outputs]]
 id = "0tRB_Y26_kIZGZYzi0mBN"
 uri = "file://albayaan-pro.tar.gz"
 type = "unspecified"
 title = "albayaan-pro — TypeScript Fixed (Vercel Ready)"
+
+[[outputs]]
+id = "HAhS-VbMdaE1oZY0h85it"
+uri = "file://attached_assets/generated_images/premium_english_language_learning_b402.png"
+type = "image"
+title = "English Beginner — Thumbnail (Supabase)"
