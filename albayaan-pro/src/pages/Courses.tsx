@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Clock, ArrowRight, Search, Star, Users, Filter, X } from "lucide-react";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
-import { COURSES, type Course } from "@/data/courses";
 
 const LEVEL_COLORS: Record<string, string> = {
   beginner:     "bg-green-500/20 text-green-400 border-green-500/30",
@@ -17,11 +17,58 @@ const LEVEL_LABELS: Record<string, [string, string, string]> = {
   advanced:     ["Advanced",     "متقدم",    "Sare"],
 };
 
-function CourseCard({ course, index }: { course: Course; index: number }) {
+const LANG_COLOR: Record<string, string> = {
+  english:      "from-blue-500 to-cyan-400",
+  arabic:       "from-green-500 to-emerald-400",
+  multilingual: "from-purple-500 to-pink-400",
+};
+
+const LANG_EMOJI: Record<string, string> = {
+  english:      "🇬🇧",
+  arabic:       "🇸🇦",
+  multilingual: "🌍",
+};
+
+export interface ApiCourse {
+  id: number;
+  slug: string;
+  title: string;
+  titleAr: string;
+  titleSo: string;
+  description: string;
+  descriptionAr: string;
+  descriptionSo: string;
+  language: string;
+  level: string;
+  price: number;
+  lessonCount: number;
+  duration: string;
+  thumbnailUrl: string | null;
+  enrolledCount: number;
+  isPublished: boolean;
+}
+
+function CourseCardSkeleton() {
+  return (
+    <div className="rounded-2xl bg-card border border-white/10 overflow-hidden animate-pulse">
+      <div className="aspect-video bg-white/5" />
+      <div className="p-5 space-y-3">
+        <div className="h-5 bg-white/10 rounded w-3/4" />
+        <div className="h-4 bg-white/5 rounded w-full" />
+        <div className="h-4 bg-white/5 rounded w-2/3" />
+        <div className="h-8 bg-white/10 rounded-xl mt-4" />
+      </div>
+    </div>
+  );
+}
+
+function CourseCard({ course, index }: { course: ApiCourse; index: number }) {
   const { t, language } = useLanguage();
   const title = language === "ar" ? course.titleAr : language === "so" ? course.titleSo : course.title;
   const desc  = language === "ar" ? course.descriptionAr : language === "so" ? course.descriptionSo : course.description;
   const lvl   = LEVEL_LABELS[course.level];
+  const color = LANG_COLOR[course.language] ?? "from-purple-500 to-pink-400";
+  const emoji = LANG_EMOJI[course.language] ?? "📚";
 
   return (
     <motion.div
@@ -31,26 +78,33 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
       transition={{ delay: Math.min(index * 0.05, 0.3) }}
       className="rounded-2xl bg-card border border-white/10 overflow-hidden hover:border-primary/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] transition-all duration-300 group flex flex-col"
     >
-      {/* Thumbnail */}
-      <div className={`relative aspect-video bg-gradient-to-br ${course.color} flex items-center justify-center overflow-hidden`}>
-        {course.thumbnailUrl
-          ? <img src={course.thumbnailUrl} alt={course.title} className="absolute inset-0 w-full h-full object-cover" />
-          : <span className="text-6xl">{course.thumbnail}</span>
-        }
+      <div className={`relative aspect-video bg-gradient-to-br ${color} flex items-center justify-center overflow-hidden`}>
+        {course.thumbnailUrl ? (
+          <img
+            src={course.thumbnailUrl}
+            alt={course.title}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            onError={(e) => {
+              const el = e.target as HTMLImageElement;
+              el.style.display = "none";
+            }}
+          />
+        ) : (
+          <span className="text-6xl">{emoji}</span>
+        )}
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute top-3 left-3">
-          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${LEVEL_COLORS[course.level]}`}>
+          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${LEVEL_COLORS[course.level] ?? LEVEL_COLORS.beginner}`}>
             {lvl ? t(lvl[0], lvl[1], lvl[2]) : course.level}
           </span>
         </div>
         <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-          <span className="text-white text-xs font-bold">{course.rating}</span>
-          <span className="text-white/60 text-xs">({course.ratingCount})</span>
+          <span className="text-white text-xs font-bold">4.9</span>
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-5 flex flex-col flex-1">
         <h3 className="font-bold text-lg text-foreground mb-2 leading-tight group-hover:text-primary transition-colors line-clamp-2">
           {title}
@@ -59,8 +113,8 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
           <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {course.lessonCount} {t("lessons", "دروس", "casharro")}</span>
-          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {course.duration}</span>
-          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {course.enrolledCount.toLocaleString()}</span>
+          {course.duration && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {course.duration}</span>}
+          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {(course.enrolledCount ?? 0).toLocaleString()}</span>
         </div>
 
         <div className="flex items-center justify-between">
@@ -82,12 +136,22 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
 
 export default function Courses() {
   const { t } = useLanguage();
-  const [search, setSearch]       = useState("");
+  const [search, setSearch]         = useState("");
   const [langFilter, setLangFilter] = useState<"all" | "english" | "arabic">("all");
   const [lvlFilter, setLvlFilter]   = useState<"all" | "beginner" | "intermediate" | "advanced">("all");
 
+  const { data: courses = [], isLoading } = useQuery<ApiCourse[]>({
+    queryKey: ["/api/courses"],
+    queryFn: async () => {
+      const res = await fetch("/api/courses");
+      if (!res.ok) throw new Error("Failed to load courses");
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 2,
+  });
+
   const filtered = useMemo(() => {
-    return COURSES.filter(c => {
+    return courses.filter(c => {
       const q = search.toLowerCase();
       const matchSearch =
         !q ||
@@ -98,7 +162,7 @@ export default function Courses() {
       const matchLvl  = lvlFilter  === "all" || c.level    === lvlFilter;
       return matchSearch && matchLang && matchLvl;
     });
-  }, [search, langFilter, lvlFilter]);
+  }, [courses, search, langFilter, lvlFilter]);
 
   const hasFilters = langFilter !== "all" || lvlFilter !== "all" || search;
   const clearFilters = () => { setSearch(""); setLangFilter("all"); setLvlFilter("all"); };
@@ -107,7 +171,6 @@ export default function Courses() {
     <div className="min-h-screen pt-8 pb-16">
       <div className="max-w-7xl mx-auto px-4">
 
-        {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12 mb-2">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-sm font-medium text-blue-400 mb-4">
             <BookOpen className="w-4 h-4" />
@@ -118,13 +181,15 @@ export default function Courses() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500"> {t("Courses", "المتاحة", "La Heli Karo")}</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            {t("6 complete courses — English & Arabic at every level. One-time payment, lifetime access.", "6 دورات كاملة — إنجليزية وعربية في كل المستويات. دفعة واحدة، وصول مدى الحياة.", "6 koorso oo dhamaystiran — Ingiriisi & Carabi heer walba. Hal mar bixi, weligeed gal.")}
+            {t(
+              "English and Arabic language courses designed for Somali learners. One-time payment, lifetime access.",
+              "دورات اللغة الإنجليزية والعربية مصممة للمتعلمين الصوماليين. دفعة واحدة، وصول مدى الحياة.",
+              "Koorsooyinka luqadda Ingiriisiga iyo Carabiga ee loogu talagalay ardayda Soomaalida. Hal mar bixi, weligeed gal.",
+            )}
           </p>
         </motion.div>
 
-        {/* Search & Filters */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 space-y-4">
-          {/* Search */}
           <div className="relative max-w-md mx-auto">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -136,11 +201,9 @@ export default function Courses() {
             />
           </div>
 
-          {/* Filter Chips */}
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
 
-            {/* Language filter */}
             {(["all", "english", "arabic"] as const).map(lang => (
               <button
                 key={lang}
@@ -151,20 +214,20 @@ export default function Courses() {
                     : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground border border-white/10"
                 }`}
               >
-                {lang === "all" ? t("All Languages", "جميع اللغات", "Dhammaan Luuqadaha")
+                {lang === "all"
+                  ? t("All Languages", "جميع اللغات", "Dhammaan Luuqadaha")
                   : lang === "english" ? "🇬🇧 English" : "🇸🇦 Arabic"}
               </button>
             ))}
 
             <div className="w-px h-5 bg-white/20" />
 
-            {/* Level filter */}
             {(["all", "beginner", "intermediate", "advanced"] as const).map(lvl => {
               const labels: Record<string, string> = {
-                all: t("All Levels", "جميع المستويات", "Dhammaan Heerarka"),
-                beginner: t("Beginner", "مبتدئ", "Bilaabe"),
-                intermediate: t("Intermediate", "متوسط", "Dhexe"),
-                advanced: t("Advanced", "متقدم", "Sare"),
+                all:          t("All Levels",    "جميع المستويات", "Dhammaan Heerarka"),
+                beginner:     t("Beginner",      "مبتدئ",           "Bilaabe"),
+                intermediate: t("Intermediate",  "متوسط",           "Dhexe"),
+                advanced:     t("Advanced",      "متقدم",           "Sare"),
               };
               return (
                 <button
@@ -188,26 +251,26 @@ export default function Courses() {
             )}
           </div>
 
-          {/* Results count */}
           <p className="text-center text-sm text-muted-foreground">
-            {filtered.length} {t("courses found", "دورة موجودة", "koorso la helay")}
+            {isLoading
+              ? t("Loading…", "جاري التحميل…", "Waa la soo rarayo…")
+              : `${filtered.length} ${t("courses found", "دورة موجودة", "koorso la helay")}`}
           </p>
         </motion.div>
 
-        {/* Grid */}
         <AnimatePresence mode="popLayout">
-          {filtered.length > 0 ? (
+          {isLoading ? (
+            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => <CourseCardSkeleton key={i} />)}
+            </motion.div>
+          ) : filtered.length > 0 ? (
             <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((course, i) => (
                 <CourseCard key={course.id} course={course} index={i} />
               ))}
             </motion.div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-20"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
               <div className="text-5xl mb-4">🔍</div>
               <h3 className="text-xl font-bold text-foreground mb-2">{t("No courses found", "لم يتم العثور على دورات", "Koorso lama helin")}</h3>
               <p className="text-muted-foreground mb-4">{t("Try different filters or search terms", "جرب فلاتر أو مصطلحات بحث مختلفة", "Isku day shaandhaynta ama ereyada raadinta kala duwan")}</p>
@@ -218,13 +281,13 @@ export default function Courses() {
           )}
         </AnimatePresence>
 
-        {/* Trust Section */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mt-20 text-center">
           <p className="text-muted-foreground text-xs uppercase tracking-widest mb-4">{t("Secure Payment Methods", "طرق الدفع الآمنة", "Habab Lacag Bixin oo Ammaan ah")}</p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             {[
-              { n: "Zaad", e: "📱" }, { n: "Waafi Pay", e: "💰" }, { n: "VISA", e: "💳" },
-              { n: "Mastercard", e: "🔴" }, { n: "PayPal", e: "🅿️" }, { n: "Stripe", e: "⚡" },
+              { n: "Zaad",      e: "📱" }, { n: "Waafi Pay", e: "💰" },
+              { n: "VISA",      e: "💳" }, { n: "Mastercard", e: "🔴" },
+              { n: "PayPal",    e: "🅿️" }, { n: "Stripe",    e: "⚡" },
             ].map(p => (
               <div key={p.n} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-muted-foreground">
                 <span>{p.e}</span> <span className="font-medium">{p.n}</span>
