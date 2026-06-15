@@ -71,7 +71,10 @@ export default function CourseDetail() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               {/* Thumbnail banner */}
               <div className={`aspect-video w-full rounded-2xl bg-gradient-to-br ${course.color} flex items-center justify-center mb-6 relative overflow-hidden`}>
-                <span className="text-8xl">{course.thumbnail}</span>
+                {course.thumbnailUrl
+                  ? <img src={course.thumbnailUrl} alt={course.title} className="absolute inset-0 w-full h-full object-cover" />
+                  : <span className="text-8xl">{course.thumbnail}</span>
+                }
                 <div className="absolute inset-0 bg-black/20" />
                 <div className="absolute top-4 left-4">
                   <span className={`px-3 py-1.5 rounded-full text-sm font-bold border ${LEVEL_COLORS[course.level]}`}>

@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { CheckCircle2, ArrowLeft, ArrowRight, BookOpen, HelpCircle, Loader2, Trophy, XCircle } from "lucide-react";
 import { Link } from "wouter";
+import { getCourseById } from "@/data/courses";
 
 export default function Learn() {
   const { courseId, lessonId } = useParams();
@@ -27,10 +28,14 @@ export default function Learn() {
   const lessonIdNum = Number(lessonId);
   const courseIdNum = Number(courseId);
 
+  const isStaticLesson = isNaN(lessonIdNum) || isNaN(courseIdNum);
+  const staticCourse = isStaticLesson ? getCourseById(courseId || "") : null;
+  const staticLesson = staticCourse?.lessons.find(l => l.id === lessonId) ?? null;
+
   const { data: lesson, isLoading: lessonLoading } = useGetLesson(lessonIdNum, {
     query: {
       queryKey: getGetLessonQueryKey(lessonIdNum),
-      enabled: !!courseId && !!lessonId,
+      enabled: !isStaticLesson && !!courseId && !!lessonId,
     },
   });
 
@@ -88,7 +93,7 @@ export default function Learn() {
     );
   }
 
-  if (!lesson) {
+  if (!lesson && !staticLesson) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background flex-col gap-4">
         <p className="text-muted-foreground">{t("Lesson not found", "الدرس غير موجود", "Casharka lama helin")}</p>
@@ -99,7 +104,8 @@ export default function Learn() {
     );
   }
 
-  const typedLesson = lesson;
+  const typedLesson = (lesson ?? staticLesson) as NonNullable<typeof lesson> & { videoUrl?: string };
+  const videoUrl = (lesson as any)?.videoUrl ?? staticLesson?.videoUrl;
   const typedQuiz = quiz as Quiz | undefined;
 
   return (
@@ -144,6 +150,17 @@ export default function Learn() {
                   exit={{ opacity: 0, x: 10 }}
                   className="space-y-6"
                 >
+                  {videoUrl && (
+                    <div className="rounded-2xl overflow-hidden bg-black border border-white/10 mb-6">
+                      <video
+                        src={videoUrl}
+                        controls
+                        className="w-full max-h-[480px]"
+                        controlsList="nodownload"
+                        playsInline
+                      />
+                    </div>
+                  )}
                   <div className="p-6 rounded-2xl bg-card border border-white/10 prose prose-invert max-w-none">
                     {getContent(typedLesson).split('\n').map((para, i) => (
                       para.trim() ? <p key={i} className="text-gray-300 leading-relaxed mb-4">{para}</p> : null

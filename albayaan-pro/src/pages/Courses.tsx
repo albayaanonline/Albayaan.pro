@@ -33,7 +33,10 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
     >
       {/* Thumbnail */}
       <div className={`relative aspect-video bg-gradient-to-br ${course.color} flex items-center justify-center overflow-hidden`}>
-        <span className="text-6xl">{course.thumbnail}</span>
+        {course.thumbnailUrl
+          ? <img src={course.thumbnailUrl} alt={course.title} className="absolute inset-0 w-full h-full object-cover" />
+          : <span className="text-6xl">{course.thumbnail}</span>
+        }
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute top-3 left-3">
           <span className={`px-3 py-1 rounded-full text-xs font-bold border ${LEVEL_COLORS[course.level]}`}>

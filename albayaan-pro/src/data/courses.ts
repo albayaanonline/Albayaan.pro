@@ -28,6 +28,7 @@ export interface Course {
   lessonCount: number;
   enrolledCount: number;
   thumbnail: string;
+  thumbnailUrl?: string;
   color: string;
   gradient: string;
   lessons: Lesson[];
@@ -50,9 +51,10 @@ const englishBeginner: Course = {
   level: "beginner",
   price: 15,
   duration: "8 weeks",
-  lessonCount: 12,
+  lessonCount: 13,
   enrolledCount: 2847,
   thumbnail: "🇬🇧",
+  thumbnailUrl: "https://xokrirmhuxhugofgheev.supabase.co/storage/v1/object/public/thumbnails/english-beginner-thumb.png",
   color: "from-blue-500 to-cyan-400",
   gradient: "bg-gradient-to-br from-blue-600/20 to-cyan-500/20",
   category: "English",
@@ -60,6 +62,19 @@ const englishBeginner: Course = {
   ratingCount: 412,
   certificate: true,
   lessons: [
+    {
+      id: "en-b-0",
+      title: "English Beginner",
+      titleAr: "مبتدئ الإنجليزية",
+      titleSo: "English Beginner",
+      duration: "50 min",
+      isLocked: false,
+      hasQuiz: false,
+      videoUrl: "https://xokrirmhuxhugofgheev.supabase.co/storage/v1/object/public/videos/english-beginner-intro.mp4",
+      content: "Welcome to the English Beginner lesson. In this lesson you will learn the basics of the English language, including greetings, common phrases, and simple grammar.\n\nTopics covered:\n- Alphabet and pronunciation\n- Basic greetings (Hello, Good morning, How are you?)\n- Numbers 1–20\n- Common everyday words\n- Simple sentences",
+      contentAr: "مرحباً بك في درس مبتدئ الإنجليزية. في هذا الدرس ستتعلم أساسيات اللغة الإنجليزية، بما في ذلك التحيات والعبارات الشائعة والقواعد البسيطة.",
+      contentSo: "Ku soo dhawow casharka English Beginner. Casharkan waxaad ku baranaysaa aasaaska luqadda Ingiriisiga.\n\nMawduucyada la daboolayo:\n- Xarfaha iyo sida loo dhawaaqa\n- Salaamaha asaasiga ah (Hello, Good morning, How are you?)\n- Tirada 1-20\n- Ereyada maalinlaha ah\n- Jumlad fudud",
+    },
     { id: "en-b-1", title: "The English Alphabet", titleAr: "الأبجدية الإنجليزية", titleSo: "Xarfaha Ingiriisiga", duration: "12 min", isLocked: false, hasQuiz: true, content: "Learn all 26 letters of the English alphabet with proper pronunciation. Practice vowels (A, E, I, O, U) and consonants. We will learn how each letter sounds and practice writing them.", contentAr: "تعلم جميع الـ 26 حرفاً في الأبجدية الإنجليزية مع النطق الصحيح.", contentSo: "Baro dhammaan 26 xaraf ee alifbeetada Ingiriisiga oo leh dhawaaqa saxda ah." },
     { id: "en-b-2", title: "Greetings & Introductions", titleAr: "التحيات والمقدمات", titleSo: "Salaamaha & Is-barashada", duration: "15 min", isLocked: false, hasQuiz: true, content: "Hello, Hi, Good morning, Good afternoon, Good evening, Good night. How are you? I am fine. What is your name? My name is... Nice to meet you. Where are you from?", contentAr: "مرحبا، صباح الخير، مساء الخير، كيف حالك؟ اسمي...", contentSo: "Salaan, Subax wanaagsan, Galab wanaagsan. Magacaygu waa..." },
     { id: "en-b-3", title: "Numbers 1–100", titleAr: "الأرقام من 1 إلى 100", titleSo: "Tirooyin 1-100", duration: "18 min", isLocked: false, hasQuiz: true, content: "One, two, three... Count from 1 to 20, then learn tens: twenty, thirty, forty. Combine to make any number. Practice counting money, ages, and phone numbers.", contentAr: "واحد، اثنان، ثلاثة... تعلم العد من 1 إلى 100.", contentSo: "Kow, labo, saddex... Barasho tirada 1 ilaa 100." },
