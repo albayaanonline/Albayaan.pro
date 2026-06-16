@@ -3,7 +3,7 @@ import { Pool } from "pg";
 import bcrypt from "bcryptjs";
 import { createHmac } from "crypto";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function getSecret(): string {

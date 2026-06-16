@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Pool } from "pg";
 import { createHmac } from "crypto";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
 function getSecret(): string {
   return process.env.SESSION_SECRET ?? "albayaan-secret-fallback";
