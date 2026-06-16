@@ -1,7 +1,18 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Pool } from "pg";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+let pool: Pool | null = null;
+
+function getPool(): Pool {
+  if (!pool) {
+    const url = process.env.DATABASE_URL;
+    console.log("[courses] DATABASE_URL present:", Boolean(url));
+    if (!url) throw new Error("DATABASE_URL is not set");
+    pool = new Pool({ connectionString: url, ssl: { rejectUnauthorized: false } });
+    console.log("[courses] Pool created");
+  }
+  return pool;
+}
 
 function setCors(req: VercelRequest, res: VercelResponse): void {
   const origin = (req.headers.origin as string | undefined) || "*";
@@ -20,7 +31,9 @@ export default async function handler(
   if (req.method !== "GET") { res.status(405).json({ error: "Method not allowed" }); return; }
 
   try {
-    const { rows } = await pool.query(`
+    const db = getPool();
+    console.log("[courses] Executing query...");
+    const { rows } = await db.query(`
       SELECT
         c.id,
         c.slug,
@@ -44,9 +57,13 @@ export default async function handler(
       GROUP BY c.id
       ORDER BY c.id ASC
     `);
+    console.log("[courses] Query succeeded, rows:", rows.length);
     res.status(200).json(rows);
   } catch (err: unknown) {
-    console.error("[GET /api/courses]", err);
-    res.status(500).json({ error: "Internal server error" });
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error("[GET /api/courses] EXCEPTION:", msg);
+    if (stack) console.error("[GET /api/courses] STACK:", stack);
+    res.status(500).json({ error: msg, stack });
   }
 }
