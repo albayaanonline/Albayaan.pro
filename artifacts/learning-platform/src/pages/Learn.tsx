@@ -443,20 +443,66 @@ export default function Learn() {
             <AnimatePresence mode="wait">
               {tab === "lesson" && (
                 <motion.div key="lesson" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-6">
-                  {(lesson as any).videoUrl && (
-                    <div className="rounded-2xl overflow-hidden bg-black border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                      <video
-                        src={(lesson as any).videoUrl}
-                        controls
-                        controlsList="nodownload"
-                        className="w-full max-h-[480px] outline-none"
-                        preload="metadata"
-                        playsInline
-                      >
-                        {t("Your browser does not support the video tag.", "متصفحك لا يدعم تشغيل الفيديو.", "Browserkaagu kuma taageero fiidiyowga.")}
-                      </video>
-                    </div>
-                  )}
+                  {(lesson as any).videoUrl && (() => {
+                    const url: string = (lesson as any).videoUrl;
+
+                    // YouTube: watch?v=, youtu.be/, /embed/
+                    const ytMatch =
+                      url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
+                      url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/) ||
+                      url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+
+                    // Vimeo: vimeo.com/12345 or player.vimeo.com/video/12345
+                    const vimeoMatch =
+                      url.match(/vimeo\.com\/video\/(\d+)/) ||
+                      url.match(/vimeo\.com\/(\d+)/);
+
+                    if (ytMatch) {
+                      const embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?rel=0&modestbranding=1`;
+                      return (
+                        <div className="rounded-2xl overflow-hidden bg-black border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] aspect-video">
+                          <iframe
+                            src={embedUrl}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title="YouTube video"
+                          />
+                        </div>
+                      );
+                    }
+
+                    if (vimeoMatch) {
+                      const embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}?byline=0&portrait=0`;
+                      return (
+                        <div className="rounded-2xl overflow-hidden bg-black border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] aspect-video">
+                          <iframe
+                            src={embedUrl}
+                            className="w-full h-full"
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                            title="Vimeo video"
+                          />
+                        </div>
+                      );
+                    }
+
+                    // Direct MP4 / any other URL
+                    return (
+                      <div className="rounded-2xl overflow-hidden bg-black border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                        <video
+                          src={url}
+                          controls
+                          controlsList="nodownload"
+                          className="w-full max-h-[480px] outline-none"
+                          preload="metadata"
+                          playsInline
+                        >
+                          {t("Your browser does not support the video tag.", "متصفحك لا يدعم تشغيل الفيديو.", "Browserkaagu kuma taageero fiidiyowga.")}
+                        </video>
+                      </div>
+                    );
+                  })()}
                   <div className="p-6 rounded-2xl bg-card border border-white/10 prose prose-invert max-w-none">
                     {getContent(lesson).split('\n').map((para: string, i: number) => (
                       para.trim() ? <p key={i} className="text-gray-300 leading-relaxed mb-4">{para}</p> : null
