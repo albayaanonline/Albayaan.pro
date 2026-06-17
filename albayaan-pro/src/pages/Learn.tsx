@@ -150,17 +150,56 @@ export default function Learn() {
                   exit={{ opacity: 0, x: 10 }}
                   className="space-y-6"
                 >
-                  {videoUrl && (
-                    <div className="rounded-2xl overflow-hidden bg-black border border-white/10 mb-6">
-                      <video
-                        src={videoUrl}
-                        controls
-                        className="w-full max-h-[480px]"
-                        controlsList="nodownload"
-                        playsInline
-                      />
-                    </div>
-                  )}
+                  {videoUrl && (() => {
+                    const ytMatch =
+                      videoUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
+                      videoUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/) ||
+                      videoUrl.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+
+                    const vimeoMatch =
+                      videoUrl.match(/vimeo\.com\/video\/(\d+)/) ||
+                      videoUrl.match(/vimeo\.com\/(\d+)/);
+
+                    if (ytMatch) {
+                      return (
+                        <div className="rounded-2xl overflow-hidden bg-black border border-white/10 mb-6 aspect-video">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${ytMatch[1]}?rel=0&modestbranding=1`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title="YouTube video"
+                          />
+                        </div>
+                      );
+                    }
+
+                    if (vimeoMatch) {
+                      return (
+                        <div className="rounded-2xl overflow-hidden bg-black border border-white/10 mb-6 aspect-video">
+                          <iframe
+                            src={`https://player.vimeo.com/video/${vimeoMatch[1]}?byline=0&portrait=0`}
+                            className="w-full h-full"
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                            title="Vimeo video"
+                          />
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="rounded-2xl overflow-hidden bg-black border border-white/10 mb-6">
+                        <video
+                          src={videoUrl}
+                          controls
+                          className="w-full max-h-[480px]"
+                          controlsList="nodownload"
+                          playsInline
+                        />
+                      </div>
+                    );
+                  })()}
                   <div className="p-6 rounded-2xl bg-card border border-white/10 prose prose-invert max-w-none">
                     {getContent(typedLesson).split('\n').map((para, i) => (
                       para.trim() ? <p key={i} className="text-gray-300 leading-relaxed mb-4">{para}</p> : null
