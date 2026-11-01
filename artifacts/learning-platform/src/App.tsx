@@ -15,6 +15,7 @@ import AIChat           from "@/pages/AIChat";
 import Courses          from "@/pages/Courses";
 import Curriculum       from "@/pages/Curriculum";
 import CourseDetail     from "@/pages/CourseDetail";
+import YouTubeCourse    from "@/pages/YouTubeCourse";
 import Learn            from "@/pages/Learn";
 import Dashboard        from "@/pages/Dashboard";
 import MyCertificates   from "@/pages/MyCertificates";
@@ -90,6 +91,7 @@ function App() {
                         <Route path="/"                               component={Home} />
                         <Route path="/curriculum"                    component={Curriculum} />
                         <Route path="/courses"                       component={Courses} />
+                        <Route path="/courses/youtube/:slug"          component={YouTubeCourse} />
                         <Route path="/courses/:courseId"             component={CourseDetail} />
                         <Route path="/learn/:courseId/:lessonId"     component={Learn} />
                         <Route path="/about"                         component={About} />
