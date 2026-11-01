@@ -2,9 +2,10 @@ import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Clock, ArrowRight, Search, Star, Users, Filter, X, Globe, Flame } from "lucide-react";
+import { BookOpen, Clock, ArrowRight, Search, Star, Users, Filter, X, Globe, Flame, Youtube } from "lucide-react";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 import { resolveApiUrl } from "@/lib/adminFetch";
+import { YOUTUBE_COURSES, type YouTubeCourse } from "@/data/youtubeCourses";
 
 const LEVEL_COLORS: Record<string, string> = {
   beginner:     "bg-green-500/20 text-green-400 border-green-500/30",
@@ -143,6 +144,71 @@ function CourseCard({ course, index }: { course: ApiCourse; index: number }) {
   );
 }
 
+function YouTubeCourseCard({ course, index }: { course: YouTubeCourse; index: number }) {
+  const { t, language } = useLanguage();
+  const title = course.title[language];
+  const description = course.description[language];
+  const gradient = course.language === "arabic" ? "from-green-600 to-emerald-500" : "from-blue-600 to-cyan-500";
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.06, 0.24) }}
+      className="rounded-2xl bg-card border border-white/10 overflow-hidden hover:border-red-500/30 hover:shadow-[0_0_30px_rgba(239,68,68,0.08)] transition-all duration-300 flex flex-col"
+    >
+      <div className={`relative aspect-[16/8] bg-gradient-to-br ${gradient} flex items-center justify-center overflow-hidden`}>
+        <div className="absolute inset-0 bg-black/15" />
+        <Youtube className="relative w-14 h-14 text-white drop-shadow-lg" aria-hidden="true" />
+        <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-black/45 border border-white/15 text-xs font-bold text-white">
+          {t("YouTube playlist", "قائمة يوتيوب", "Liis YouTube")}
+        </span>
+        <span className="absolute top-3 right-3 px-3 py-1 rounded-full bg-black/45 border border-white/15 text-xs font-bold text-white">
+          {t("Free", "مجانية", "Bilaash")}
+        </span>
+      </div>
+
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-green-500/10 border border-green-500/20 text-green-300">
+            {t("Beginner", "مبتدئ", "Bilaabe")}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {course.language === "arabic"
+              ? t("Arabic", "العربية", "Carabi")
+              : t("English", "الإنجليزية", "Ingiriisi")}
+          </span>
+        </div>
+        <h3 className="font-bold text-lg text-foreground mb-2 leading-tight line-clamp-2">
+          {title}
+        </h3>
+        <p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3 flex-1">
+          {description}
+        </p>
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground mb-4">
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Youtube className="w-3.5 h-3.5 text-red-400 shrink-0" />
+            <span className="truncate">{course.sourceChannel}</span>
+          </span>
+          {course.lessonCount && (
+            <span className="flex items-center gap-1 shrink-0">
+              <BookOpen className="w-3.5 h-3.5" />
+              {course.lessonCount}
+            </span>
+          )}
+        </div>
+        <Link
+          href={`/courses/youtube/${course.slug}`}
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-600/90 hover:bg-red-500 text-white text-sm font-bold transition-colors"
+        >
+          {t("Watch course", "شاهد الدورة", "Daawo koorsada")}
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+    </motion.article>
+  );
+}
+
 export default function Courses() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
@@ -169,8 +235,29 @@ export default function Courses() {
     });
   }, [courses, search, langFilter, lvlFilter]);
 
+  const filteredYouTubeCourses = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return YOUTUBE_COURSES.filter(course => {
+      const searchableText = [
+        course.title.en,
+        course.title.ar,
+        course.title.so,
+        course.description.en,
+        course.description.ar,
+        course.description.so,
+        course.sourceTitle,
+        course.sourceChannel,
+      ].join(" ").toLowerCase();
+      const matchSearch = !query || searchableText.includes(query);
+      const matchLanguage = langFilter === "all" || course.language === langFilter;
+      const matchLevel = lvlFilter === "all" || course.level === lvlFilter;
+      return matchSearch && matchLanguage && matchLevel;
+    });
+  }, [search, langFilter, lvlFilter]);
+
   const hasFilters = langFilter !== "all" || lvlFilter !== "all" || search;
   const clearFilters = () => { setSearch(""); setLangFilter("all"); setLvlFilter("all"); };
+  const resultCount = filtered.length + filteredYouTubeCourses.length;
 
   return (
     <div className="min-h-screen pt-8 pb-16">
@@ -205,7 +292,9 @@ export default function Courses() {
                 arabic:       t("Arabic", "العربية", "Carabiga"),
                 multilingual: t("Multilingual", "متعدد اللغات", "Luqado Badan"),
               };
-              const count = lang === "all" ? courses.length : courses.filter(c => c.language === lang).length;
+              const count = lang === "all"
+                ? courses.length + YOUTUBE_COURSES.length
+                : courses.filter(c => c.language === lang).length + YOUTUBE_COURSES.filter(c => c.language === lang).length;
               return (
                 <button key={lang} onClick={() => setLangFilter(lang)}
                   className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
@@ -265,9 +354,37 @@ export default function Courses() {
           </div>
 
           <p className="text-center text-sm text-muted-foreground">
-            {isLoading ? t("Loading…", "جاري التحميل…", "Waa la soo rarayo…") : `${filtered.length} ${t("courses found", "دورة موجودة", "koorso la helay")}`}
+            {isLoading ? t("Loading…", "جاري التحميل…", "Waa la soo rarayo…") : `${resultCount} ${t("courses found", "دورة موجودة", "koorso la helay")}`}
           </p>
         </motion.div>
+
+        {filteredYouTubeCourses.length > 0 && (
+          <section className="mb-14" aria-labelledby="youtube-courses-heading">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
+              <div>
+                <div className="inline-flex items-center gap-2 text-red-300 text-sm font-semibold mb-2">
+                  <Youtube className="w-4 h-4" />
+                  {t("Learn from real YouTube lessons", "تعلم من دروس يوتيوب حقيقية", "Ka baro casharro YouTube oo dhab ah")}
+                </div>
+                <h2 id="youtube-courses-heading" className="text-2xl md:text-3xl font-black text-foreground">
+                  {t("Free YouTube Courses", "دورات يوتيوب مجانية", "Koorsooyin YouTube oo Bilaash ah")}
+                </h2>
+              </div>
+              <p className="text-sm text-muted-foreground max-w-lg">
+                {t(
+                  "Complete public playlists from their original creators, played directly through YouTube.",
+                  "قوائم تشغيل عامة كاملة من منشئيها الأصليين، تُعرض مباشرة عبر يوتيوب.",
+                  "Liisaska casharrada dadweynaha ee abuureyaashooda, si toos ahna YouTube looga daawanayo."
+                )}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredYouTubeCourses.map((course, index) => (
+                <YouTubeCourseCard key={course.slug} course={course} index={index} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Grid */}
         <AnimatePresence mode="popLayout">
@@ -281,7 +398,7 @@ export default function Courses() {
                 <CourseCard key={course.id} course={course} index={i} />
               ))}
             </motion.div>
-          ) : (
+          ) : filteredYouTubeCourses.length > 0 ? null : (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
               <div className="text-5xl mb-4">🔍</div>
               <h3 className="text-xl font-bold text-foreground mb-2">{t("No courses found", "لم يتم العثور على دورات", "Koorso lama helin")}</h3>
